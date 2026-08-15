@@ -186,6 +186,18 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   const isStandalone = isFullPage || !onClose;
   const alamatDisplay = config.alamatSekretariat || 'JL. Jampang No. 111 Kel. Jatimulya Kab.Bekasi Jawabarat';
 
+  // Nama pengurus untuk kartu informasi di portal login.
+  // Nilai bawaan lama seperti "Ketua RT 004" dianggap belum diisi agar nama
+  // sebenarnya tetap tampil walau config lama masih tersimpan di perangkat.
+  const PLACEHOLDER_NAMA = ['ketua rt 004', 'sekretaris rt 004', 'ketua rt', 'sekretaris rt'];
+  const resolveNama = (value: string | undefined, fallback: string): string => {
+    const clean = (value || '').trim();
+    return !clean || PLACEHOLDER_NAMA.includes(clean.toLowerCase()) ? fallback : clean;
+  };
+  const namaKetuaDisplay = resolveNama(config.namaKetuaRT, 'Yanto');
+  const namaSekretarisDisplay = resolveNama(config.namaSekretaris, 'Iwan Trias Andono');
+  const namaAdministratorDisplay = 'Dicky Wahyudi';
+
   const cardContent = (
     <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row my-auto animate-in zoom-in-95 duration-200">
       {/* Left Side: Official Identity Branding */}
@@ -224,11 +236,15 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-slate-400 font-medium">Ketua RT 004 :</span>
-              <span className="font-bold text-emerald-300">{config.namaKetuaRT || 'Yanto'}</span>
+              <span className="font-bold text-emerald-300">{namaKetuaDisplay}</span>
             </div>
             <div className="flex items-center justify-between border-t border-white/10 pt-2">
               <span className="text-slate-400 font-medium">Sekretaris RT :</span>
-              <span className="font-bold text-blue-300">{config.namaSekretaris || 'Ahmad Fauzi, S.Kom.'}</span>
+              <span className="font-bold text-blue-300">{namaSekretarisDisplay}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-white/10 pt-2">
+              <span className="text-slate-400 font-medium">Administrator :</span>
+              <span className="font-bold text-indigo-300">{namaAdministratorDisplay}</span>
             </div>
             <div className="border-t border-white/10 pt-2 space-y-1">
               <span className="text-slate-400 font-medium block">Alamat Sekretariat :</span>
