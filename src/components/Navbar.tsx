@@ -211,16 +211,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Beralih Akun / Ganti Pengurus"
             >
               <div className={`w-6 h-6 rounded-md text-white flex items-center justify-center text-[10px] font-bold ${
-                currentUser.role === 'ADMIN_KETUA_RT' ? 'bg-emerald-700' : 'bg-slate-800'
+                currentUser.role === 'ADMIN_KETUA_RT'
+                  ? 'bg-emerald-700'
+                  : currentUser.role === 'ADMIN_SISTEM'
+                    ? 'bg-indigo-700'
+                    : 'bg-slate-800'
               }`}>
-                {currentUser.role === 'ADMIN_KETUA_RT' ? 'RT' : 'SK'}
+                {currentUser.role === 'ADMIN_KETUA_RT'
+                  ? 'RT'
+                  : currentUser.role === 'ADMIN_SISTEM'
+                    ? 'AS'
+                    : 'SK'}
               </div>
               <div className="text-left hidden sm:block">
                 <p className="text-[11px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
                   {currentUser.nama.split(' ')[0]} {currentUser.nama.split(' ')[1] || ''}
                 </p>
                 <p className="text-[10px] font-medium text-slate-500 leading-tight">
-                  {currentUser.role === 'ADMIN_KETUA_RT' ? 'Ketua RT' : 'Sekretaris RT'}
+                  {currentUser.role === 'ADMIN_KETUA_RT'
+                    ? 'Ketua RT'
+                    : currentUser.role === 'ADMIN_SISTEM'
+                      ? 'Administrator Sistem'
+                      : 'Sekretaris RT'}
                 </p>
               </div>
             </button>

@@ -1111,6 +1111,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                         setFormRole(val);
                         if (val === 'ADMIN_KETUA_RT') setFormRoleLabel('Ketua RT 004 (Admin Utama)');
                         else if (val === 'ADMIN_SEKRETARIS') setFormRoleLabel('Sekretaris RT 004');
+                        else if (val === 'ADMIN_SISTEM') setFormRoleLabel('Administrator Sistem');
                         else if (val === 'BENDAHARA') setFormRoleLabel('Bendahara RT 004');
                         else if (val === 'SEKSI_KEAMANAN') setFormRoleLabel('Seksi Keamanan & Ketertiban');
                         else setFormRoleLabel('Staf Pelayanan RT');
@@ -1119,6 +1120,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                     >
                       <option value="ADMIN_KETUA_RT">Ketua RT (Admin Utama)</option>
                       <option value="ADMIN_SEKRETARIS">Sekretaris RT</option>
+                      <option value="ADMIN_SISTEM">Administrator Sistem (Akses Penuh)</option>
                       <option value="BENDAHARA">Bendahara RT</option>
                       <option value="SEKSI_KEAMANAN">Seksi Keamanan &amp; Ronda</option>
                       <option value="ADMIN_CUSTOM">Admin / Staf Tambahan</option>

@@ -514,7 +514,8 @@ AS $$
     SELECT 1 FROM public.pengurus_profil p
     WHERE p.id = auth.uid()
       AND p.is_active = TRUE
-      AND p.role IN ('ADMIN_KETUA_RT', 'ADMIN_SEKRETARIS')
+      AND p.role IN ('ADMIN_KETUA_RT', 'ADMIN_SEKRETARIS', 'ADMIN_SISTEM')
+
   );
 $$;
 
@@ -643,8 +644,13 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
 -- INSERT INTO pengurus_profil (id, username, nama_lengkap, role, role_label, email)
 -- VALUES ('UUID-DARI-DASHBOARD', 'ketua_rt004', 'Yanto', 'ADMIN_KETUA_RT', 'Ketua RT 004 (Admin Utama)', 'ketua.rt004@contoh.id');
 --
--- Role yang tersedia: ADMIN_KETUA_RT, ADMIN_SEKRETARIS, BENDAHARA,
--- SEKSI_KEAMANAN, STAF_PELAYANAN.
+-- Role dengan akses penuh (bisa mengatur semua konfigurasi & menghapus data):
+--   ADMIN_KETUA_RT   -> Ketua RT 004 (Admin Utama)
+--   ADMIN_SEKRETARIS -> Sekretaris RT 004
+--   ADMIN_SISTEM     -> Administrator Sistem
+-- Role dengan akses terbatas (tanpa hak hapus data):
+--   BENDAHARA, SEKSI_KEAMANAN, STAF_PELAYANAN
+
 -- 3. Tabel lama pengurus_rt004 (jika ada) sebaiknya dihapus karena
 --    menyimpan PIN dalam bentuk teks biasa:
 --    DROP TABLE IF EXISTS pengurus_rt004;

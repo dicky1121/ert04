@@ -23,8 +23,18 @@ const ROLE_LABELS: Record<string, string> = {
   ADMIN_SEKRETARIS: 'Sekretaris RT 004',
   BENDAHARA: 'Bendahara RT 004',
   SEKSI_KEAMANAN: 'Seksi Keamanan RT 004',
-  STAF_PELAYANAN: 'Staf Pelayanan RT 004'
+  STAF_PELAYANAN: 'Staf Pelayanan RT 004',
+  ADMIN_SISTEM: 'Administrator Sistem'
 };
+
+/** Role dengan akses penuh: boleh mengubah seluruh konfigurasi & hapus data. */
+export const FULL_ACCESS_ROLES: UserRole[] = ['ADMIN_KETUA_RT', 'ADMIN_SEKRETARIS', 'ADMIN_SISTEM'];
+
+/** Cek apakah sebuah role punya akses penuh ke semua konfigurasi. */
+export function hasFullAccess(role?: UserRole | null): boolean {
+  return !!role && FULL_ACCESS_ROLES.includes(role);
+}
+
 
 export interface AuthResult {
   success: boolean;

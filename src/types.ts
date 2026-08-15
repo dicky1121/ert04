@@ -158,7 +158,9 @@ export type UserRole =
   | 'BENDAHARA' 
   | 'SEKSI_KEAMANAN'
   | 'STAF_PELAYANAN'
+  | 'ADMIN_SISTEM'
   | 'ADMIN_CUSTOM'
+
   | string;
 
 export interface PengurusAccount {
