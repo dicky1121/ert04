@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Kependudukan RT 004 RW 007 Kelurahan Jatimulya",
+  "description": "Sistem Informasi Kependudukan & Layanan Persuratan Pengantar RT 004 RW 007 Kelurahan Jatimulya, Kecamatan Tambun Selatan, Kabupaten Bekasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
