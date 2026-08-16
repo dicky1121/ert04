@@ -65,15 +65,28 @@ values (
 Role yang didukung: `ADMIN_KETUA_RT`, `ADMIN_SEKRETARIS`, `BENDAHARA`,
 `SEKSI_KEAMANAN`, `STAF_PELAYANAN`.
 
+### Mengaktifkan pengajuan surat publik
+
+Form **Ajukan Surat Pengantar** pada halaman Sapa Warga menggunakan fungsi RPC
+terbatas. Agar pengajuan masuk ke daftar Surat Pengantar pengurus, jalankan
+[`scripts/setup-public-submission.sql`](scripts/setup-public-submission.sql)
+melalui **Supabase Dashboard → SQL Editor**.
+
+RPC tersebut hanya mengizinkan warga menambahkan satu pengajuan tervalidasi.
+Pengguna anonim tetap tidak mempunyai akses baca, ubah, atau hapus terhadap
+tabel surat maupun data warga.
+
 ## Cara login
 
 - **Mode cloud (kredensial Supabase terisi):** login wajib memakai email +
   password akun Supabase Auth. Password diverifikasi di server, dan peran
   diambil otomatis dari `pengurus_profil` — tidak dipilih manual di browser.
   Tersedia juga tautan "Lupa password?" yang mengirim email reset.
-- **Mode offline/demo (tanpa kredensial Supabase):** aplikasi memakai PIN lokal
-  bawaan (`1234`) dan menyimpan data hanya di `localStorage` perangkat.
-  Mode ini untuk uji coba saja, bukan untuk data warga sebenarnya.
+- **Mode offline/demo (tanpa kredensial Supabase):** tidak ada PIN bawaan.
+  Untuk pengujian lokal, isi `VITE_OFFLINE_DEMO_PIN` di `.env`; jangan pernah
+  mengaturnya di Vercel/produksi karena seluruh variabel `VITE_*` terlihat di
+  bundle browser. Data mode ini hanya tersimpan di `localStorage` dan tidak
+  boleh berisi data warga sebenarnya.
 
 Sinkronisasi data cloud hanya berjalan setelah sesi Supabase terverifikasi
 (dipicu dari `App.tsx`), sesuai policy RLS yang menolak permintaan anonim.
@@ -113,5 +126,18 @@ src/
     authState.ts       # penyimpanan sesi & profil pengurus di memori
     supabaseService.ts # klien Supabase, skema SQL, push/pull data
     storage.ts         # penyimpanan lokal, audit log, ekspor/impor Excel
-  data/initialData.ts  # data contoh untuk mode offline/demo
+  data/initialData.ts  # konfigurasi awal; daftar data warga dimulai kosong
 ```
+
+## Checklist keamanan sebelum push/deploy
+
+- Pastikan `.env`, backup JSON, spreadsheet warga, hasil ekspor, dan dokumen
+  identitas tidak ikut ter-commit (`git status --short`).
+- Gunakan hanya Supabase **anon/public key** di frontend; jangan pernah menaruh
+  `service_role`, JWT secret, password, atau private key di source maupun SQL.
+- Jangan menaruh NIK, nomor KK, nomor HP, tanggal lahir, alamat rinci, atau nama
+  warga nyata sebagai fixture, placeholder, screenshot, maupun template unduhan.
+- Jalankan `npm run lint` dan `npm run build`, lalu tinjau `git diff --check` dan
+  `git diff` sebelum push.
+- Jika secret pernah ter-commit, menghapusnya dari commit terbaru tidak cukup:
+  rotasi secret tersebut dan bersihkan riwayat Git sebelum repository dibuka.

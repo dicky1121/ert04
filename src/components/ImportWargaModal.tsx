@@ -68,15 +68,13 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const samplePengontrak5Col = `NO\tNAMA LENGKAP\tNO NIK / KK\tTTL\tKETERANGAN
-1\tLISA SAFITRI\t3216064205000015\tBekasi, 02-05-2000\tKONTRAKAN PAK HAJI BLOK A
-2\tACHMAD SEFUDIN\t3216222408860008\tJakarta, 24-08-1988\tKONTRAKAN IBU SITI BLOK B
-3\tK. SURYADI\t3216061506710039\tBekasi, 15-06-1971\tKOST DEPAN MASJID
-4\tSITI NURHALIZA\t3216065506950002\tBandung, 10-11-1995\tKONTRAKAN PAK RT GANG 2`;
+1\tWARGA CONTOH 01\t\tKota Contoh, 01-01-1990\tKONTRAKAN CONTOH A
+2\tWARGA CONTOH 02\t\tKota Contoh, 02-02-1991\tKONTRAKAN CONTOH B
+3\tWARGA CONTOH 03\t\tKota Contoh, 03-03-1992\tKOST CONTOH`;
 
   const sampleWargaTetapFormat = `NO KELUARGA\tNO KK\tNIK\tNAMA LENGKAP\tJK\tTANGGAL LAHIR\tNO HP\tNO RM\tALAMAT
-1\t3216060307190030\t3216064205000015\tLISA SAFITRI\tP\t02-05-2000\t0812-8635-7822\t01\tDEPAN AL MUTAZAM
-1\t3216060307190030\t3216064902090001\tAULIA NUR AFIFAH\tP\t09-02-2009\t0812-8635-7822\t01\tDEPAN AL MUTAZAM
-2\t3216062904130019\t3216222408860008\tACHMAD SEFUDIN\tL\t24-08-1988\t\t\tBLK MUSHOLLA ANNUR 1`;
+1\t\t\tWARGA CONTOH 01\tP\t01-01-1990\t\t\tALAMAT CONTOH
+1\t\t\tWARGA CONTOH 02\tL\t02-02-1991\t\t\tALAMAT CONTOH`;
 
   useEffect(() => {
     if (isOpen) {
@@ -367,7 +365,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                     <textarea
                       value={pastedPengontrakText}
                       onChange={(e) => setPastedPengontrakText(e.target.value)}
-                      placeholder={`NO\tNAMA LENGKAP\tNO NIK / KK\tTTL\tKETERANGAN\n1\tLISA SAFITRI\t3216064205000015\tBekasi, 02-05-2000\tKONTRAKAN PAK HAJI BLOK A\n2\tACHMAD SEFUDIN\t3216222408860008\tJakarta, 24-08-1988\tKONTRAKAN IBU SITI BLOK B\n3\tK. SURYADI\t3216061506710039\tBekasi, 15-06-1971\tKOST DEPAN MASJID`}
+                      placeholder={`NO\tNAMA LENGKAP\tNO NIK / KK\tTTL\tKETERANGAN\n1\tWARGA CONTOH 01\t\tKota Contoh, 01-01-1990\tKONTRAKAN CONTOH A`}
                       rows={9}
                       className="w-full p-4 font-mono text-xs border border-slate-300 rounded-2xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition leading-relaxed shadow-inner"
                     />
@@ -458,7 +456,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                     <textarea
                       value={pastedTetapText}
                       onChange={(e) => setPastedTetapText(e.target.value)}
-                      placeholder={`NO KELUARGA\tNO KK\tNIK\tNAMA LENGKAP\tJK\tTANGGAL LAHIR\tNO HP\tNO RM\tALAMAT\n1\t3216060307190030\t3216064205000015\tLISA SAFITRI\tP\t02-05-2000\t0812-8635-7822\t01\tDEPAN AL MUTAZAM`}
+                      placeholder={`NO KELUARGA\tNO KK\tNIK\tNAMA LENGKAP\tJK\tTANGGAL LAHIR\tNO HP\tNO RM\tALAMAT\n1\t\t\tWARGA CONTOH 01\tP\t01-01-1990\t\t\tALAMAT CONTOH`}
                       rows={6}
                       className="w-full p-4 font-mono text-xs border border-slate-300 rounded-2xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition leading-relaxed shadow-inner"
                     />

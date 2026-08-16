@@ -60,7 +60,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
     namaLengkap: config.namaKetuaRT || 'Yanto',
     role: 'ADMIN_KETUA_RT',
     roleLabel: 'Ketua RT 004 (Admin Utama)',
-    pinOrPassword: '1234'
+    pinOrPassword: ''
   };
 
   const getRoleIcon = (role: string) => {
@@ -277,12 +277,14 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               </p>
 
             </div>
-            {onClose && !isStandalone && (
+            {onClose && (
               <button 
                 onClick={onClose}
+                type="button"
+                aria-label="Kembali ke Sapa Warga"
                 className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer text-xs font-semibold flex items-center gap-1"
               >
-                <span>✕ Tutup</span>
+                <span>← Kembali</span>
               </button>
             )}
           </div>
@@ -396,9 +398,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   >
                     Lupa password?
                   </button>
-                ) : (
-                  <span className="text-[10px] text-slate-400">Default: <strong className="text-slate-600 font-mono">1234</strong></span>
-                )}
+                ) : null}
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -433,11 +433,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 />
                 <span>Ingat sesi di perangkat ini</span>
               </label>
-              {!cloudAuthAvailable && (
-                <span className="text-slate-400 text-[11px]">
-                  PIN Default: <strong className="font-mono text-slate-600">1234</strong>
-                </span>
-              )}
+              {!cloudAuthAvailable && <span className="text-slate-400 text-[11px]">Gunakan PIN lokal yang sudah Anda atur</span>}
             </div>
 
             {infoMessage && (

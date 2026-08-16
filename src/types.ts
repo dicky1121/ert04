@@ -113,6 +113,22 @@ export interface SuratPengantar {
   dibuatOleh: 'WARGA' | 'ADMIN';
 }
 
+export interface PengajuanSuratPublik {
+  jenisSurat: JenisSurat;
+  nikPemohon: string;
+  namaPemohon: string;
+  nomorKKPemohon: string;
+  jenisKelaminPemohon: JenisKelamin;
+  tempatTglLahirPemohon: string;
+  agamaPemohon: string;
+  pekerjaanPemohon: string;
+  statusKawinPemohon: string;
+  teleponPemohon: string;
+  alamatPemohon: string;
+  keperluan: string;
+  keteranganLain?: string;
+}
+
 export type JenisMutasi = 'PINDAH_MASUK' | 'PINDAH_KELUAR' | 'KELAHIRAN' | 'KEMATIAN' | 'PERUBAHAN_STATUS';
 
 export interface MutasiPenduduk {

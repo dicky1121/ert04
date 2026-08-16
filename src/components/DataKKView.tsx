@@ -188,7 +188,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
         statusHubunganKK: 'KEPALA KELUARGA',
         kewarganegaraan: 'WNI',
         golonganDarah: '-',
-        nomorHp: '081200000000',
+        nomorHp: '',
         statusTinggal: formData.statusDomisili || 'TETAP',
         statusBansos: 'TIDAK_ADA',
         tanggalInput: new Date().toISOString().split('T')[0]

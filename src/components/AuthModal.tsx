@@ -1,60 +1,67 @@
 import React, { useState } from 'react';
-import { Shield, Lock, CheckCircle2, X, FileText, BadgeCheck, KeyRound } from 'lucide-react';
+import { CheckCircle2, X, BadgeCheck, KeyRound } from 'lucide-react';
 import { CurrentUser, UserRole } from '../types';
 import { BekasiLogo } from './BekasiLogo';
+import { authService } from '../services/authService';
+import { storageService } from '../services/storage';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: CurrentUser;
-  onLogin?: (user: CurrentUser) => void;
-  onSwitchRole?: (role: UserRole, nama: string) => void;
+  onLogin: (user: CurrentUser) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  onLogin,
-  onSwitchRole
+  onLogin
 }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(currentUser.role || 'ADMIN_KETUA_RT');
-  const [pinCode, setPinCode] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const cloudAuthAvailable = authService.isCloudAuthAvailable();
 
   if (!isOpen) return null;
 
-  const handleSwitch = (e: React.FormEvent) => {
+  const handleSwitch = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (pinCode && pinCode !== '1234' && pinCode !== '0047' && pinCode !== '2026' && pinCode !== 'rt004' && pinCode !== 'sekretaris') {
-      setErrorMessage('PIN Keamanan Admin tidak sesuai. (PIN default: 1234 atau biarkan kosong)');
+    if (!password) {
+      setErrorMessage(cloudAuthAvailable ? 'Password wajib diisi.' : 'PIN atau password lokal wajib diisi.');
       return;
     }
 
-    let defaultName = '';
-    switch (selectedRole) {
-      case 'ADMIN_KETUA_RT':
-        defaultName = 'Yanto (Ketua RT 004)';
-        break;
-      case 'ADMIN_SEKRETARIS':
-        defaultName = 'Ahmad Fauzi, S.Kom. (Sekretaris RT 004)';
-        break;
-      default:
-        defaultName = 'Admin RT 004';
+    setIsLoading(true);
+    if (cloudAuthAvailable) {
+      const result = await authService.signIn(email, password);
+      if (!result.success || !result.user) {
+        setErrorMessage(result.message);
+        setIsLoading(false);
+        return;
+      }
+      onLogin(result.user);
+    } else {
+      const account = storageService.getPengurusAccounts().find(item => item.role === selectedRole);
+      if (!account) {
+        setErrorMessage('Akun lokal untuk peran tersebut tidak ditemukan.');
+        setIsLoading(false);
+        return;
+      }
+      const result = storageService.verifyLogin(account.id, password);
+      if (!result.success || !result.user) {
+        setErrorMessage(result.message);
+        setIsLoading(false);
+        return;
+      }
+      onLogin(result.user);
     }
-
-    if (onSwitchRole) {
-      onSwitchRole(selectedRole, defaultName);
-    } else if (onLogin) {
-      onLogin({
-        role: selectedRole,
-        nama: defaultName,
-        isAuthenticated: true,
-        isLoggedIn: true
-      });
-    }
+    setPassword('');
+    setIsLoading(false);
     onClose();
   };
 
@@ -107,7 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   />
                   <div>
                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <span>Ketua RT 004 (Bpk. Yanto)</span>
+                      <span>Ketua RT 004</span>
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Admin Utama</span>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">Persetujuan surat pengantar, tanda tangan digital &amp; otorisasi sistem</div>
@@ -134,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   />
                   <div>
                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <span>Sekretaris RT 004 (Ahmad Fauzi, S.Kom.)</span>
+                      <span>Sekretaris RT 004</span>
                       <span className="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">Sekretariat</span>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">Pengelolaan data KK, pendaftaran warga, draf surat &amp; mutasi</div>
@@ -145,21 +152,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
 
-          {/* Admin PIN Verification */}
+          {cloudAuthAvailable && (
+            <div>
+              <label htmlFor="switch-account-email" className="block text-xs font-bold text-slate-700 mb-1">
+                Email akun tujuan
+              </label>
+              <input
+                id="switch-account-email"
+                type="email"
+                autoComplete="username"
+                required
+                placeholder="pengurus@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Peran akun ditentukan otomatis dari profil pengurus di server.
+              </p>
+            </div>
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-bold text-slate-700">
-                PIN Keamanan (Opsional):
+                {cloudAuthAvailable ? 'Password akun tujuan' : 'PIN / password lokal'}
               </label>
-              <span className="text-[10px] text-slate-400 font-mono">PIN Default: 1234</span>
             </div>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="password"
-                placeholder="Ketik PIN (Default: 1234 atau kosongkan)"
-                value={pinCode}
-                onChange={(e) => setPinCode(e.target.value)}
+                autoComplete="current-password"
+                required
+                placeholder={cloudAuthAvailable ? 'Masukkan password' : 'Masukkan PIN / password lokal'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
@@ -175,16 +203,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              disabled={isLoading}
               className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
+              disabled={isLoading}
               className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
             >
               <BadgeCheck className="w-4 h-4" />
-              <span>Ganti Akun</span>
+              <span>{isLoading ? 'Memverifikasi...' : 'Ganti Akun'}</span>
             </button>
           </div>
         </form>

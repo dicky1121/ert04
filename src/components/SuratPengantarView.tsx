@@ -442,6 +442,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                       <div className="font-mono text-slate-500 text-[11px]">
                         NIK: {surat.nikPemohon}
                       </div>
+                      {surat.teleponPemohon && (
+                        <div className="text-[10px] font-semibold text-emerald-700">
+                          WA: {surat.teleponPemohon}
+                        </div>
+                      )}
                       <div className="text-[10px] text-slate-400">
                         {surat.pekerjaanPemohon} &bull; {surat.statusKawinPemohon}
                       </div>

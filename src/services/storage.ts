@@ -349,7 +349,7 @@ class StorageService {
       return { success: false, message: 'Nama lengkap wajib diisi minimal 3 karakter.' };
     }
 
-    const pin = (newAcc.pinOrPassword || '1234').trim();
+    const pin = (newAcc.pinOrPassword || '').trim();
     if (pin.length < 4) {
       return { success: false, message: 'Password / PIN minimal 4 karakter.' };
     }
@@ -2531,7 +2531,7 @@ class StorageService {
     return { added, updated, skipped, wargaList: currentWarga, kkList: currentKK };
   }
 
-  // --- GENERATE TEMPLATE EXCEL SESUAI 3 FOTO PENGGUNA ---
+    // Template hanya memuat data sintetis agar data warga tidak ikut tersebar.
   public downloadRT004TemplateExcel() {
     const wb = XLSX.utils.book_new();
 
@@ -2541,22 +2541,8 @@ class StorageService {
       ['Data Rekapitulasi Profil Keluarga, NIK, dan Alamat Warga Tetap'],
       [],
       ['NO KELUARGA', 'NO KK', 'NIK', 'NAMA LENGKAP', 'JK', 'TANGGAL LAHIR', 'NO HP', 'NO RM', 'ALAMAT'],
-      [1, '3216060307190030', '3216064205000015', 'LISA SAFITRI', 'P', '02-05-2000', '0812-8635-7822', '01', 'DEPAN AL MUTAZAM'],
-      [1, '3216060307190030', '3216064902090001', 'AULIA NUR AFIFAH', 'P', '09-02-2009', '0812-8635-7822', '01', 'DEPAN AL MUTAZAM'],
-      [2, '3216062904130019', '3216222408860008', 'ACHMAD SEFUDIN', 'L', '24-08-1988', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [2, '3216062904130019', '3216067005910010', 'ANISA PURNAMA SARI', 'P', '30-05-1991', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [2, '3216062904130019', '3216064506130011', 'KRASIVA NASYA TALITHA', 'P', '05-06-2013', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [2, '3216062904130019', '3216065608160001', 'YASMIN KHAIRIKA RAHMA', 'P', '16-08-2016', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [2, '3216062904130019', '3216060504210008', 'MUHAMMAD ZAYYAN ILMAN', 'L', '05-04-2021', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [2, '3216062904130019', '3216067012230005', 'FATMA MECCA AZZAHRA', 'P', '30-12-2023', '', '', 'BLK MUSHOLLA ANNUR 1'],
-      [3, '3216061904070808', '3216061506710039', 'K. SURYADI', 'L', '15-06-1971', '0813-1403-9683', '', 'SAMPING TK AL MUTAZAM'],
-      [3, '3216061904070808', '3216065506730040', 'TITIN', 'P', '15-06-1973', '0813-1403-9683', '', 'SAMPING TK AL MUTAZAM'],
-      [3, '3216061904070808', '3216061307040016', 'DAI BAHTIAR', 'L', '13-07-2004', '0813-1403-9683', '', 'SAMPING TK AL MUTAZAM'],
-      [3, '3216061904070808', '3216066512070009', 'NITA ADELIA', 'P', '25-12-2007', '0813-1403-9683', '', 'SAMPING TK AL MUTAZAM'],
-      [3, '3216061904070808', '3216060905110006', 'TRI ARDIANSYAH', 'L', '09-05-2011', '0813-1403-9683', '', 'SAMPING TK AL MUTAZAM'],
-      [4, '3216061411102929', '3216062203730013', 'ABU HANIPAH, SE', 'L', '22-03-1973', '0812-8729-294', '', 'GANG ANNUR 1'],
-      [4, '3216061411102929', '3216065608720011', 'ASMAWATI, AM KEB', 'P', '16-08-1972', '0812-8729-294', '', 'GANG ANNUR 1'],
-      [4, '3216061411102929', '3216065103080005', 'NURAENI CHANRIKA K.T.D', 'P', '21-03-2008', '0812-8729-294', '', 'GANG ANNUR 1']
+      [1, '', '', 'WARGA CONTOH 01', 'P', '01-01-1990', '', '01', 'ALAMAT CONTOH'],
+      [1, '', '', 'WARGA CONTOH 02', 'L', '02-02-1991', '', '01', 'ALAMAT CONTOH']
     ];
     const wsWargaTetap = XLSX.utils.aoa_to_sheet(wsWargaTetapData);
     XLSX.utils.book_append_sheet(wb, wsWargaTetap, 'Data Warga Tetap');
@@ -2567,22 +2553,8 @@ class StorageService {
       ['Rekapitulasi Data Gabungan & Perapihan Keterangan Tempat Tinggal'],
       [],
       ['NO', 'NAMA LENGKAP', 'NO NIK / KK', 'TANGGAL LAHIR', 'KETERANGAN'],
-      [1, 'H. UCU HERMAWAN', '3215261008170025', '08-08-1963', 'Kontrakan Sarwono (Belakang Bidan)'],
-      ['', 'HJ. CUCUN TSUNIYATUZZAHRO', '', '07-12-1976', 'Lapor: 26-11-2021'],
-      ['', "ASEP BERLIANTO RIF'AN ADRIL MARI", '', '19-03-2001', ''],
-      ['', "ASEP MUTIARA NURRIF'IYYAN", '', '23-05-2003', ''],
-      ['', 'SYARIFAH INTAN', '', '19-12-2007', ''],
-      ['', 'HABIB ATMAN', '', '08-09-2009', ''],
-      [2, 'TIRINO', '3327112001120002', '24-10-1979', 'Kontrakan Bu'],
-      ['', 'MUJIAH', '', '26-12-1983', ''],
-      ['', 'ANDRIYANTO', '', '16-07-2004', ''],
-      ['', 'MARISCA KANAYA RISTIYANTI', '', '08-03-2009', ''],
-      ['', 'APRILLIYO TRI WIBISONO', '', '10-04-2015', ''],
-      [3, 'TARIMIN', '3303172003120006', '11-10-1989', 'Kontrakan Hj. Sawiyah'],
-      ['', 'ONIH KUATIN', '', '20-09-1992', ''],
-      ['', 'HAYATUL HUSNA', '', '03-07-2011', ''],
-      ['', 'FARZANA AYUNINDYA', '', '02-10-2019', ''],
-      [4, 'SLAMET', '3303170403051350', '01-07-1975', 'Kontrakan Hj. Sawiyah']
+      [1, 'PENGONTRAK CONTOH 01', '', '01-01-1990', 'KONTRAKAN CONTOH A'],
+      [2, 'PENGONTRAK CONTOH 02', '', '02-02-1991', 'KONTRAKAN CONTOH B']
     ];
     const wsPengontrak = XLSX.utils.aoa_to_sheet(wsPengontrakData);
     XLSX.utils.book_append_sheet(wb, wsPengontrak, 'Data Pengontrak');
@@ -2593,22 +2565,7 @@ class StorageService {
       ['Data Pemantauan Kesehatan, Vaksinasi, dan Status Warga Lansia'],
       [],
       ['NO', 'NIK', 'NAMA LENGKAP', 'FASKES VAKSIN', 'KECAMATAN', 'SA / KELURAHAN', 'DOSIS VAKSINASI', 'JENIS VAKSIN', 'ALAMAT', 'RT', 'RW'],
-      [2, '3216066810360001', 'MARYATUN', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [3, '3216062502580009', 'GUMIN', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [4, '3216065003440003', 'MUNIH', 'KODIM KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [5, '3216064610520001', 'SUHAENAH', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [6, '3216061608510001', 'NILWAN', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [7, '3216064112540008', 'DYAH SRI WAHYUNI', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [8, '3216066307480002', 'SAMOT', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [9, '3216062004490002', 'SISWADI', 'KODIM KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [10, '3216065005520002', 'NIMIH', 'KODIM KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [11, '3216061506520052', 'NIMUN', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [12, '3216064112590006', 'KENIH', 'KODIM KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [13, '3216065506350001', 'MUNIROH', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [14, '3216061306570001', 'MUHAMAD NUR', 'JATIMULYA', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [15, '3216061206580013', 'MURTJA S', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [16, '3216065102560005', 'KARSIH', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007'],
-      [17, '3216067112420020', 'SARI SAUT', 'DINAS KESEHATAN KABUPATEN BEKASI', 'TAMBUN SELATAN', 'JATIMULYA', 'DOSIS 1', 'CORONAVAC', 'KP JATI RT 004', '004', '007']
+      [1, '', 'LANSIA CONTOH 01', 'FASKES CONTOH', 'TAMBUN SELATAN', 'JATIMULYA', '', '', 'ALAMAT CONTOH', '004', '007']
     ];
     const wsLansia = XLSX.utils.aoa_to_sheet(wsLansiaData);
     XLSX.utils.book_append_sheet(wb, wsLansia, 'Data Lansia RT 004');

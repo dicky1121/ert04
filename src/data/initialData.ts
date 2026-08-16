@@ -19,7 +19,9 @@ export const initialPengurusAccounts: PengurusAccount[] = [
     namaLengkap: 'Yanto',
     role: 'ADMIN_KETUA_RT',
     roleLabel: 'Ketua RT 004 (Admin Utama)',
-    pinOrPassword: '1234',
+    // Opsional untuk demo lokal saja. Nilai VITE_* ikut masuk bundle browser,
+    // sehingga jangan pernah gunakan PIN produksi atau deploy nilai ini.
+    pinOrPassword: import.meta.env.DEV ? (import.meta.env.VITE_OFFLINE_DEMO_PIN || '') : '',
     nomorHp: '',
     email: '',
     isActive: true,

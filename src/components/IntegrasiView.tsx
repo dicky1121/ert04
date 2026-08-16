@@ -78,9 +78,16 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
 
   // Derived Supabase project details
   const parsedConn = supabaseService.parseInput(supabaseUrl);
-  const currentProjectRef = parsedConn.projectRef || 'nginmiqjfzycvbbufbev';
-  const apiSettingsUrl = `https://supabase.com/dashboard/project/${currentProjectRef}/settings/api`;
-  const sqlEditorUrl = `https://supabase.com/dashboard/project/${currentProjectRef}/sql/new`;
+  // Project ref hanya berasal dari input pengurus. Tanpa konfigurasi, tautan
+  // diarahkan ke daftar project agar tidak ada identitas project di dalam kode.
+  const currentProjectRef = parsedConn.projectRef || '';
+  const dashboardRoot = 'https://supabase.com/dashboard/projects';
+  const apiSettingsUrl = currentProjectRef
+    ? `https://supabase.com/dashboard/project/${currentProjectRef}/settings/api`
+    : dashboardRoot;
+  const sqlEditorUrl = currentProjectRef
+    ? `https://supabase.com/dashboard/project/${currentProjectRef}/sql/new`
+    : dashboardRoot;
 
   // File import ref
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -310,8 +317,8 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
               <div>
                 <div className="text-[11px] text-slate-500 font-medium">Supabase Project Ref:</div>
                 <div className="font-mono font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                  {currentProjectRef}
+                  <span className={`w-2 h-2 rounded-full inline-block ${currentProjectRef ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                  {currentProjectRef || 'Belum dikonfigurasi'}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -342,13 +349,13 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="https://nginmiqjfzycvbbufbev.supabase.co atau postgresql://..."
+                placeholder="https://<project-ref>.supabase.co atau postgresql://..."
                 value={supabaseUrl}
                 onChange={(e) => handleUrlChange(e.target.value)}
                 className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
               <p className="text-[10px] text-slate-400 mt-1">
-                *Dapat berupa URL HTTPS (contoh: <code>https://{currentProjectRef}.supabase.co</code>) atau URI PostgreSQL pooler.
+                *Dapat berupa URL HTTPS (contoh: <code>https://{currentProjectRef || '<project-ref>'}.supabase.co</code>) atau URI PostgreSQL pooler.
               </p>
             </div>
 

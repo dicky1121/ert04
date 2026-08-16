@@ -27,6 +27,7 @@ import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
 import { LoginPortal } from './components/LoginPortal';
+import { SapaWarga } from './components/SapaWarga';
 import { authService } from './services/authService';
 import { CloudSyncState, supabaseService } from './services/supabaseService';
 import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser>(storageService.getCurrentUser());
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
+  const [publicGatewayView, setPublicGatewayView] = useState<'welcome' | 'login'>('welcome');
 
   // Modal Visibility States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -390,6 +392,7 @@ export default function App() {
       storageService.logout();
     }
     setCurrentUser(storageService.getCurrentUser());
+    setPublicGatewayView('welcome');
     showToast('Sesi administrasi telah ditutup. Silakan login kembali.', 'info');
   };
 
@@ -406,8 +409,13 @@ export default function App() {
     );
   }
 
-  // Gateway check: Show Login Portal first before entering dashboard
+  // Public gateway: warga melihat portal layanan, sedangkan pengurus dapat
+  // membuka login. Sesi yang sudah valid tetap langsung menuju dashboard.
   if (!currentUser?.isLoggedIn) {
+    if (publicGatewayView === 'welcome') {
+      return <SapaWarga config={rtConfig} onOpenLogin={() => setPublicGatewayView('login')} />;
+    }
+
     return (
       <div className="min-h-screen bg-slate-950 font-sans selection:bg-emerald-500 selection:text-white">
         {/* Toast Alert Banner */}
@@ -427,6 +435,7 @@ export default function App() {
           isFullPage={true}
           currentUser={currentUser}
           config={rtConfig}
+          onClose={() => setPublicGatewayView('welcome')}
           onLogin={(user) => {
             storageService.setCurrentUser(user);
             setCurrentUser(user);
@@ -644,14 +653,10 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         currentUser={currentUser}
-        onSwitchRole={(role, nama) => {
-          storageService.setCurrentUser({
-            role,
-            nama,
-            isAuthenticated: true,
-            isLoggedIn: true
-          });
-          showToast(`Berhasil beralih ke akun ${nama} (${role})`);
+        onLogin={(user) => {
+          storageService.setCurrentUser(user);
+          setCurrentUser(user);
+          showToast(`Berhasil beralih ke akun ${user.nama} (${user.role})`);
         }}
       />
 

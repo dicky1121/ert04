@@ -1,7 +1,7 @@
 import { createClient, RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import { storageService } from './storage';
 import { authState } from './authState';
-import { KartuKeluarga, MutasiPenduduk, RTConfig, SuratPengantar, Warga } from '../types';
+import { KartuKeluarga, MutasiPenduduk, PengajuanSuratPublik, RTConfig, SuratPengantar, Warga } from '../types';
 
 
 export interface SupabaseSyncResult {
@@ -175,6 +175,7 @@ const toSuratRow = (s: SuratPengantar): CloudRow => ({
   agama_pemohon: s.agamaPemohon,
   pekerjaan_pemohon: s.pekerjaanPemohon,
   status_kawin_pemohon: s.statusKawinPemohon,
+  telepon_pemohon: s.teleponPemohon || '',
   alamat_pemohon: s.alamatPemohon,
   keperluan: s.keperluan,
   keterangan_lain: s.keteranganLain || '',
@@ -201,6 +202,7 @@ const fromSuratRow = (s: CloudRow): SuratPengantar => ({
   agamaPemohon: s.agama_pemohon || '',
   pekerjaanPemohon: s.pekerjaan_pemohon || '',
   statusKawinPemohon: s.status_kawin_pemohon || '',
+  teleponPemohon: s.telepon_pemohon || '',
   alamatPemohon: s.alamat_pemohon || '',
   keperluan: s.keperluan || '',
   keteranganLain: s.keterangan_lain || '',
@@ -248,7 +250,7 @@ export function parseSupabaseInput(input: string): ParsedSupabaseConnection {
   const trimmed = input.trim();
   
   // Case 1: postgresql connection string
-  // e.g. postgresql://postgres.nginmiqjfzycvbbufbev:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+  // e.g. postgresql://postgres.abcdefghijklmnopqrst:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
   const pgMatch = trimmed.match(/(?:postgresql|postgres):\/\/postgres\.([a-z0-9_-]+):/i);
   if (pgMatch && pgMatch[1]) {
     const projectRef = pgMatch[1];
@@ -262,7 +264,7 @@ export function parseSupabaseInput(input: string): ParsedSupabaseConnection {
   }
 
   // Case 2: standard supabase.co URL
-  // e.g. https://nginmiqjfzycvbbufbev.supabase.co
+  // e.g. https://abcdefghijklmnopqrst.supabase.co
   const urlMatch = trimmed.match(/https:\/\/([a-z0-9_-]+)\.supabase\.co/i);
   if (urlMatch && urlMatch[1]) {
     const projectRef = urlMatch[1];
@@ -297,25 +299,34 @@ class SupabaseService {
   private realtimeChannel: RealtimeChannel | null = null;
   private syncListeners = new Set<CloudSyncListener>();
   private syncState: CloudSyncState = { phase: 'local', pendingWrites: 0 };
-  private defaultProjectUrl = 'https://nginmiqjfzycvbbufbev.supabase.co';
+
 
   public parseInput(input: string): ParsedSupabaseConnection {
     return parseSupabaseInput(input);
   }
 
+  /**
+   * Ambil konfigurasi koneksi Supabase.
+   *
+   * Sumber nilai: konfigurasi yang disimpan pengurus di tab Integrasi, lalu
+   * environment variable. Tidak ada fallback project bawaan di dalam kode agar
+   * identitas project tidak ikut ter-bundle ke JavaScript browser dan agar tiap
+   * deployment wajib mengisi kredensialnya sendiri.
+   */
   public getSupabaseConfig(): { url: string; anonKey: string; projectRef?: string } {
     const config = storageService.getConfig();
     const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
     const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
-    const rawUrl = config.supabaseUrl || envUrl || this.defaultProjectUrl;
-    const parsed = parseSupabaseInput(rawUrl);
+    const rawUrl = config.supabaseUrl || envUrl;
+    const parsed = parseSupabaseInput(rawUrl || '');
 
     return {
-      url: parsed.projectUrl || this.defaultProjectUrl,
+      url: parsed.projectUrl || '',
       anonKey: config.supabaseAnonKey || envKey,
-      projectRef: parsed.projectRef || 'nginmiqjfzycvbbufbev'
+      projectRef: parsed.projectRef
     };
   }
+
 
   public saveSupabaseConfig(urlOrConnectionString: string, anonKey: string) {
     const parsed = parseSupabaseInput(urlOrConnectionString);
@@ -360,6 +371,35 @@ class SupabaseService {
       }
     }
     return this.client;
+  }
+
+  public async submitPublicSurat(input: PengajuanSuratPublik): Promise<{ success: boolean; reference?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Layanan pengajuan online belum dikonfigurasi.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('ajukan_surat_warga', {
+        p_jenis_surat: input.jenisSurat,
+        p_nik: input.nikPemohon,
+        p_nama: input.namaPemohon,
+        p_nomor_kk: input.nomorKKPemohon,
+        p_jenis_kelamin: input.jenisKelaminPemohon,
+        p_tempat_tgl_lahir: input.tempatTglLahirPemohon,
+        p_agama: input.agamaPemohon,
+        p_pekerjaan: input.pekerjaanPemohon,
+        p_status_kawin: input.statusKawinPemohon,
+        p_telepon: input.teleponPemohon,
+        p_alamat: input.alamatPemohon,
+        p_keperluan: input.keperluan,
+        p_keterangan: input.keteranganLain || ''
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, reference: typeof data === 'string' ? data : String(data || '') };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Pengajuan tidak dapat dikirim.' };
+    }
   }
 
   public getSyncState(): CloudSyncState {
@@ -639,6 +679,7 @@ CREATE TABLE IF NOT EXISTS surat_pengantar_rt004 (
     agama_pemohon VARCHAR(20),
     pekerjaan_pemohon VARCHAR(100),
     status_kawin_pemohon VARCHAR(30),
+    telepon_pemohon VARCHAR(30),
     alamat_pemohon TEXT,
     keperluan TEXT NOT NULL,
     keterangan_lain TEXT,
