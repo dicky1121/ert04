@@ -59,7 +59,7 @@ export const initialRTConfig: RTConfig = {
   kopLogoHeightMm: 0,
   kopLogoOffsetXMm: 0,
   kopLogoOffsetYMm: 0,
-  kopInstansiAtas: 'PEMERINTAHAN KABUPATEN BEKASI',
+  kopInstansiAtas: 'PEMERINTAH KABUPATEN BEKASI',
   kopTeksRT: 'RT 004  RW 007',
   kopKelurahan: 'KELURAHAN JATIMULYA',
   kopKecamatan: 'KECAMATAN TAMBUN SELATAN',

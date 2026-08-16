@@ -738,7 +738,15 @@ class StorageService {
     const data = localStorage.getItem(STORAGE_KEYS.CONFIG);
     if (!data) return initialRTConfig;
     try {
-      return { ...initialRTConfig, ...JSON.parse(data) };
+      const storedConfig = JSON.parse(data) as Partial<RTConfig>;
+
+      // Migrate only the former built-in wording; preserve administrator custom text.
+      if (storedConfig.kopInstansiAtas === 'PEMERINTAHAN KABUPATEN BEKASI') {
+        storedConfig.kopInstansiAtas = 'PEMERINTAH KABUPATEN BEKASI';
+        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(storedConfig));
+      }
+
+      return { ...initialRTConfig, ...storedConfig };
     } catch {
       return initialRTConfig;
     }

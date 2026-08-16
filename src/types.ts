@@ -229,7 +229,7 @@ export interface RTConfig {
   kopLogoOffsetXMm?: number; // horizontal offset from left edge in mm
   kopLogoOffsetYMm?: number; // vertical offset from top in mm
   // Custom Header & Kop Surat Texts
-  kopInstansiAtas?: string; // default "PEMERINTAHAN KABUPATEN BEKASI"
+  kopInstansiAtas?: string; // default "PEMERINTAH KABUPATEN BEKASI"
   kopTeksRT?: string; // default "RT 004  RW 007"
   kopKelurahan?: string; // default "KELURAHAN JATIMULYA"
   kopKecamatan?: string; // default "KECAMATAN TAMBUN SELATAN"

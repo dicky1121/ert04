@@ -131,7 +131,7 @@ export const SuratPrintTemplate: React.FC<SuratPrintTemplateProps> = ({
   };
 
   const handleCopyText = () => {
-    const text = `${config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}
+    const text = `${config.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI'}
 ${config.kopTeksRT || 'RT 004  RW 007'}
 ${config.kopKelurahan || 'KELURAHAN JATIMULYA'}
 ${config.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}
@@ -473,7 +473,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             {/* Header Text Center (100% Mathematically Centered) */}
             <div className="flex-1 text-center px-1">
               <h1 className="font-bold tracking-wide text-black leading-tight uppercase" style={{ fontSize: `${kopFontSizePt}pt` }}>
-                {config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}
+                {config.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI'}
               </h1>
               <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${kopFontSizePt + 1}pt` }}>
                 {config.kopTeksRT || `RT ${config.namaRT || '004'}  RW ${config.namaRW || '007'}`}

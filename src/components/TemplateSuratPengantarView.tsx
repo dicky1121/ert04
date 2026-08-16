@@ -59,7 +59,7 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
   const [offsetY, setOffsetY] = useState<number>(config.kopLogoOffsetYMm || 0);
   
   // Header texts
-  const [kopInstansiAtas, setKopInstansiAtas] = useState<string>(config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI');
+  const [kopInstansiAtas, setKopInstansiAtas] = useState<string>(config.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI');
   const [kopTeksRT, setKopTeksRT] = useState<string>(config.kopTeksRT || 'RT 004  RW 007');
   const [kopKelurahan, setKopKelurahan] = useState<string>(config.kopKelurahan || 'KELURAHAN JATIMULYA');
   const [kopKecamatan, setKopKecamatan] = useState<string>(config.kopKecamatan || 'KECAMATAN TAMBUN SELATAN');
@@ -100,7 +100,7 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
     setLogoWidthMm(config.kopLogoWidthMm || 24);
     setOffsetX(config.kopLogoOffsetXMm || 0);
     setOffsetY(config.kopLogoOffsetYMm || 0);
-    setKopInstansiAtas(config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI');
+    setKopInstansiAtas(config.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI');
     setKopTeksRT(config.kopTeksRT || 'RT 004  RW 007');
     setKopKelurahan(config.kopKelurahan || 'KELURAHAN JATIMULYA');
     setKopKecamatan(config.kopKecamatan || 'KECAMATAN TAMBUN SELATAN');
@@ -260,7 +260,7 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
     setOffsetX(0);
     setOffsetY(0);
 
-    setKopInstansiAtas('PEMERINTAHAN KABUPATEN BEKASI');
+    setKopInstansiAtas('PEMERINTAH KABUPATEN BEKASI');
     setKopTeksRT('RT 004  RW 007');
     setKopKelurahan('KELURAHAN JATIMULYA');
     setKopKecamatan('KECAMATAN TAMBUN SELATAN');

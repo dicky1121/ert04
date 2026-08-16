@@ -440,7 +440,7 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
     <body>
       <div class="Section1">
         <!-- HEADER KOP -->
-        <p class="header-title">${data.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}</p>
+        <p class="header-title">${data.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI'}</p>
         <p class="header-title" style="font-size: ${kopFontSize + 1}pt;">${data.kopTeksRT || 'RT 004 RW 007'}</p>
         <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKelurahan || 'KELURAHAN JATIMULYA'}</p>
         <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}</p>
