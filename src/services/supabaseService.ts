@@ -1,7 +1,20 @@
 import { createClient, RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import { storageService } from './storage';
 import { authState } from './authState';
-import { KartuKeluarga, MutasiPenduduk, PengajuanSuratPublik, RTConfig, SuratPengantar, Warga } from '../types';
+import {
+  KartuKeluarga,
+  KonfigurasiPublik,
+  MutasiPenduduk,
+  PengaduanInput,
+  PengajuanSuratPublik,
+  PengumumanPublik,
+  RTConfig,
+  StatistikPublik,
+  StatusPengajuanPublik,
+  SuratPengantar,
+  Warga
+} from '../types';
+
 
 
 export interface SupabaseSyncResult {
@@ -424,6 +437,116 @@ class SupabaseService {
       return { success: false, error: error?.message || 'Pengajuan tidak dapat dikirim.' };
     }
   }
+
+  /**
+   * Kontak & alamat resmi untuk portal publik.
+   * Tabel konfigurasi tertutup untuk anon, jadi data diambil lewat fungsi
+   * konfigurasi_publik() yang hanya memaparkan field pada kop surat.
+   * Mengembalikan null bila Supabase belum dikonfigurasi, agar pemanggil
+   * bisa memakai nilai bawaannya sendiri.
+   */
+  public async fetchKonfigurasiPublik(): Promise<KonfigurasiPublik | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    try {
+      const { data, error } = await client.rpc('konfigurasi_publik');
+      if (error || !data || typeof data !== 'object') return null;
+      return data as KonfigurasiPublik;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Lacak satu pengajuan surat. Nomor referensi saja tidak cukup — NIK
+   * wajib disertakan dan keduanya harus cocok pada baris yang sama.
+   */
+  public async cekStatusPengajuan(
+    referensi: string,
+    nik: string
+  ): Promise<{ success: boolean; data?: StatusPengajuanPublik; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Layanan pelacakan online belum dikonfigurasi.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('cek_status_pengajuan', {
+        p_referensi: referensi,
+        p_nik: nik
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: (data || { ditemukan: false }) as StatusPengajuanPublik };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Status pengajuan tidak dapat diambil.' };
+    }
+  }
+
+  /** Angka agregat layanan surat; aman ditampilkan ke publik. */
+  public async fetchStatistikPublik(): Promise<StatistikPublik | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    try {
+      const { data, error } = await client.rpc('statistik_publik');
+      if (error || !data || typeof data !== 'object') return null;
+      const raw = data as Record<string, unknown>;
+      return {
+        suratSelesaiBulanIni: Number(raw.suratSelesaiBulanIni || 0),
+        suratDiproses: Number(raw.suratDiproses || 0),
+        suratTahunIni: Number(raw.suratTahunIni || 0)
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Pengumuman yang sudah dipublikasikan dan masih berlaku hari ini. */
+  public async fetchPengumumanPublik(): Promise<PengumumanPublik[]> {
+    const client = this.getClient();
+    if (!client) return [];
+
+    try {
+      const { data, error } = await client.rpc('pengumuman_publik');
+      if (error || !Array.isArray(data)) return [];
+      return data.map((row: any) => ({
+        id: String(row.id),
+        judul: String(row.judul || ''),
+        isi: String(row.isi || ''),
+        kategori: String(row.kategori || 'UMUM'),
+        tanggalMulai: String(row.tanggal_mulai || ''),
+        tanggalSelesai: row.tanggal_selesai || null
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /** Kirim laporan warga. Server membatasi 3 laporan per nomor per jam. */
+  public async kirimPengaduan(
+    input: PengaduanInput
+  ): Promise<{ success: boolean; tiket?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Kanal pengaduan online belum dikonfigurasi.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('kirim_pengaduan', {
+        p_kategori: input.kategori,
+        p_nama: input.namaPelapor,
+        p_kontak: input.kontakPelapor,
+        p_alamat: input.alamatKejadian,
+        p_isi: input.isiLaporan
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, tiket: typeof data === 'string' ? data : String(data || '') };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Laporan tidak dapat dikirim.' };
+    }
+  }
+
 
   public getSyncState(): CloudSyncState {
     return { ...this.syncState };

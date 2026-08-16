@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -8,13 +8,19 @@ import {
   LockKeyhole,
   Mail,
   MapPin,
+  Megaphone,
   MessageCircle,
   Phone,
+  Search,
   ShieldCheck
 } from 'lucide-react';
-import { RTConfig } from '../types';
+import { KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../types';
+import { supabaseService } from '../services/supabaseService';
 import { BekasiLogo } from './BekasiLogo';
 import { PublicSuratForm } from './PublicSuratForm';
+import { LacakPengajuanModal } from './LacakPengajuanModal';
+import { PengaduanWargaModal } from './PengaduanWargaModal';
+
 
 interface SapaWargaProps {
   config: RTConfig;
@@ -27,15 +33,71 @@ const toWhatsappNumber = (value: string): string => {
   return digits;
 };
 
+const kategoriPengumumanClasses: Record<string, string> = {
+  DARURAT: 'bg-rose-500/15 text-rose-200 border-rose-400/30',
+  KEAMANAN: 'bg-amber-500/15 text-amber-200 border-amber-400/30',
+  KESEHATAN: 'bg-teal-500/15 text-teal-200 border-teal-400/30',
+  KEGIATAN: 'bg-sky-500/15 text-sky-200 border-sky-400/30',
+  IURAN: 'bg-violet-500/15 text-violet-200 border-violet-400/30',
+  UMUM: 'bg-white/10 text-slate-200 border-white/15'
+};
+
+const formatTanggalSingkat = (value?: string | null): string => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => {
   const [isSubmissionOpen, setIsSubmissionOpen] = useState(false);
-  const rt = config.namaRT || '004';
-  const rw = config.namaRW || '007';
-  const kelurahan = config.kelurahan || 'Jatimulya';
-  const kecamatan = config.kecamatan || 'Tambun Selatan';
-  const kontak = config.kontakSekretariat || config.kontakRT || '';
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [isPengaduanOpen, setIsPengaduanOpen] = useState(false);
+  const [konfigurasiPublik, setKonfigurasiPublik] = useState<KonfigurasiPublik | null>(null);
+  const [statistik, setStatistik] = useState<StatistikPublik | null>(null);
+  const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
+
+  // Portal publik dibuka tanpa login, jadi kontak/pengumuman/statistik diambil
+  // lewat fungsi RPC khusus publik. Bila Supabase belum dikonfigurasi, seluruh
+  // pemanggilan mengembalikan nilai kosong dan halaman jatuh ke nilai lokal.
+  useEffect(() => {
+    let aktif = true;
+
+    void (async () => {
+      const [konfig, stat, pengumumanList] = await Promise.all([
+        supabaseService.fetchKonfigurasiPublik(),
+        supabaseService.fetchStatistikPublik(),
+        supabaseService.fetchPengumumanPublik()
+      ]);
+      if (!aktif) return;
+      setKonfigurasiPublik(konfig);
+      setStatistik(stat);
+      setPengumuman(pengumumanList);
+    })();
+
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
+  const rt = konfigurasiPublik?.namaRT || config.namaRT || '004';
+  const rw = konfigurasiPublik?.namaRW || config.namaRW || '007';
+  const kelurahan = konfigurasiPublik?.kelurahan || config.kelurahan || 'Jatimulya';
+  const kecamatan = konfigurasiPublik?.kecamatan || config.kecamatan || 'Tambun Selatan';
+  const kontak =
+    konfigurasiPublik?.kontakSekretariat ||
+    konfigurasiPublik?.kontakRT ||
+    config.kontakSekretariat ||
+    config.kontakRT ||
+    '';
+  const email = konfigurasiPublik?.emailRT || config.emailRT || '';
+  const jamPelayanan = konfigurasiPublik?.jamPelayanan || '';
   const whatsappNumber = toWhatsappNumber(kontak);
-  const alamat = config.alamatSekretariat || 'Sekretariat RT 004 RW 007, Kelurahan Jatimulya';
+  const alamat =
+    konfigurasiPublik?.alamatSekretariat ||
+    config.alamatSekretariat ||
+    'Sekretariat RT 004 RW 007, Kelurahan Jatimulya';
+
 
   const whatsappHref = (message: string) =>
     whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}` : undefined;
@@ -50,12 +112,20 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
       accent: 'emerald'
     },
     {
-      icon: CheckCircle2,
-      title: 'Cek Status Pengajuan',
-      description: 'Tanyakan perkembangan surat yang sebelumnya telah diajukan kepada pengurus.',
-      href: whatsappHref(`Halo Pengurus RT ${rt} RW ${rw}, saya ingin mengecek status pengajuan surat.`),
-      action: undefined,
+      icon: Search,
+      title: 'Lacak Status Pengajuan',
+      description: 'Pantau perkembangan surat memakai nomor referensi dan NIK pemohon.',
+      href: undefined,
+      action: () => setIsTrackingOpen(true),
       accent: 'blue'
+    },
+    {
+      icon: Megaphone,
+      title: 'Lapor & Pengaduan',
+      description: 'Laporkan keluhan lingkungan seperti keamanan, kebersihan, atau kerusakan fasilitas.',
+      href: undefined,
+      action: () => setIsPengaduanOpen(true),
+      accent: 'rose'
     },
     {
       icon: MessageCircle,
@@ -70,8 +140,18 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
   const accentClasses = {
     emerald: 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white',
     blue: 'bg-blue-50 text-blue-700 group-hover:bg-blue-600 group-hover:text-white',
+    rose: 'bg-rose-50 text-rose-700 group-hover:bg-rose-600 group-hover:text-white',
     amber: 'bg-amber-50 text-amber-700 group-hover:bg-amber-500 group-hover:text-white'
   };
+
+  const statistikCards = statistik
+    ? [
+        { label: 'Surat selesai bulan ini', value: statistik.suratSelesaiBulanIni },
+        { label: 'Sedang diproses', value: statistik.suratDiproses },
+        { label: 'Surat terbit tahun ini', value: statistik.suratTahunIni }
+      ]
+    : [];
+
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-900 selection:bg-emerald-500 selection:text-white">
@@ -103,7 +183,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
           </div>
         </header>
 
-        <main className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
+        <main id="konten-utama" className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
           <section className="grid items-center gap-10 lg:grid-cols-[1.12fr_.88fr] lg:gap-16">
             <div className="text-white">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300">
@@ -129,6 +209,20 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                   <ShieldCheck className="h-4 w-4 text-sky-400" /> Data administrasi terlindungi
                 </span>
               </div>
+
+              {statistikCards.length > 0 && (
+                <dl className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+                  {statistikCards.map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3.5">
+                      <dd className="text-2xl font-black tracking-tight text-white">{item.value}</dd>
+                      <dt className="mt-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-400">
+                        {item.label}
+                      </dt>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
             </div>
 
             <div className="rounded-[2rem] border border-white/15 bg-white p-5 shadow-2xl shadow-black/30 sm:p-7">
@@ -193,6 +287,39 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
             </div>
           </section>
 
+          {pengumuman.length > 0 && (
+            <section aria-labelledby="pengumuman-title" className="mt-12 border-t border-white/10 pt-8">
+              <div className="mb-4 flex items-center gap-2 text-white">
+                <Megaphone className="h-5 w-5 text-emerald-300" />
+                <h2 id="pengumuman-title" className="text-lg font-black tracking-tight">
+                  Pengumuman Lingkungan
+                </h2>
+              </div>
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {pengumuman.map((item) => {
+                  const badgeClass =
+                    kategoriPengumumanClasses[String(item.kategori).toUpperCase()] || kategoriPengumumanClasses.UMUM;
+                  const periode = [formatTanggalSingkat(item.tanggalMulai), formatTanggalSingkat(item.tanggalSelesai)]
+                    .filter(Boolean)
+                    .join(' – ');
+
+                  return (
+                    <li key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${badgeClass}`}>
+                          {String(item.kategori).toUpperCase()}
+                        </span>
+                        {periode && <span className="text-[10px] font-semibold text-slate-400">{periode}</span>}
+                      </div>
+                      <h3 className="mt-2.5 text-sm font-extrabold leading-snug text-white">{item.judul}</h3>
+                      <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-slate-300">{item.isi}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
           <section className="mt-12 grid gap-3 border-t border-white/10 pt-8 text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
@@ -200,7 +327,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
-              <div><p className="text-xs font-bold text-white">Waktu Pelayanan</p><p className="mt-1 text-[11px] leading-relaxed">Hubungi pengurus untuk konfirmasi jadwal pelayanan.</p></div>
+              <div><p className="text-xs font-bold text-white">Waktu Pelayanan</p><p className="mt-1 whitespace-pre-line text-[11px] leading-relaxed">{jamPelayanan || 'Hubungi pengurus untuk konfirmasi jadwal pelayanan.'}</p></div>
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Phone className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
@@ -208,7 +335,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Mail className="mt-0.5 h-5 w-5 shrink-0 text-violet-300" />
-              <div><p className="text-xs font-bold text-white">Email</p><p className="mt-1 break-all text-[11px] leading-relaxed">{config.emailRT || 'Belum tersedia'}</p></div>
+              <div><p className="text-xs font-bold text-white">Email</p><p className="mt-1 break-all text-[11px] leading-relaxed">{email || 'Belum tersedia'}</p></div>
             </div>
           </section>
         </main>
@@ -217,6 +344,8 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
           © {new Date().getFullYear()} RT {rt} RW {rw} Kelurahan {kelurahan}. Portal publik tidak menampilkan data pribadi warga.
         </footer>
         {isSubmissionOpen && <PublicSuratForm onClose={() => setIsSubmissionOpen(false)} />}
+        {isTrackingOpen && <LacakPengajuanModal onClose={() => setIsTrackingOpen(false)} />}
+        {isPengaduanOpen && <PengaduanWargaModal onClose={() => setIsPengaduanOpen(false)} />}
       </div>
     </div>
   );

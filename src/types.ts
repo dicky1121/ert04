@@ -129,7 +129,65 @@ export interface PengajuanSuratPublik {
   keteranganLain?: string;
 }
 
+/** Info kontak resmi yang boleh dibaca pengunjung portal (fungsi konfigurasi_publik). */
+export interface KonfigurasiPublik {
+  namaRT?: string;
+  namaRW?: string;
+  kelurahan?: string;
+  kecamatan?: string;
+  kabupatenKota?: string;
+  alamatSekretariat?: string;
+  kontakSekretariat?: string;
+  kontakRT?: string;
+  emailRT?: string;
+  jamPelayanan?: string;
+}
+
+/** Hasil pelacakan pengajuan surat oleh warga (fungsi cek_status_pengajuan). */
+export interface StatusPengajuanPublik {
+  ditemukan: boolean;
+  pesan?: string;
+  referensi?: string;
+  jenisSurat?: JenisSurat;
+  namaPemohon?: string;
+  keperluan?: string;
+  status?: 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+  tanggalPengajuan?: string;
+  tanggalDisetujui?: string | null;
+  alasanPenolakan?: string | null;
+}
+
+/** Angka agregat untuk halaman publik — tidak memuat data pribadi. */
+export interface StatistikPublik {
+  suratSelesaiBulanIni: number;
+  suratDiproses: number;
+  suratTahunIni: number;
+}
+
+export type KategoriPengumuman = 'UMUM' | 'KEGIATAN' | 'KEAMANAN' | 'KESEHATAN' | 'IURAN' | 'DARURAT';
+
+export interface PengumumanPublik {
+  id: string;
+  judul: string;
+  isi: string;
+  kategori: KategoriPengumuman | string;
+  tanggalMulai: string;
+  tanggalSelesai?: string | null;
+}
+
+export type KategoriPengaduan = 'KEAMANAN' | 'KEBERSIHAN' | 'INFRASTRUKTUR' | 'SOSIAL' | 'LAINNYA';
+
+/** Payload laporan warga yang dikirim lewat fungsi kirim_pengaduan. */
+export interface PengaduanInput {
+  kategori: KategoriPengaduan;
+  namaPelapor: string;
+  kontakPelapor: string;
+  alamatKejadian: string;
+  isiLaporan: string;
+}
+
 export type JenisMutasi = 'PINDAH_MASUK' | 'PINDAH_KELUAR' | 'KELAHIRAN' | 'KEMATIAN' | 'PERUBAHAN_STATUS';
+
 
 export interface MutasiPenduduk {
   id: string;
