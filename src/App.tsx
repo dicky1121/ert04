@@ -337,6 +337,17 @@ export default function App() {
     if (supabaseService.isCloudMode()) {
       const result = await supabaseService.autoSyncConfig(newConfig);
       if (!result.success) {
+        // Tabel konfigurasi bersama belum dibuat: pengaturan tetap disimpan di
+        // perangkat ini agar hasil kerja admin tidak hilang, tetapi pengurus
+        // diberi tahu bahwa template belum tersebar ke admin lain.
+        if (result.tableMissing) {
+          storageService.saveRTConfig(newConfig);
+          showToast(
+            `Pengaturan disimpan di perangkat ini, tetapi belum dibagikan ke admin lain. ${result.error}`,
+            'error'
+          );
+          return true;
+        }
         showToast(`Pengaturan gagal disimpan ke cloud: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
         return false;
       }
@@ -344,6 +355,7 @@ export default function App() {
     storageService.saveRTConfig(newConfig);
     showToast(`Pengaturan berhasil disimpan${supabaseService.isCloudMode() ? ' dan dibagikan ke seluruh admin' : ' di perangkat ini'}.`);
     return true;
+
   };
 
   // Excel Handlers

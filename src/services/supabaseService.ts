@@ -35,6 +35,29 @@ type CloudRow = Record<string, any>;
 
 const SHARED_CONFIG_ID = 'global';
 
+/**
+ * Deteksi kondisi "tabel/kolom belum ada" dari PostgREST.
+ * PostgREST membalas kode PGRST205 (tabel tidak ada di schema cache),
+ * PGRST204 (kolom tidak ada), atau kode Postgres 42P01 (undefined_table).
+ */
+const isMissingSchemaError = (error: { code?: string; message?: string } | null | undefined): boolean => {
+  if (!error) return false;
+  const code = String(error.code || '');
+  const message = String(error.message || '').toLowerCase();
+  return (
+    code === 'PGRST205' ||
+    code === 'PGRST204' ||
+    code === '42P01' ||
+    message.includes('could not find the table') ||
+    message.includes('does not exist')
+  );
+};
+
+export const CONFIG_TABLE_MISSING_HINT =
+  'Tabel konfigurasi bersama (public.konfigurasi_rt004) belum ada di database. ' +
+  'Jalankan scripts/setup-konfigurasi-sync.sql di Supabase SQL Editor agar template surat ikut tersinkron ke semua admin dan perangkat.';
+
+
 const toSharedConfig = (config: RTConfig): Partial<RTConfig> => {
   const {
     supabaseUrl: _supabaseUrl,
@@ -546,8 +569,11 @@ class SupabaseService {
         .eq('id', SHARED_CONFIG_ID)
         .maybeSingle();
       if (configError) {
-        console.warn('Konfigurasi bersama belum tersedia:', configError.message);
+        console.warn(
+          isMissingSchemaError(configError) ? CONFIG_TABLE_MISSING_HINT : `Konfigurasi bersama belum tersedia: ${configError.message}`
+        );
       } else if (configData?.config_data) {
+
         applySharedConfig(configData.config_data);
       }
 
@@ -1422,7 +1448,7 @@ END $$;
     });
   }
 
-  public async autoSyncConfig(config: RTConfig): Promise<{ success: boolean; error?: string }> {
+  public async autoSyncConfig(config: RTConfig): Promise<{ success: boolean; error?: string; tableMissing?: boolean }> {
     return this.runCloudWrite(async () => {
       const client = this.getClient();
       if (!client) return { success: false, error: 'Supabase client not initialized' };
@@ -1432,10 +1458,17 @@ END $$;
       if (!error) {
         this.updateLastSyncTimestamp();
         this.notifySyncEvent('Template dan kop surat tersinkron', 'Konfigurasi bersama diperbarui untuk seluruh admin.');
+        return { success: true };
       }
-      return { success: !error, error: error?.message };
+      // Migrasi konfigurasi bersama belum dijalankan: beri instruksi konkret
+      // agar pengurus tahu langkah perbaikannya, bukan pesan teknis mentah.
+      if (isMissingSchemaError(error)) {
+        return { success: false, error: CONFIG_TABLE_MISSING_HINT, tableMissing: true };
+      }
+      return { success: false, error: error.message };
     });
   }
+
 
   /**
    * Tarik data dari Supabase satu kali saat aplikasi dibuka.
