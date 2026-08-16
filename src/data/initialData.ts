@@ -70,7 +70,15 @@ export const initialRTConfig: RTConfig = {
   kalimatPenutupSurat: 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.',
   lokasiSurat: 'Jatimulya',
   alamatBaris1Default: 'Kp Jati RT 004 RW 007 Kelurahan Jatimulya',
-  alamatBaris2Default: 'Kec. Tambun Selatan Kab. Bekasi'
+  alamatBaris2Default: 'Kec. Tambun Selatan Kab. Bekasi',
+  suratFontFamily: 'Arial',
+  suratBodyFontSizePt: 10,
+  suratKopFontSizePt: 12,
+  suratTitleFontSizePt: 12,
+  suratLineHeight: 1.35,
+  suratRowSpacingPt: 2,
+  suratSectionSpacingPt: 12,
+  suratSignatureSpacePt: 60
 };
 
 // Database dimulai kosong — tidak ada data demo.

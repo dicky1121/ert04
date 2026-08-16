@@ -10,12 +10,8 @@ import {
   AlertCircle, 
   Copy, 
   Check, 
-  HardDrive, 
   FileUp, 
   FileDown, 
-  Save, 
-  RotateCcw,
-  Sparkles,
   ExternalLink,
   Lock,
   Shield,
@@ -23,16 +19,12 @@ import {
   Key,
   EyeOff,
   Eye,
-  Trash2,
-  UserPlus,
-  Edit3,
-  Users,
-  Plus,
-  X,
-  UserCheck
+  Trash2
 } from 'lucide-react';
-import { RTConfig, KartuKeluarga, Warga, SuratPengantar, MutasiPenduduk, PengurusAccount, UserRole } from '../types';
+import { RTConfig, KartuKeluarga, Warga, SuratPengantar, MutasiPenduduk } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { authService } from '../services/authService';
+import { authState } from '../services/authState';
 import { storageService } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 
@@ -46,7 +38,6 @@ interface IntegrasiViewProps {
   onUpdateConfig: (newConfig: RTConfig) => void;
   onExportExcel: () => void;
   onImportExcel: (file: File) => void;
-  onResetData: () => void;
   onDataUpdated?: () => void;
 }
 
@@ -59,7 +50,6 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
   onUpdateConfig,
   onExportExcel,
   onImportExcel,
-  onResetData,
   onDataUpdated
 }) => {
   // Supabase state
@@ -75,6 +65,8 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
   const [hasCopiedSQL, setHasCopiedSQL] = useState(false);
   const [showSQL, setShowSQL] = useState(false);
   const [sqlTab, setSqlTab] = useState<'schema' | 'data'>('data');
+  const cloudAuthEnabled = authService.isCloudAuthAvailable();
+  const hasCloudSession = authState.hasActiveSession();
 
   // Security & PIN Management
   const [selectedRolePin, setSelectedRolePin] = useState<'ADMIN_KETUA_RT' | 'ADMIN_SEKRETARIS'>('ADMIN_KETUA_RT');
@@ -90,148 +82,11 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
   const apiSettingsUrl = `https://supabase.com/dashboard/project/${currentProjectRef}/settings/api`;
   const sqlEditorUrl = `https://supabase.com/dashboard/project/${currentProjectRef}/sql/new`;
 
-  // RT Config State
-  const [rtConfigData, setRtConfigData] = useState<RTConfig>({ ...config });
-  const [isSavedConfig, setIsSavedConfig] = useState(false);
-
-  // Pengurus Accounts State
-  const [pengurusAccounts, setPengurusAccounts] = useState<PengurusAccount[]>(storageService.getPengurusAccounts());
-  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState<PengurusAccount | null>(null);
-  
-  // New Admin Form State
-  const [formUsername, setFormUsername] = useState('');
-  const [formNamaLengkap, setFormNamaLengkap] = useState('');
-  const [formRole, setFormRole] = useState<UserRole>('ADMIN_CUSTOM');
-  const [formRoleLabel, setFormRoleLabel] = useState('');
-  const [formPin, setFormPin] = useState('');
-  const [formPhone, setFormPhone] = useState('');
-  const [formJabatan, setFormJabatan] = useState('');
-  const [adminFormMsg, setAdminFormMsg] = useState<{ text: string; success: boolean } | null>(null);
-
   // File import ref
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Dialog konfirmasi bergaya aplikasi (pengganti window.confirm/alert)
   const { confirm: askConfirm, notify, dialog } = useConfirm();
-
-
-  const refreshAccounts = () => {
-    setPengurusAccounts(storageService.getPengurusAccounts());
-  };
-
-  const handleOpenAddAdmin = () => {
-    setEditingAdmin(null);
-    setFormUsername('');
-    setFormNamaLengkap('');
-    setFormRole('ADMIN_CUSTOM');
-    setFormRoleLabel('Staf Pelayanan RT');
-    setFormPin('1234');
-    setFormPhone('');
-    setFormJabatan('');
-    setAdminFormMsg(null);
-    setIsAddingAdmin(true);
-  };
-
-  const handleOpenEditAdmin = (acc: PengurusAccount) => {
-    setEditingAdmin(acc);
-    setFormUsername(acc.username);
-    setFormNamaLengkap(acc.namaLengkap);
-    setFormRole(acc.role);
-    setFormRoleLabel(acc.roleLabel);
-    setFormPin(acc.pinOrPassword || '1234');
-    setFormPhone(acc.nomorHp || '');
-    setFormJabatan(acc.jabatanKhusus || '');
-    setAdminFormMsg(null);
-    setIsAddingAdmin(true);
-  };
-
-  const handleSaveAdminAccount = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formNamaLengkap.trim()) {
-      setAdminFormMsg({ text: 'Nama lengkap pengurus wajib diisi.', success: false });
-      return;
-    }
-    if (!formUsername.trim()) {
-      setAdminFormMsg({ text: 'Username wajib diisi.', success: false });
-      return;
-    }
-    if (!formPin || formPin.length < 4) {
-      setAdminFormMsg({ text: 'PIN / Password minimal 4 karakter.', success: false });
-      return;
-    }
-
-    if (editingAdmin) {
-      // Update existing
-      const updated = storageService.updatePengurusAccount(editingAdmin.id, {
-        username: formUsername.trim().toLowerCase().replace(/\s+/g, '_'),
-        namaLengkap: formNamaLengkap.trim(),
-        role: formRole,
-        roleLabel: formRoleLabel.trim() || formRole,
-        pinOrPassword: formPin,
-        nomorHp: formPhone.trim(),
-        jabatanKhusus: formJabatan.trim()
-      });
-
-      if (updated) {
-        if (formRole === 'ADMIN_SEKRETARIS') {
-          storageService.updateSekretarisName(formNamaLengkap.trim());
-          setRtConfigData(prev => ({ ...prev, namaSekretaris: formNamaLengkap.trim() }));
-          onUpdateConfig({ ...rtConfigData, namaSekretaris: formNamaLengkap.trim() });
-        } else if (formRole === 'ADMIN_KETUA_RT') {
-          storageService.updateKetuaRTName(formNamaLengkap.trim());
-          setRtConfigData(prev => ({ ...prev, namaKetuaRT: formNamaLengkap.trim() }));
-          onUpdateConfig({ ...rtConfigData, namaKetuaRT: formNamaLengkap.trim() });
-        }
-        refreshAccounts();
-        setAdminFormMsg({ text: 'Data akun pengurus berhasil diperbarui!', success: true });
-        setTimeout(() => setIsAddingAdmin(false), 1200);
-      } else {
-        setAdminFormMsg({ text: 'Gagal memperbarui akun pengurus.', success: false });
-      }
-    } else {
-      // Add new
-      const newAcc: PengurusAccount = {
-        id: `usr-rt004-${Date.now().toString().slice(-4)}`,
-        username: formUsername.trim().toLowerCase().replace(/\s+/g, '_'),
-        namaLengkap: formNamaLengkap.trim(),
-        role: formRole,
-        roleLabel: formRoleLabel.trim() || 'Admin Tambahan RT',
-        pinOrPassword: formPin,
-        nomorHp: formPhone.trim(),
-        jabatanKhusus: formJabatan.trim() || undefined,
-        isActive: true,
-        terakhirLogin: 'Belum pernah login',
-        dibuatPada: new Date().toISOString()
-      };
-
-      storageService.addPengurusAccount(newAcc);
-      refreshAccounts();
-      setAdminFormMsg({ text: 'Akun pengurus/admin baru berhasil ditambahkan!', success: true });
-      setTimeout(() => setIsAddingAdmin(false), 1200);
-    }
-  };
-
-  const handleDeleteAdmin = async (id: string, name: string) => {
-    const setuju = await askConfirm({
-      title: 'Hapus Akun Pengurus',
-      message: `Akun pengurus "${name}" akan dihapus dan tidak dapat lagi digunakan untuk masuk ke sistem. Lanjutkan?`,
-      confirmLabel: 'Ya, Hapus Akun',
-      tone: 'danger'
-    });
-    if (!setuju) return;
-
-    const ok = storageService.deletePengurusAccount(id);
-    if (ok) {
-      refreshAccounts();
-    } else {
-      await notify({
-        title: 'Akun Tidak Dapat Dihapus',
-        message: 'Akun Ketua RT utama merupakan akun induk sistem sehingga tidak dapat dihapus.',
-        tone: 'warning'
-      });
-    }
-  };
 
 
   const handleUrlChange = (val: string) => {
@@ -257,7 +112,6 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
   const handleToggleAutoSync = (enabled: boolean) => {
     setAutoSyncEnabled(enabled);
     const updated: RTConfig = { ...config, supabaseAutoSync: enabled };
-    setRtConfigData(updated);
     onUpdateConfig(updated);
     storageService.saveConfig(updated);
   };
@@ -270,8 +124,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
       kk: kkList,
       warga: wargaList,
       surat: suratList,
-      mutasi: mutasiList,
-      config: rtConfigData
+      mutasi: mutasiList
     });
 
     if (res.success) {
@@ -294,12 +147,22 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
     }
   };
 
-  const handleUpdatePin = (e: React.FormEvent) => {
+  const handleUpdatePin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinChangeMsg(null);
 
     if (newPin !== confirmNewPin) {
       setPinChangeMsg({ text: 'Konfirmasi PIN baru tidak cocok.', success: false });
+      return;
+    }
+
+    if (cloudAuthEnabled) {
+      const res = await authService.changePassword(newPin);
+      setPinChangeMsg({ text: res.message, success: res.success });
+      if (res.success) {
+        setNewPin('');
+        setConfirmNewPin('');
+      }
       return;
     }
 
@@ -335,18 +198,6 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
       tone: 'info'
     });
   };
-
-  const handleResetToSampleData = async () => {
-    const setuju = await askConfirm({
-      title: 'Kembalikan Data Contoh',
-      message:
-        'Data kependudukan akan dikembalikan ke contoh awal RT 004 RW 007 Jatimulya. Perubahan data yang belum dibackup akan hilang.',
-      confirmLabel: 'Ya, Kembalikan',
-      tone: 'warning'
-    });
-    if (setuju) onResetData();
-  };
-
 
   const handleCopySQL = () => {
     const sql = sqlTab === 'data' 
@@ -405,17 +256,6 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleSaveConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    storageService.updateSekretarisName(rtConfigData.namaSekretaris);
-    storageService.updateKetuaRTName(rtConfigData.namaKetuaRT);
-    storageService.updateSecretariatAddress(rtConfigData.alamatSekretariat);
-    onUpdateConfig(rtConfigData);
-    refreshAccounts();
-    setIsSavedConfig(true);
-    setTimeout(() => setIsSavedConfig(false), 3000);
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -434,10 +274,10 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
           <Settings className="w-5 h-5 text-emerald-600" />
-          Pusat Integrasi Supabase Cloud, Spreadsheet & Konfigurasi RT
+          Pusat Integrasi Data
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Sinkronisasi cloud database real-time, backup spreadsheet multi-sheet, dan pengaturan data resmi RT 004 RW 007
+          Sinkronisasi database Supabase serta impor dan ekspor spreadsheet
         </p>
       </div>
 
@@ -455,8 +295,12 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 <p className="text-[11px] text-slate-500">Penyimpanan kependudukan real-time & backup cloud</p>
               </div>
             </div>
-            <span className="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200">
-              Active Ready
+            <span className={`text-[10px] px-2.5 py-1 font-bold rounded-full border ${
+              hasCloudSession
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-800 border-amber-200'
+            }`}>
+              {hasCloudSession ? 'Sesi Cloud Aktif' : 'Perlu Login Cloud'}
             </span>
           </div>
 
@@ -785,419 +629,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Konfigurasi Instansi RT 004 RW 007 Jatimulya */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <Settings className="w-4 h-4 text-emerald-600" />
-              Pengaturan Instansi & Kop Surat Resmi RT
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Data ini akan otomatis muncul pada kop surat pengantar dan keterangan resmi RT
-            </p>
-          </div>
-
-          {isSavedConfig && (
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 animate-in fade-in">
-              ✓ Pengaturan Berhasil Disimpan
-            </span>
-          )}
-        </div>
-
-        <form onSubmit={handleSaveConfig} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nomor RT</label>
-              <input
-                type="text"
-                value={rtConfigData.namaRT}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, namaRT: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nomor RW</label>
-              <input
-                type="text"
-                value={rtConfigData.namaRW}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, namaRW: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kelurahan</label>
-              <input
-                type="text"
-                value={rtConfigData.kelurahan}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, kelurahan: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kecamatan</label>
-              <input
-                type="text"
-                value={rtConfigData.kecamatan}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, kecamatan: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kabupaten / Kota</label>
-              <input
-                type="text"
-                value={rtConfigData.kabupatenKota}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, kabupatenKota: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kode Pos</label>
-              <input
-                type="text"
-                value={rtConfigData.kodePos}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, kodePos: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-mono"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nama Ketua RT (Penandatangan Surat)</label>
-              <input
-                type="text"
-                value={rtConfigData.namaKetuaRT}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, namaKetuaRT: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nama Sekretaris RT</label>
-              <input
-                type="text"
-                value={rtConfigData.namaSekretaris}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, namaSekretaris: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nomor Kontak / WhatsApp Pengurus RT</label>
-              <input
-                type="text"
-                value={rtConfigData.kontakSekretariat}
-                onChange={(e) => setRtConfigData({ ...rtConfigData, kontakSekretariat: e.target.value })}
-                className="w-full p-2.5 border border-slate-200 rounded-xl font-mono"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Alamat Balai Warga / Sekretariat RT</label>
-            <input
-              type="text"
-              value={rtConfigData.alamatSekretariat}
-              onChange={(e) => setRtConfigData({ ...rtConfigData, alamatSekretariat: e.target.value })}
-              className="w-full p-2.5 border border-slate-200 rounded-xl"
-            />
-          </div>
-
-          <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleResetToSampleData}
-
-              className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-semibold transition"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Data Contoh (Default)
-            </button>
-
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
-            >
-              <Save className="w-4 h-4" />
-              Simpan Pengaturan RT
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 4. Keamanan Akun Pengurus & Manajemen Role Admin */}
-      <div className="space-y-6">
-        {/* Full Admin & Role Management Card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Manajemen Role Admin &amp; Akun Pengurus RT</h3>
-                <p className="text-xs text-slate-500">Kelola daftar pengurus, tambah role admin, ganti nama, nomor WhatsApp, dan password / PIN</p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleOpenAddAdmin}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer shrink-0"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Tambah Role Admin Baru</span>
-            </button>
-          </div>
-
-          {/* Account Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {pengurusAccounts.map((acc) => {
-              const isRT = acc.role === 'ADMIN_KETUA_RT';
-              const isSekretaris = acc.role === 'ADMIN_SEKRETARIS';
-
-              return (
-                <div 
-                  key={acc.id}
-                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
-                    isRT 
-                      ? 'border-emerald-200 bg-emerald-50/40' 
-                      : isSekretaris 
-                      ? 'border-blue-200 bg-blue-50/40' 
-                      : 'border-slate-200 bg-slate-50/60'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                        isRT 
-                          ? 'bg-emerald-600 text-white' 
-                          : isSekretaris 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-slate-700 text-white'
-                      }`}>
-                        {acc.roleLabel}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500 bg-white/80 px-2 py-0.5 rounded border border-slate-200">
-                        @{acc.username}
-                      </span>
-                    </div>
-
-                    <h4 className="font-bold text-slate-900 text-sm leading-snug">{acc.namaLengkap}</h4>
-                    {acc.jabatanKhusus && (
-                      <p className="text-xs text-slate-600 font-medium mt-0.5">{acc.jabatanKhusus}</p>
-                    )}
-
-                    <div className="mt-3 space-y-1 text-xs text-slate-600">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">No. WhatsApp/HP:</span>
-                        <span className="font-mono font-semibold text-slate-800">{acc.nomorHp || '-'}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">PIN / Password:</span>
-                        <span className="font-mono text-emerald-800 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                          •••• ({acc.pinOrPassword ? 'Tersimpan' : '1234'})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditAdmin(acc)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-300 text-xs shadow-2xs transition cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Edit &amp; Ganti Password</span>
-                    </button>
-                    {!isRT && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteAdmin(acc.id, acc.namaLengkap)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                        title="Hapus Akun Pengurus"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Reassuring Banner on Password & Cloud Storage */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="space-y-0.5 text-xs">
-                <div className="font-bold text-white flex items-center gap-2">
-                  <span>Keamanan Penyimpanan Password &amp; Data Kredensial</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-400/30">Client-First Protected</span>
-                </div>
-                <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Password/PIN akun pengurus dienkripsi dan disimpan di penyimpanan lokal browser (<code className="text-emerald-300">localStorage</code>) perangkat pengurus secara aman. Jika Anda menghendaki sinkronisasi akun pengurus ke Cloud Supabase, tabel <code className="text-emerald-300">pengurus_rt004</code> telah tersedia pada Schema SQL di tab Supabase.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal / Form Add/Edit Admin */}
-        {isAddingAdmin && (
-          <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 bg-slate-950/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 my-auto">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                    {editingAdmin ? <Edit3 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">
-                      {editingAdmin ? `Edit Akun: ${editingAdmin.namaLengkap}` : 'Tambah Role Admin / Pengurus Baru'}
-                    </h3>
-                    <p className="text-[11px] text-slate-500">Kelola identitas, hak akses jabatan, dan PIN keamanan login</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingAdmin(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveAdminAccount} className="space-y-3.5 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Pengurus:</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Dra. Siti Aminah / Ahmad Fauzi, S.Kom."
-                    value={formNamaLengkap}
-                    onChange={(e) => setFormNamaLengkap(e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Username Login:</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: bendahara_rt004"
-                      value={formUsername}
-                      onChange={(e) => setFormUsername(e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Peran / Role Sistem:</label>
-                    <select
-                      value={formRole}
-                      onChange={(e) => {
-                        const val = e.target.value as UserRole;
-                        setFormRole(val);
-                        if (val === 'ADMIN_KETUA_RT') setFormRoleLabel('Ketua RT 004 (Admin Utama)');
-                        else if (val === 'ADMIN_SEKRETARIS') setFormRoleLabel('Sekretaris RT 004');
-                        else if (val === 'ADMIN_SISTEM') setFormRoleLabel('Administrator Sistem');
-                        else if (val === 'BENDAHARA') setFormRoleLabel('Bendahara RT 004');
-                        else if (val === 'SEKSI_KEAMANAN') setFormRoleLabel('Seksi Keamanan & Ketertiban');
-                        else setFormRoleLabel('Staf Pelayanan RT');
-                      }}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    >
-                      <option value="ADMIN_KETUA_RT">Ketua RT (Admin Utama)</option>
-                      <option value="ADMIN_SEKRETARIS">Sekretaris RT</option>
-                      <option value="ADMIN_SISTEM">Administrator Sistem (Akses Penuh)</option>
-                      <option value="BENDAHARA">Bendahara RT</option>
-                      <option value="SEKSI_KEAMANAN">Seksi Keamanan &amp; Ronda</option>
-                      <option value="ADMIN_CUSTOM">Admin / Staf Tambahan</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Label Jabatan / Tampilan:</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Bendahara RT / Seksi Humas"
-                      value={formRoleLabel}
-                      onChange={(e) => setFormRoleLabel(e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Nomor WhatsApp / HP:</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: 0812-3456-7890"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Password / PIN Keamanan Login (min. 4 karakter):
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Masukkan PIN / Password (Default: 1234)"
-                    value={formPin}
-                    onChange={(e) => setFormPin(e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    Gunakan angka atau kombinasi teks untuk keamanan autentikasi pengurus.
-                  </span>
-                </div>
-
-                {adminFormMsg && (
-                  <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                    adminFormMsg.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                  }`}>
-                    {adminFormMsg.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
-                    <span>{adminFormMsg.text}</span>
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingAdmin(false)}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 font-semibold rounded-xl transition cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{editingAdmin ? 'Simpan Perubahan' : 'Tambah Pengurus'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
+      {/* Keamanan akun dan privasi data */}
         {/* 2-Column: Quick PIN Change & Privacy / DB Maintenance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Quick PIN Management */}
@@ -1208,8 +640,8 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   <Key className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Ganti Cepat PIN Pengurus</h3>
-                  <p className="text-[11px] text-slate-500">Perbarui PIN keamanan login pengurus aktif</p>
+                  <h3 className="font-bold text-slate-900 text-sm">{cloudAuthEnabled ? 'Ganti Password Cloud' : 'Ganti Cepat PIN Pengurus'}</h3>
+                  <p className="text-[11px] text-slate-500">{cloudAuthEnabled ? 'Perbarui password akun Supabase yang sedang login' : 'Perbarui PIN keamanan login pengurus aktif'}</p>
                 </div>
               </div>
               <span className="text-[10px] px-2.5 py-1 bg-amber-50 text-amber-800 font-bold rounded-full border border-amber-200">
@@ -1218,7 +650,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
             </div>
 
             <form onSubmit={handleUpdatePin} className="space-y-3.5 text-xs">
-              <div>
+              {!cloudAuthEnabled && <div>
                 <label className="block font-semibold text-slate-700 mb-1">Pilih Akun Pengurus:</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1247,9 +679,9 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                     <span>Sekretaris RT</span>
                   </button>
                 </div>
-              </div>
+              </div>}
 
-              <div>
+              {!cloudAuthEnabled && <div>
                 <label className="block font-semibold text-slate-700 mb-1">PIN / Password Lama:</label>
                 <input
                   type="password"
@@ -1258,11 +690,11 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   onChange={(e) => setOldPin(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
-              </div>
+              </div>}
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">PIN Baru (min. 4 digit):</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{cloudAuthEnabled ? 'Password Baru (min. 8 karakter):' : 'PIN Baru (min. 4 digit):'}</label>
                   <input
                     type="password"
                     placeholder="PIN baru"
@@ -1272,7 +704,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Konfirmasi PIN Baru:</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Konfirmasi {cloudAuthEnabled ? 'Password' : 'PIN'} Baru:</label>
                   <input
                     type="password"
                     placeholder="Ulangi PIN baru"
@@ -1297,7 +729,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Simpan &amp; Perbarui PIN Akun</span>
+                <span>Simpan &amp; Perbarui {cloudAuthEnabled ? 'Password' : 'PIN Akun'}</span>
               </button>
             </form>
           </div>
@@ -1362,7 +794,6 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };

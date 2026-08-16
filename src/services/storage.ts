@@ -2401,8 +2401,9 @@ class StorageService {
   public commitImportData(
     rows: ImportPreviewRow[], 
     updateExisting: boolean = true,
-    clearExistingBeforeImport: boolean = false
-  ): { added: number; updated: number; skipped: number } {
+    clearExistingBeforeImport: boolean = false,
+    persist: boolean = true
+  ): { added: number; updated: number; skipped: number; wargaList: Warga[]; kkList: KartuKeluarga[] } {
     let currentWarga = clearExistingBeforeImport ? [] : this.getWargaList();
     let currentKK = clearExistingBeforeImport ? [] : this.getKKList();
     
@@ -2505,17 +2506,21 @@ class StorageService {
       }
     });
 
-    this.saveWargaList(currentWarga);
-    this.saveKKList(currentKK);
-    localStorage.setItem('sip_rt004_dummy_cleared', 'true');
+    if (persist) {
+      this.saveWargaList(currentWarga);
+      this.saveKKList(currentKK);
+      localStorage.setItem('sip_rt004_dummy_cleared', 'true');
+    }
 
-    this.addAuditLog(
-      'Impor Data Spreadsheet Excel',
-      `${added} Baru, ${updated} Diperbarui`,
-      `Impor data kependudukan RT 004 selesai. Total diproses: ${added + updated} warga (${rows.filter(r => r.tanpaNikKtp).length} warga belum ber-NIK diterima).`
-    );
+    if (persist) {
+      this.addAuditLog(
+        'Impor Data Spreadsheet Excel',
+        `${added} Baru, ${updated} Diperbarui`,
+        `Impor data kependudukan RT 004 selesai. Total diproses: ${added + updated} warga (${rows.filter(r => r.tanpaNikKtp).length} warga belum ber-NIK diterima).`
+      );
+    }
 
-    return { added, updated, skipped };
+    return { added, updated, skipped, wargaList: currentWarga, kkList: currentKK };
   }
 
   // --- GENERATE TEMPLATE EXCEL SESUAI 3 FOTO PENGGUNA ---

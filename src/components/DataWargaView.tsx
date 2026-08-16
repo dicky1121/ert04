@@ -22,7 +22,7 @@ import {
   FileSpreadsheet,
   ShieldCheck
 } from 'lucide-react';
-import { Warga, KartuKeluarga, RTConfig } from '../types';
+import { Warga, KartuKeluarga, RTConfig, ImportPreviewRow } from '../types';
 import { calculateDemographics, storageService, formatDateDDMMYYYY, maskNik, maskKK, maskPhone } from '../services/storage';
 import { ImportWargaModal } from './ImportWargaModal';
 import { useConfirm } from './ConfirmDialog';
@@ -32,8 +32,13 @@ interface DataWargaViewProps {
   wargaList: Warga[];
   kkList: KartuKeluarga[];
   config: RTConfig;
-  onSaveWarga: (warga: Warga) => void;
-  onDeleteWarga: (id: string) => void;
+  onSaveWarga: (warga: Warga) => Promise<boolean>;
+  onDeleteWarga: (id: string) => Promise<boolean>;
+  onImportWarga: (
+    rows: ImportPreviewRow[],
+    updateExisting: boolean,
+    clearExistingBeforeImport: boolean
+  ) => Promise<{ success: boolean; result?: { added: number; updated: number; skipped: number }; error?: string }>;
   onCreateSurat: (warga: Warga) => void;
   selectedWargaId?: string | null;
 }
@@ -44,6 +49,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
   config,
   onSaveWarga,
   onDeleteWarga,
+  onImportWarga,
   onCreateSurat,
   selectedWargaId
 }) => {
@@ -97,7 +103,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       confirmLabel: 'Ya, Hapus Data',
       tone: 'danger'
     });
-    if (setuju) onDeleteWarga(w.id);
+    if (setuju) await onDeleteWarga(w.id);
   };
 
 
@@ -207,7 +213,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -241,8 +247,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       catatan: formData.catatan || ''
     };
 
-    onSaveWarga(payload);
-    setIsFormOpen(false);
+    if (await onSaveWarga(payload)) setIsFormOpen(false);
   };
 
   return (
@@ -946,6 +951,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       <ImportWargaModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
+        onCommitImport={onImportWarga}
         onImportSuccess={({ added, updated }) => {
           // Trigger storage listeners
           setIsImportOpen(false);

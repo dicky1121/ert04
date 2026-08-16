@@ -32,6 +32,14 @@ export interface LetterDocumentData {
   tanggalSurat?: string;
   namaKetuaRT?: string;
   namaKetuaRW?: string;
+  fontFamily?: string;
+  bodyFontSizePt?: number;
+  kopFontSizePt?: number;
+  titleFontSizePt?: number;
+  lineHeight?: number;
+  rowSpacingPt?: number;
+  sectionSpacingPt?: number;
+  signatureSpacePt?: number;
 }
 
 /**
@@ -272,7 +280,9 @@ export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Sura
  */
 export const printOfficialLetter = (elementId: string = 'official-letter-sheet', docTitle: string = 'Surat_Pengantar_RT004_RW007'): boolean => {
   const element = document.getElementById(elementId);
-  const elementHtml = element ? element.innerHTML : '';
+  const elementHtml = element
+    ? `<div style="${element.getAttribute('style') || ''}">${element.innerHTML}</div>`
+    : '';
 
   if (!elementHtml) {
     window.print();
@@ -342,6 +352,14 @@ export const printOfficialLetter = (elementId: string = 'official-letter-sheet',
  * Can be opened in MS Word, WordPad, or LibreOffice and printed directly.
  */
 export const exportLetterToWord = (data: LetterDocumentData, filename: string = 'Surat_Pengantar_RT004.doc') => {
+  const fontFamily = data.fontFamily || 'Arial';
+  const bodyFontSize = data.bodyFontSizePt || 10;
+  const kopFontSize = data.kopFontSizePt || 12;
+  const titleFontSize = data.titleFontSizePt || 12;
+  const lineHeight = data.lineHeight || 1.35;
+  const rowSpacing = data.rowSpacingPt ?? 2;
+  const sectionSpacing = data.sectionSpacingPt || 12;
+  const signatureSpace = data.signatureSpacePt || 60;
   const content = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
@@ -357,75 +375,75 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
         }
         div.Section1 { page: Section1; }
         body {
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 11pt;
-          line-height: 1.35;
+          font-family: "${fontFamily}", Arial, Helvetica, sans-serif;
+          font-size: ${bodyFontSize}pt;
+          line-height: ${lineHeight};
           color: #000000;
         }
         .header-title {
           text-align: center;
           font-weight: bold;
-          font-size: 12pt;
+          font-size: ${kopFontSize}pt;
           margin: 0;
           padding: 0;
           text-transform: uppercase;
         }
         .header-sub {
           text-align: center;
-          font-size: 10pt;
+          font-size: ${Math.max(8, kopFontSize - 2)}pt;
           margin: 0;
           padding: 0;
         }
         .line-divider {
           border-bottom: 2px solid #000000;
           margin-top: 6pt;
-          margin-bottom: 12pt;
+          margin-bottom: ${sectionSpacing}pt;
         }
         .letter-title {
           text-align: center;
           font-weight: bold;
-          font-size: 12pt;
+          font-size: ${titleFontSize}pt;
           text-decoration: underline;
           margin-bottom: 2pt;
         }
         .letter-no {
           text-align: center;
-          font-size: 11pt;
-          margin-bottom: 12pt;
+          font-size: ${bodyFontSize}pt;
+          margin-bottom: ${sectionSpacing}pt;
         }
         .field-table {
           width: 100%;
           border-collapse: collapse;
           margin-left: 20pt;
-          margin-bottom: 12pt;
+          margin-bottom: ${sectionSpacing}pt;
         }
         .field-table td {
           vertical-align: top;
-          padding: 2pt 0;
-          font-size: 11pt;
+          padding: ${rowSpacing / 2}pt 0;
+          font-size: ${bodyFontSize}pt;
         }
         .col-label { width: 140pt; }
         .col-sep { width: 15pt; text-align: center; }
         .col-val { width: auto; font-weight: normal; }
         .ttd-table {
           width: 100%;
-          margin-top: 18pt;
+          margin-top: ${sectionSpacing}pt;
           border-collapse: collapse;
         }
         .ttd-table td {
           vertical-align: top;
           text-align: center;
-          font-size: 11pt;
+          font-size: ${bodyFontSize}pt;
         }
       </style>
     </head>
     <body>
       <div class="Section1">
         <!-- HEADER KOP -->
-        <p class="header-title" style="font-size: 13pt;">${data.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}</p>
-        <p class="header-title" style="font-size: 14pt;">${data.kopTeksRT || 'RT 004 RW 007'}</p>
-        <p class="header-title" style="font-size: 12pt;">${data.kopKelurahan || 'KELURAHAN JATIMULYA'}</p>
-        <p class="header-title" style="font-size: 12pt;">${data.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}</p>
+        <p class="header-title">${data.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}</p>
+        <p class="header-title" style="font-size: ${kopFontSize + 1}pt;">${data.kopTeksRT || 'RT 004 RW 007'}</p>
+        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKelurahan || 'KELURAHAN JATIMULYA'}</p>
+        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}</p>
         <p class="header-sub">${data.kopSekretariatText || 'Sekretariat : jl jampang no 111 jatimulya tlp 0896-7720-3444'}</p>
         
         <div class="line-divider"></div>
@@ -435,7 +453,7 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
         <p class="letter-no">NO : ${data.nomorSurat || '185 / RT 004 RW 007 / SP / 2026'}</p>
 
         <!-- KALIMAT PEMBUKA -->
-        <p style="text-align: justify; margin-bottom: 10pt;">
+        <p style="text-align: justify; margin-bottom: ${sectionSpacing}pt;">
           ${data.kalimatPembuka || 'Yang Bertanda Tangan Dibawah Ini Ketua Rt 004 Rw 007 Kelurahan Jatimulya, Menerangkan Bahwa :'}
         </p>
 
@@ -508,7 +526,7 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
         </table>
 
         <!-- KALIMAT PENUTUP -->
-        <p style="text-align: justify; margin-bottom: 20pt;">
+        <p style="text-align: justify; margin-bottom: ${sectionSpacing}pt;">
           ${data.kalimatPenutup || 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.'}
         </p>
 
@@ -517,12 +535,12 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
           <tr>
             <td style="width: 50%;">
               <p style="margin-bottom: 2pt;">${data.lokasiSurat || 'Jatimulya'} ${data.tanggalSurat || ''}</p>
-              <p style="font-weight: bold; margin-bottom: 50pt;">Ketua Rt 004 Rw 007</p>
+              <p style="font-weight: bold; margin-bottom: ${signatureSpace}pt;">Ketua Rt 004 Rw 007</p>
               <p style="font-weight: bold; text-decoration: underline;">${data.namaKetuaRT || 'Yanto'}</p>
             </td>
             <td style="width: 50%;">
               <p style="margin-bottom: 2pt;">Mengetahui</p>
-              <p style="font-weight: bold; margin-bottom: 50pt;">Ketua Rw 007</p>
+              <p style="font-weight: bold; margin-bottom: ${signatureSpace}pt;">Ketua Rw 007</p>
               <p style="font-weight: bold; text-decoration: underline;">${data.namaKetuaRW || 'Imron Rosadi'}</p>
             </td>
           </tr>
@@ -552,7 +570,8 @@ export const downloadLetterHtml = (elementId: string = 'official-letter-sheet', 
   const element = document.getElementById(elementId);
   if (!element) return;
 
-  const fullHtml = buildPrintableHtml(element.innerHTML, filename.replace('.html', ''));
+  const elementHtml = `<div style="${element.getAttribute('style') || ''}">${element.innerHTML}</div>`;
+  const fullHtml = buildPrintableHtml(elementHtml, filename.replace('.html', ''));
   const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

@@ -1,7 +1,7 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, RealtimeChannel, RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
 import { storageService } from './storage';
 import { authState } from './authState';
-import { Warga, KartuKeluarga } from '../types';
+import { KartuKeluarga, MutasiPenduduk, RTConfig, SuratPengantar, Warga } from '../types';
 
 
 export interface SupabaseSyncResult {
@@ -12,6 +12,17 @@ export interface SupabaseSyncResult {
   error?: string;
 }
 
+export type CloudSyncPhase = 'local' | 'connecting' | 'online' | 'syncing' | 'offline' | 'error';
+
+export interface CloudSyncState {
+  phase: CloudSyncPhase;
+  pendingWrites: number;
+  lastSyncedAt?: string;
+  message?: string;
+}
+
+type CloudSyncListener = (state: CloudSyncState) => void;
+
 export interface ParsedSupabaseConnection {
   projectRef?: string;
   projectUrl: string;
@@ -19,6 +30,219 @@ export interface ParsedSupabaseConnection {
   dashboardSqlUrl?: string;
   isPostgresUri?: boolean;
 }
+
+type CloudRow = Record<string, any>;
+
+const SHARED_CONFIG_ID = 'global';
+
+const toSharedConfig = (config: RTConfig): Partial<RTConfig> => {
+  const {
+    supabaseUrl: _supabaseUrl,
+    supabaseAnonKey: _supabaseAnonKey,
+    supabaseTersambung: _supabaseTersambung,
+    supabaseAutoSync: _supabaseAutoSync,
+    googleSpreadsheetId: _googleSpreadsheetId,
+    terakhirSinkron: _terakhirSinkron,
+    ...sharedConfig
+  } = config;
+  return sharedConfig;
+};
+
+const applySharedConfig = (sharedConfig: unknown) => {
+  if (!sharedConfig || typeof sharedConfig !== 'object' || Array.isArray(sharedConfig)) return;
+  const localConfig = storageService.getConfig();
+  storageService.saveConfig({
+    ...localConfig,
+    ...(sharedConfig as Partial<RTConfig>),
+    supabaseUrl: localConfig.supabaseUrl,
+    supabaseAnonKey: localConfig.supabaseAnonKey,
+    supabaseTersambung: localConfig.supabaseTersambung,
+    supabaseAutoSync: localConfig.supabaseAutoSync,
+    googleSpreadsheetId: localConfig.googleSpreadsheetId,
+    terakhirSinkron: localConfig.terakhirSinkron
+  });
+};
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const toWargaRow = (w: Warga): CloudRow => ({
+  id: w.id,
+  nik: String(w.nik || '').trim(),
+  nomor_kk: String(w.nomorKK || '').trim(),
+  nama: (w.nama || '').trim(),
+  jenis_kelamin: w.jenisKelamin === 'P' ? 'P' : 'L',
+  tempat_lahir: w.tempatLahir || '',
+  tanggal_lahir: w.tanggalLahir || null,
+  agama: w.agama || 'ISLAM',
+  pendidikan: w.pendidikan || '',
+  pekerjaan: w.pekerjaan || '',
+  status_perkawinan: w.statusPerkawinan || 'BELUM KAWIN',
+  status_hubungan_kk: w.statusHubunganKK || 'LAINNYA',
+  kewarganegaraan: w.kewarganegaraan || 'WNI',
+  golongan_darah: w.golonganDarah || '-',
+  nomor_hp: w.nomorHp || '-',
+  email: w.email || '',
+  status_tinggal: w.statusTinggal || 'TETAP',
+  is_lansia: Boolean(w.isLansia),
+  is_balita: Boolean(w.isBalita),
+  is_yatim: Boolean(w.isYatim),
+  is_disabilitas: Boolean(w.isDisabilitas),
+  status_bansos: w.statusBansos || 'TIDAK_ADA',
+  keterangan_bansos: w.keteranganBansos || '',
+  tanggal_input: w.tanggalInput || today(),
+  catatan: w.catatan || ''
+});
+
+const fromWargaRow = (w: CloudRow): Warga => ({
+  id: w.id || `w-${w.nik}`,
+  nik: String(w.nik || ''),
+  nomorKK: String(w.nomor_kk || ''),
+  nama: w.nama || 'Warga Tanpa Nama',
+  jenisKelamin: w.jenis_kelamin === 'P' ? 'P' : 'L',
+  tempatLahir: w.tempat_lahir || '',
+  tanggalLahir: w.tanggal_lahir || '1990-01-01',
+  agama: (w.agama || 'ISLAM').toUpperCase(),
+  pendidikan: w.pendidikan || '',
+  pekerjaan: w.pekerjaan || '',
+  statusPerkawinan: (w.status_perkawinan || 'BELUM KAWIN').toUpperCase(),
+  statusHubunganKK: (w.status_hubungan_kk || 'LAINNYA').toUpperCase(),
+  kewarganegaraan: w.kewarganegaraan === 'WNA' ? 'WNA' : 'WNI',
+  golonganDarah: w.golongan_darah || '-',
+  nomorHp: w.nomor_hp || '-',
+  email: w.email || '',
+  statusTinggal: w.status_tinggal || 'TETAP',
+  isLansia: Boolean(w.is_lansia),
+  isBalita: Boolean(w.is_balita),
+  isYatim: Boolean(w.is_yatim),
+  isDisabilitas: Boolean(w.is_disabilitas),
+  statusBansos: w.status_bansos || 'TIDAK_ADA',
+  keteranganBansos: w.keterangan_bansos || '',
+  tanggalInput: w.tanggal_input || today(),
+  catatan: w.catatan || ''
+} as Warga);
+
+const toKKRow = (k: KartuKeluarga): CloudRow => ({
+  id: k.id,
+  nomor_kk: String(k.nomorKK || '').trim(),
+  kepala_keluarga_nama: k.kepalaKeluargaNama || '',
+  kepala_keluarga_nik: String(k.kepalaKeluargaNik || '').trim(),
+  alamat: k.alamat || '',
+  rt: k.rt || '004',
+  rw: k.rw || '007',
+  kelurahan: k.kelurahan || '',
+  kecamatan: k.kecamatan || '',
+  kabupaten_kota: k.kabupatenKota || '',
+  provinsi: k.provinsi || '',
+  kode_pos: k.kodePos || '',
+  status_domisili: k.statusDomisili || 'TETAP',
+  blok_rumah: k.blokRumah || '',
+  tanggal_terbit: k.tanggalTerbit || today(),
+  tanggal_update: k.tanggalUpdate || today(),
+  catatan: k.catatan || ''
+});
+
+const fromKKRow = (k: CloudRow): KartuKeluarga => ({
+  id: k.id || `kk-${k.nomor_kk}`,
+  nomorKK: String(k.nomor_kk || ''),
+  kepalaKeluargaNama: k.kepala_keluarga_nama || '',
+  kepalaKeluargaNik: String(k.kepala_keluarga_nik || ''),
+  alamat: k.alamat || '',
+  rt: k.rt || '004',
+  rw: k.rw || '007',
+  kelurahan: k.kelurahan || '',
+  kecamatan: k.kecamatan || '',
+  kabupatenKota: k.kabupaten_kota || '',
+  provinsi: k.provinsi || '',
+  kodePos: k.kode_pos || '',
+  statusDomisili: k.status_domisili || 'TETAP',
+  blokRumah: k.blok_rumah || '',
+  tanggalTerbit: k.tanggal_terbit || today(),
+  anggota: [],
+  tanggalUpdate: k.tanggal_update || today(),
+  catatan: k.catatan || ''
+} as KartuKeluarga);
+
+const toSuratRow = (s: SuratPengantar): CloudRow => ({
+  id: s.id,
+  nomor_surat: s.nomorSurat,
+  jenis_surat: s.jenisSurat,
+  judul_surat: s.judulSurat,
+  nik_pemohon: s.nikPemohon,
+  nama_pemohon: s.namaPemohon,
+  nomor_kk_pemohon: s.nomorKKPemohon,
+  tempat_tgl_lahir_pemohon: s.tempatTglLahirPemohon,
+  jenis_kelamin_pemohon: s.jenisKelaminPemohon,
+  agama_pemohon: s.agamaPemohon,
+  pekerjaan_pemohon: s.pekerjaanPemohon,
+  status_kawin_pemohon: s.statusKawinPemohon,
+  alamat_pemohon: s.alamatPemohon,
+  keperluan: s.keperluan,
+  keterangan_lain: s.keteranganLain || '',
+  tanggal_pengajuan: s.tanggalPengajuan || today(),
+  tanggal_disetujui: s.tanggalDisetujui || null,
+  status: s.status,
+  alasan_penolakan: s.alasanPenolakan || null,
+  nama_pejabat_ttd: s.namaPejabatTtd,
+  jabatan_ttd: s.jabatanTtd,
+  kode_verifikasi_qr: s.kodeVerifikasiQr,
+  dibuat_oleh: s.dibuatOleh
+});
+
+const fromSuratRow = (s: CloudRow): SuratPengantar => ({
+  id: s.id,
+  nomorSurat: s.nomor_surat,
+  jenisSurat: s.jenis_surat || 'LAINNYA',
+  judulSurat: s.judul_surat || 'SURAT PENGANTAR',
+  nikPemohon: s.nik_pemohon || '',
+  namaPemohon: s.nama_pemohon || '',
+  nomorKKPemohon: s.nomor_kk_pemohon || '',
+  tempatTglLahirPemohon: s.tempat_tgl_lahir_pemohon || '',
+  jenisKelaminPemohon: s.jenis_kelamin_pemohon === 'P' ? 'P' : 'L',
+  agamaPemohon: s.agama_pemohon || '',
+  pekerjaanPemohon: s.pekerjaan_pemohon || '',
+  statusKawinPemohon: s.status_kawin_pemohon || '',
+  alamatPemohon: s.alamat_pemohon || '',
+  keperluan: s.keperluan || '',
+  keteranganLain: s.keterangan_lain || '',
+  tanggalPengajuan: s.tanggal_pengajuan || today(),
+  tanggalDisetujui: s.tanggal_disetujui || undefined,
+  status: s.status || 'PENDING',
+  alasanPenolakan: s.alasan_penolakan || undefined,
+  namaPejabatTtd: s.nama_pejabat_ttd || '',
+  jabatanTtd: s.jabatan_ttd || '',
+  kodeVerifikasiQr: s.kode_verifikasi_qr || '',
+  dibuatOleh: s.dibuat_oleh === 'WARGA' ? 'WARGA' : 'ADMIN'
+} as SuratPengantar);
+
+const toMutasiRow = (m: MutasiPenduduk): CloudRow => ({
+  id: m.id,
+  tanggal: m.tanggal || m.tanggalPeristiwa || today(),
+  jenis_mutasi: m.jenisMutasi,
+  nik: m.nik || m.nikWarga || '',
+  nama_warga: m.namaWarga,
+  nomor_kk: m.nomorKK || '',
+  alamat_asal: m.alamatAsal || '',
+  alamat_tujuan: m.alamatTujuan || '',
+  alasan: m.alasan || m.alasanMutasi || '',
+  no_surat_keterangan: m.noSuratKeterangan || m.nomorSuratPindah || m.noSuratPindah || '',
+  petugas: m.petugas || m.dicatatOleh || '',
+  catatan: m.catatan || m.keterangan || ''
+});
+
+const fromMutasiRow = (m: CloudRow): MutasiPenduduk => ({
+  id: m.id,
+  tanggal: m.tanggal || today(),
+  jenisMutasi: m.jenis_mutasi || 'PINDAH_MASUK',
+  nik: m.nik || '',
+  namaWarga: m.nama_warga || '',
+  nomorKK: m.nomor_kk || '',
+  alamatAsal: m.alamat_asal || '',
+  alamatTujuan: m.alamat_tujuan || '',
+  alasan: m.alasan || '',
+  noSuratKeterangan: m.no_surat_keterangan || '',
+  petugas: m.petugas || '',
+  catatan: m.catatan || ''
+} as MutasiPenduduk);
 
 export function parseSupabaseInput(input: string): ParsedSupabaseConnection {
   const trimmed = input.trim();
@@ -70,6 +294,9 @@ export function parseSupabaseInput(input: string): ParsedSupabaseConnection {
 
 class SupabaseService {
   private client: SupabaseClient | null = null;
+  private realtimeChannel: RealtimeChannel | null = null;
+  private syncListeners = new Set<CloudSyncListener>();
+  private syncState: CloudSyncState = { phase: 'local', pendingWrites: 0 };
   private defaultProjectUrl = 'https://nginmiqjfzycvbbufbev.supabase.co';
 
   public parseInput(input: string): ParsedSupabaseConnection {
@@ -135,6 +362,60 @@ class SupabaseService {
     return this.client;
   }
 
+  public getSyncState(): CloudSyncState {
+    return { ...this.syncState };
+  }
+
+  public subscribeSyncState(listener: CloudSyncListener): () => void {
+    this.syncListeners.add(listener);
+    listener(this.getSyncState());
+    return () => this.syncListeners.delete(listener);
+  }
+
+  public markOffline() {
+    this.setSyncState({
+      phase: 'offline',
+      message: 'Perangkat offline. Perubahan belum disimpan.'
+    });
+  }
+
+  private setSyncState(patch: Partial<CloudSyncState>) {
+    this.syncState = { ...this.syncState, ...patch };
+    this.syncListeners.forEach(listener => listener(this.getSyncState()));
+  }
+
+  public isCloudMode(): boolean {
+    const { url, anonKey } = this.getSupabaseConfig();
+    return Boolean(url && anonKey && authState.hasActiveSession());
+  }
+
+  private async runCloudWrite<T extends { success: boolean; error?: string }>(operation: () => Promise<T>): Promise<T> {
+    if (!this.isCloudMode()) {
+      return { success: false, error: 'Sesi cloud tidak aktif. Login ulang sebelum mengubah data.' } as T;
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.setSyncState({ phase: 'offline', message: 'Perangkat offline. Perubahan belum disimpan.' });
+      return { success: false, error: 'Perangkat sedang offline. Sambungkan internet lalu coba lagi.' } as T;
+    }
+
+    this.setSyncState({ phase: 'syncing', pendingWrites: this.syncState.pendingWrites + 1, message: 'Menyimpan perubahan ke cloud...' });
+    try {
+      const result = await operation();
+      const pendingWrites = Math.max(0, this.syncState.pendingWrites - 1);
+      this.setSyncState({
+        phase: result.success ? 'online' : 'error',
+        pendingWrites,
+        lastSyncedAt: result.success ? new Date().toISOString() : this.syncState.lastSyncedAt,
+        message: result.success ? 'Semua perubahan tersimpan di cloud.' : result.error
+      });
+      return result;
+    } catch (error: any) {
+      const result = { success: false, error: error?.message || 'Operasi cloud gagal.' } as T;
+      this.setSyncState({ phase: 'error', pendingWrites: Math.max(0, this.syncState.pendingWrites - 1), message: result.error });
+      return result;
+    }
+  }
+
   public async testConnection(urlParam?: string, keyParam?: string): Promise<{ success: boolean; message: string }> {
     const config = this.getSupabaseConfig();
     const url = urlParam || config.url;
@@ -150,8 +431,11 @@ class SupabaseService {
     try {
       const testClient = createClient(url, key);
       const { error } = await testClient.from('warga_rt004').select('id').limit(1);
-      if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
-        console.warn('Supabase test warning:', error);
+      if (error) {
+        return {
+          success: false,
+          message: `Koneksi ditolak: ${error.message}. Pastikan sesi pengurus aktif dan skema database sudah dipasang.`
+        };
       }
       return {
         success: true,
@@ -184,14 +468,13 @@ class SupabaseService {
     }
 
     try {
+      this.setSyncState({ phase: 'syncing', message: 'Mengambil data terbaru dari cloud...' });
       // 1. Fetch Kartu Keluarga
       const { data: kkData, error: kkError } = await client
         .from('kartu_keluarga_rt004')
         .select('*');
 
-      if (kkError) {
-        console.warn('Gagal fetch KK dari Supabase:', kkError.message);
-      }
+      if (kkError) throw new Error(`Gagal mengambil data KK: ${kkError.message}`);
 
       // 2. Fetch Warga
       const { data: wargaData, error: wargaError } = await client
@@ -203,131 +486,54 @@ class SupabaseService {
       }
 
       // 3. Fetch Surat Pengantar
-      const { data: suratData } = await client
+      const { data: suratData, error: suratError } = await client
         .from('surat_pengantar_rt004')
         .select('*');
+      if (suratError) throw new Error(`Gagal mengambil surat: ${suratError.message}`);
 
       // 4. Fetch Mutasi
-      const { data: mutasiData } = await client
+      const { data: mutasiData, error: mutasiError } = await client
         .from('mutasi_penduduk_rt004')
         .select('*');
+      if (mutasiError) throw new Error(`Gagal mengambil mutasi: ${mutasiError.message}`);
+
+      // Konfigurasi surat bersifat global untuk seluruh pengurus. Kegagalan
+      // membaca tabel ini tidak boleh menghalangi pemuatan data utama ketika
+      // migrasi konfigurasi bersama belum dijalankan.
+      const { data: configData, error: configError } = await client
+        .from('konfigurasi_rt004')
+        .select('config_data')
+        .eq('id', SHARED_CONFIG_ID)
+        .maybeSingle();
+      if (configError) {
+        console.warn('Konfigurasi bersama belum tersedia:', configError.message);
+      } else if (configData?.config_data) {
+        applySharedConfig(configData.config_data);
+      }
 
       let importedWargaCount = 0;
       let importedKKCount = 0;
       let importedSuratCount = 0;
       let importedMutasiCount = 0;
 
-      // Transform and save Warga
-      if (wargaData && wargaData.length > 0) {
-        const transformedWarga: Warga[] = wargaData.map((w: any) => ({
-          id: w.id || `w-${w.nik}`,
-          nik: String(w.nik || ''),
-          nomorKK: String(w.nomor_kk || ''),
-          nama: w.nama || 'Warga Tanpa Nama',
-          jenisKelamin: (w.jenis_kelamin === 'P' ? 'P' : 'L') as any,
-          tempatLahir: w.tempat_lahir || 'Bekasi',
-          tanggalLahir: w.tanggal_lahir || '1990-01-01',
-          agama: (w.agama || 'ISLAM').toUpperCase() as any,
-          pendidikan: w.pendidikan || 'SLTA',
-          pekerjaan: w.pekerjaan || 'Wiraswasta',
-          statusPerkawinan: (w.status_perkawinan || 'KAWIN').toUpperCase() as any,
-          statusHubunganKK: (w.status_hubungan_kk || 'KEPALA KELUARGA').toUpperCase() as any,
-          kewarganegaraan: (w.kewarganegaraan || 'WNI') as any,
-          golonganDarah: w.golongan_darah || '-',
-          nomorHp: w.nomor_hp || '-',
-          email: w.email || '',
-          statusTinggal: (w.status_tinggal || 'TETAP') as any,
-          isLansia: Boolean(w.is_lansia),
-          isBalita: Boolean(w.is_balita),
-          isYatim: Boolean(w.is_yatim),
-          isDisabilitas: Boolean(w.is_disabilitas),
-          statusBansos: (w.status_bansos || 'TIDAK_ADA') as any,
-          keteranganBansos: w.keterangan_bansos || '',
-          tanggalInput: w.tanggal_input || new Date().toISOString().split('T')[0],
-          catatan: w.catatan || ''
-        }));
-
-        storageService.saveWargaList(transformedWarga);
-        importedWargaCount = transformedWarga.length;
-      }
+      const transformedWarga = (wargaData || []).map(fromWargaRow);
+      storageService.saveWargaList(transformedWarga);
+      importedWargaCount = transformedWarga.length;
 
       // Transform and save KK
-      if (kkData && kkData.length > 0) {
-        const transformedKK: KartuKeluarga[] = kkData.map((k: any) => ({
-          id: k.id || `kk-${k.nomor_kk}`,
-          nomorKK: String(k.nomor_kk || ''),
-          kepalaKeluargaNama: k.kepala_keluarga_nama || 'Kepala Keluarga',
-          kepalaKeluargaNik: String(k.kepala_keluarga_nik || ''),
-          alamat: k.alamat || 'RT 004 RW 007 Kel. Jatimulya',
-          rt: k.rt || '004',
-          rw: k.rw || '007',
-          kelurahan: k.kelurahan || 'Jatimulya',
-          kecamatan: k.kecamatan || 'Tambun Selatan',
-          kabupatenKota: k.kabupaten_kota || 'Kabupaten Bekasi',
-          provinsi: k.provinsi || 'Jawa Barat',
-          kodePos: k.kode_pos || '17510',
-          statusDomisili: (k.status_domisili || 'TETAP') as any,
-          blokRumah: k.blok_rumah || '',
-          tanggalTerbit: k.tanggal_terbit || new Date().toISOString().split('T')[0],
-          anggota: [],
-          tanggalUpdate: k.tanggal_update || new Date().toISOString().split('T')[0],
-          catatan: k.catatan || ''
-        }));
-
-        storageService.saveKKList(transformedKK);
-        importedKKCount = transformedKK.length;
-      }
+      const transformedKK = (kkData || []).map(fromKKRow);
+      storageService.saveKKList(transformedKK);
+      importedKKCount = transformedKK.length;
 
       // Transform and save Surat
-      if (suratData && suratData.length > 0) {
-        const transformedSurat: any[] = suratData.map((s: any) => ({
-          id: s.id || `sp-${Date.now()}`,
-          nomorSurat: s.nomor_surat,
-          jenisSurat: s.jenis_surat || 'LAINNYA',
-          judulSurat: s.judul_surat || 'SURAT PENGANTAR',
-          nikPemohon: s.nik_pemohon || '',
-          namaPemohon: s.nama_pemohon || '',
-          nomorKKPemohon: s.nomor_kk_pemohon || '',
-          tempatTglLahirPemohon: s.tempat_tgl_lahir_pemohon || '',
-          jenisKelaminPemohon: s.jenis_kelamin_pemohon || 'L',
-          agamaPemohon: s.agama_pemohon || 'ISLAM',
-          pekerjaanPemohon: s.pekerjaan_pemohon || 'Wiraswasta',
-          statusKawinPemohon: s.status_kawin_pemohon || 'KAWIN',
-          alamatPemohon: s.alamat_pemohon || 'RT 004 RW 007',
-          keperluan: s.keperluan || '',
-          keteranganLain: s.keterangan_lain || '',
-          tanggalPengajuan: s.tanggal_pengajuan || new Date().toISOString().split('T')[0],
-          tanggalDisetujui: s.tanggal_disetujui,
-          status: s.status || 'PENDING',
-          alasanPenolakan: s.alasan_penolakan,
-          namaPejabatTtd: s.nama_pejabat_ttd || 'Yanto',
-          jabatanTtd: s.jabatan_ttd || 'Ketua RT 004',
-          kodeVerifikasiQr: s.kode_verifikasi_qr || '',
-          dibuatOleh: s.dibuat_oleh || 'WARGA'
-        }));
-        storageService.saveSurat(transformedSurat);
-        importedSuratCount = transformedSurat.length;
-      }
+      const transformedSurat = (suratData || []).map(fromSuratRow);
+      storageService.saveSurat(transformedSurat);
+      importedSuratCount = transformedSurat.length;
 
       // Transform and save Mutasi
-      if (mutasiData && mutasiData.length > 0) {
-        const transformedMutasi: any[] = mutasiData.map((m: any) => ({
-          id: m.id || `mut-${Date.now()}`,
-          tanggal: m.tanggal || new Date().toISOString().split('T')[0],
-          jenisMutasi: m.jenis_mutasi || 'PINDAH_MASUK',
-          nik: m.nik || '',
-          namaWarga: m.nama_warga || '',
-          nomorKK: m.nomor_kk || '',
-          alamatAsal: m.alamat_asal || '',
-          alamatTujuan: m.alamat_tujuan || '',
-          alasan: m.alasan || '',
-          noSuratKeterangan: m.no_surat_keterangan || '',
-          petugas: m.petugas || 'Admin RT',
-          catatan: m.catatan || ''
-        }));
-        storageService.saveMutasi(transformedMutasi);
-        importedMutasiCount = transformedMutasi.length;
-      }
+      const transformedMutasi = (mutasiData || []).map(fromMutasiRow);
+      storageService.saveMutasi(transformedMutasi);
+      importedMutasiCount = transformedMutasi.length;
 
       // Update config sync time
       const config = storageService.getConfig();
@@ -340,12 +546,14 @@ class SupabaseService {
       storageService.addAuditLog(
         'Sinkronisasi Supabase Cloud',
         'Supabase -> WebApp',
-        `Berhasil mengimpor ${importedWargaCount} data warga, ${importedKKCount} data KK, ${importedSuratCount} surat dari Supabase.`
+        `Berhasil mengimpor ${importedWargaCount} warga, ${importedKKCount} KK, ${importedSuratCount} surat, dan ${importedMutasiCount} mutasi dari Supabase.`
       );
+
+      this.setSyncState({ phase: 'online', lastSyncedAt: new Date().toISOString(), message: 'Data cloud terbaru telah diterapkan.' });
 
       return {
         success: true,
-        message: `Berhasil mengimpor data dari Supabase! (${importedWargaCount} Warga, ${importedKKCount} KK, ${importedSuratCount} Surat)`,
+        message: `Berhasil mengimpor data dari Supabase: ${importedWargaCount} warga, ${importedKKCount} KK, ${importedSuratCount} surat, dan ${importedMutasiCount} mutasi.`,
         counts: {
           warga: importedWargaCount,
           kk: importedKKCount,
@@ -354,6 +562,7 @@ class SupabaseService {
         }
       };
     } catch (err: any) {
+      this.setSyncState({ phase: typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error', message: err.message });
       return {
         success: false,
         message: `Gagal menarik data dari Supabase: ${err.message}`,
@@ -478,6 +687,14 @@ CREATE TABLE IF NOT EXISTS pengurus_profil (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 6. Konfigurasi global template, kop, dan logo surat
+CREATE TABLE IF NOT EXISTS konfigurasi_rt004 (
+    id TEXT PRIMARY KEY DEFAULT 'global',
+    config_data JSONB NOT NULL DEFAULT '{}'::JSONB,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
 -- =====================================================================
 -- KEAMANAN: ROW LEVEL SECURITY (RLS)
 -- Anon key ikut ter-bundle ke JavaScript browser, jadi anon TIDAK BOLEH
@@ -524,6 +741,7 @@ ALTER TABLE warga_rt004 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE surat_pengantar_rt004 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mutasi_penduduk_rt004 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengurus_profil ENABLE ROW LEVEL SECURITY;
+ALTER TABLE konfigurasi_rt004 ENABLE ROW LEVEL SECURITY;
 
 -- Bersihkan SEMUA policy lama pada tabel-tabel ini, termasuk policy publik
 -- "Public full access for RT004" (USING (true)) dari skema versi sebelumnya.
@@ -543,6 +761,7 @@ BEGIN
               'warga_rt004',
               'surat_pengantar_rt004',
               'mutasi_penduduk_rt004',
+              'konfigurasi_rt004',
               'pengurus_profil',
               'pengurus_rt004'
           )
@@ -561,12 +780,14 @@ REVOKE ALL ON warga_rt004 FROM anon;
 REVOKE ALL ON surat_pengantar_rt004 FROM anon;
 REVOKE ALL ON mutasi_penduduk_rt004 FROM anon;
 REVOKE ALL ON pengurus_profil FROM anon;
+REVOKE ALL ON konfigurasi_rt004 FROM anon;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON kartu_keluarga_rt004 TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON warga_rt004 TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON surat_pengantar_rt004 TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON mutasi_penduduk_rt004 TO authenticated;
 GRANT SELECT, UPDATE ON pengurus_profil TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON konfigurasi_rt004 TO authenticated;
 
 -- Policy data warga & KK: baca/tulis hanya untuk pengurus aktif,
 -- hapus hanya untuk Ketua RT / Sekretaris.
@@ -605,6 +826,15 @@ CREATE POLICY "Pengurus aktif boleh ubah mutasi" ON mutasi_penduduk_rt004
     FOR UPDATE TO authenticated USING (public.is_pengurus_aktif()) WITH CHECK (public.is_pengurus_aktif());
 CREATE POLICY "Admin RT boleh hapus mutasi" ON mutasi_penduduk_rt004
     FOR DELETE TO authenticated USING (public.is_admin_rt());
+
+-- Seluruh pengurus aktif melihat format yang sama. Perubahan template dan
+-- logo hanya dapat dilakukan oleh tiga role admin penuh.
+CREATE POLICY "Pengurus aktif boleh baca konfigurasi" ON konfigurasi_rt004
+    FOR SELECT TO authenticated USING (public.is_pengurus_aktif());
+CREATE POLICY "Admin RT boleh tambah konfigurasi" ON konfigurasi_rt004
+    FOR INSERT TO authenticated WITH CHECK (public.is_admin_rt() AND id = 'global');
+CREATE POLICY "Admin RT boleh ubah konfigurasi" ON konfigurasi_rt004
+    FOR UPDATE TO authenticated USING (public.is_admin_rt()) WITH CHECK (public.is_admin_rt() AND id = 'global');
 
 -- Policy profil pengurus: setiap pengurus hanya bisa melihat & mengubah
 -- profilnya sendiri; role tidak bisa dinaikkan sendiri (lihat trigger di bawah).
@@ -655,6 +885,63 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
 --    menyimpan PIN dalam bentuk teks biasa:
 --    DROP TABLE IF EXISTS pengurus_rt004;
 -- =====================================================================
+
+-- =====================================================================
+-- REALTIME ANTARPERANGKAT
+-- Metadata perubahan membantu audit teknis dan REPLICA IDENTITY FULL
+-- memastikan payload DELETE membawa identitas baris yang diperlukan.
+-- =====================================================================
+CREATE OR REPLACE FUNCTION public.set_sync_metadata()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  NEW.updated_by := auth.uid();
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+  table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'kartu_keluarga_rt004',
+    'warga_rt004',
+    'surat_pengantar_rt004',
+    'mutasi_penduduk_rt004',
+    'konfigurasi_rt004'
+  ]
+  LOOP
+    EXECUTE format(
+      'ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()',
+      table_name
+    );
+    EXECUTE format(
+      'ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL',
+      table_name
+    );
+    EXECUTE format('ALTER TABLE public.%I REPLICA IDENTITY FULL', table_name);
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_set_sync_metadata ON public.%I', table_name);
+    EXECUTE format(
+      'CREATE TRIGGER trg_set_sync_metadata BEFORE INSERT OR UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.set_sync_metadata()',
+      table_name
+    );
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = table_name
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', table_name);
+    END IF;
+  END LOOP;
+END $$;
+-- =====================================================================
 `;
 
   }
@@ -689,7 +976,13 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
     return sql;
   }
 
-  public async syncToSupabase(customWarga?: Warga[], customKK?: KartuKeluarga[]): Promise<SupabaseSyncResult> {
+  public async syncToSupabase(
+    customWarga?: Warga[],
+    customKK?: KartuKeluarga[],
+    customSurat?: SuratPengantar[],
+    customMutasi?: MutasiPenduduk[],
+    replacePopulation: boolean = false
+  ): Promise<SupabaseSyncResult> {
     const config = storageService.getConfig();
     const client = this.getClient();
 
@@ -702,8 +995,24 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
     }
 
     try {
-      const wargaList = customWarga && customWarga.length > 0 ? customWarga : storageService.getWargaList();
-      const kkList = customKK && customKK.length > 0 ? customKK : storageService.getKKList();
+      this.setSyncState({ phase: 'syncing', message: 'Mengirim snapshot data ke cloud...' });
+      const wargaList = customWarga !== undefined ? customWarga : storageService.getWargaList();
+      const kkList = customKK !== undefined ? customKK : storageService.getKKList();
+      const suratList = customSurat !== undefined ? customSurat : storageService.getSuratList();
+      const mutasiList = customMutasi !== undefined ? customMutasi : storageService.getMutasiList();
+
+      let existingWargaIds: string[] = [];
+      let existingKKIds: string[] = [];
+      if (replacePopulation) {
+        const [existingWarga, existingKK] = await Promise.all([
+          client.from('warga_rt004').select('id'),
+          client.from('kartu_keluarga_rt004').select('id')
+        ]);
+        if (existingWarga.error) throw new Error(`Gagal membaca data warga lama: ${existingWarga.error.message}`);
+        if (existingKK.error) throw new Error(`Gagal membaca data KK lama: ${existingKK.error.message}`);
+        existingWargaIds = (existingWarga.data || []).map(row => String(row.id));
+        existingKKIds = (existingKK.data || []).map(row => String(row.id));
+      }
 
       // Collect existing KKs
       const kkMap = new Map<string, any>();
@@ -738,7 +1047,6 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
         let cleanKK = String(w.nomorKK || '').trim();
         if (!cleanKK) {
           cleanKK = '3216060000000000';
-          w.nomorKK = cleanKK;
         }
 
         if (!kkMap.has(cleanKK)) {
@@ -767,7 +1075,7 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
 
       // 1. Sync KK First so Foreign Key constraints are always satisfied
       if (kkPayload.length > 0) {
-        const { error: kkError } = await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'nomor_kk' });
+        const { error: kkError } = await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'id' });
         if (kkError) {
           throw new Error(`Gagal sync Kartu Keluarga: ${kkError.message}`);
         }
@@ -812,9 +1120,41 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
       });
 
       if (wargaPayload.length > 0) {
-        const { error: wargaError } = await client.from('warga_rt004').upsert(wargaPayload, { onConflict: 'nik' });
+        const { error: wargaError } = await client.from('warga_rt004').upsert(wargaPayload, { onConflict: 'id' });
         if (wargaError) {
           throw new Error(`Gagal sync Data Warga: ${wargaError.message}`);
+        }
+      }
+
+      if (suratList.length > 0) {
+        const { error: suratError } = await client
+          .from('surat_pengantar_rt004')
+          .upsert(suratList.map(toSuratRow), { onConflict: 'id' });
+        if (suratError) throw new Error(`Gagal sync Surat Pengantar: ${suratError.message}`);
+      }
+
+      if (mutasiList.length > 0) {
+        const { error: mutasiError } = await client
+          .from('mutasi_penduduk_rt004')
+          .upsert(mutasiList.map(toMutasiRow), { onConflict: 'id' });
+        if (mutasiError) throw new Error(`Gagal sync Mutasi Penduduk: ${mutasiError.message}`);
+      }
+
+      // Finalize replacement only after every new row has been accepted, so a
+      // failed upload cannot clear the existing population dataset.
+      if (replacePopulation) {
+        const nextWargaIds = new Set(wargaPayload.map(row => String(row.id)));
+        const nextKKIds = new Set(kkPayload.map(row => String(row.id)));
+        const staleWargaIds = existingWargaIds.filter(id => !nextWargaIds.has(id));
+        const staleKKIds = existingKKIds.filter(id => !nextKKIds.has(id));
+
+        if (staleWargaIds.length > 0) {
+          const { error } = await client.from('warga_rt004').delete().in('id', staleWargaIds);
+          if (error) throw new Error(`Data baru tersimpan, tetapi warga lama gagal dibersihkan: ${error.message}`);
+        }
+        if (staleKKIds.length > 0) {
+          const { error } = await client.from('kartu_keluarga_rt004').delete().in('id', staleKKIds);
+          if (error) throw new Error(`Data baru tersimpan, tetapi KK lama gagal dibersihkan: ${error.message}`);
         }
       }
 
@@ -825,13 +1165,23 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
       config.supabaseTersambung = true;
       storageService.saveConfig(config);
 
+      this.setSyncState({
+        phase: 'online',
+        pendingWrites: 0,
+        lastSyncedAt: new Date().toISOString(),
+        message: 'Snapshot data berhasil disimpan di cloud.'
+      });
       return {
         success: true,
-        message: `Sinkronisasi data ke Supabase Cloud berhasil! (${wargaList.length} Warga & ${kkList.length} KK)`,
+        message: `Sinkronisasi ke Supabase berhasil: ${wargaList.length} warga, ${kkList.length} KK, ${suratList.length} surat, dan ${mutasiList.length} mutasi.`,
         syncedTables: ['kartu_keluarga_rt004', 'warga_rt004', 'surat_pengantar_rt004', 'mutasi_penduduk_rt004'],
         timestamp: timeString
       };
     } catch (err: any) {
+      this.setSyncState({
+        phase: typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error',
+        message: err.message || 'Sinkronisasi snapshot gagal.'
+      });
       return {
         success: false,
         message: `Gagal sinkronisasi ke Supabase: ${err.message || 'Pastikan tabel telah dibuat menggunakan SQL Schema'}`,
@@ -840,8 +1190,14 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
     }
   }
 
-  public async pushAllToSupabase(payload?: { warga?: Warga[]; kk?: KartuKeluarga[]; surat?: any; mutasi?: any; config?: any }): Promise<SupabaseSyncResult> {
-    return this.syncToSupabase(payload?.warga, payload?.kk);
+  public async pushAllToSupabase(payload?: {
+    warga?: Warga[];
+    kk?: KartuKeluarga[];
+    surat?: SuratPengantar[];
+    mutasi?: MutasiPenduduk[];
+    replacePopulation?: boolean;
+  }): Promise<SupabaseSyncResult> {
+    return this.syncToSupabase(payload?.warga, payload?.kk, payload?.surat, payload?.mutasi, payload?.replacePopulation);
   }
 
   // ==========================================
@@ -886,11 +1242,9 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
   }
 
   public async autoSyncWarga(w: Warga): Promise<{ success: boolean; error?: string }> {
-    if (!this.isAutoSyncEnabled()) return { success: false, error: 'Auto-sync not enabled' };
-    const client = this.getClient();
-    if (!client) return { success: false, error: 'Supabase client not initialized' };
-
-    try {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
       const cleanNik = String(w.nik || '').trim();
       if (!cleanNik) return { success: false, error: 'NIK is empty' };
 
@@ -919,42 +1273,13 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
         catatan: localKK?.catatan || `Auto-sync KK warga ${w.nama}`
       };
 
-      await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'nomor_kk' });
+      const { error: kkError } = await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'nomor_kk' });
+      if (kkError) return { success: false, error: kkError.message };
 
       // 2. Upsert Warga
-      const cleanHp = String(w.nomorHp || '-').trim();
-      const cleanGolDarah = String(w.golonganDarah || '-').trim();
-      const cleanJk = w.jenisKelamin === 'P' ? 'P' : 'L';
+      const wargaPayload = toWargaRow({ ...w, nomorKK: cleanKK });
 
-      const wargaPayload = {
-        id: w.id || `w-${Date.now()}`,
-        nik: cleanNik,
-        nomor_kk: cleanKK,
-        nama: (w.nama || '').trim(),
-        jenis_kelamin: cleanJk,
-        tempat_lahir: (w.tempatLahir || 'Bekasi').trim(),
-        tanggal_lahir: w.tanggalLahir || null,
-        agama: (w.agama || 'ISLAM').trim(),
-        pendidikan: (w.pendidikan || 'SLTA').trim(),
-        pekerjaan: (w.pekerjaan || 'Karyawan').trim(),
-        status_perkawinan: (w.statusPerkawinan || 'BELUM KAWIN').trim(),
-        status_hubungan_kk: (w.statusHubunganKK || 'KEPALA KELUARGA').trim(),
-        kewarganegaraan: (w.kewarganegaraan || 'WNI').trim(),
-        golongan_darah: cleanGolDarah,
-        nomor_hp: cleanHp,
-        email: (w.email || '').trim(),
-        status_tinggal: (w.statusTinggal || 'TETAP').trim(),
-        is_lansia: Boolean(w.isLansia),
-        is_balita: Boolean(w.isBalita),
-        is_yatim: Boolean(w.isYatim),
-        is_disabilitas: Boolean(w.isDisabilitas),
-        status_bansos: (w.statusBansos || 'TIDAK_ADA').trim(),
-        keterangan_bansos: (w.keteranganBansos || '').trim(),
-        tanggal_input: w.tanggalInput || new Date().toISOString().slice(0, 10),
-        catatan: (w.catatan || '').trim()
-      };
-
-      const { error } = await client.from('warga_rt004').upsert(wargaPayload, { onConflict: 'nik' });
+      const { error } = await client.from('warga_rt004').upsert(wargaPayload, { onConflict: 'id' });
       if (error) {
         console.warn('Auto-sync warga warning:', error.message);
         return { success: false, error: error.message };
@@ -963,172 +1288,112 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
       this.updateLastSyncTimestamp();
       this.notifySyncEvent('Warga tersinkron ke Supabase Cloud', w.nama);
       return { success: true };
-    } catch (err: any) {
-      console.warn('Auto-sync warga error:', err.message);
-      return { success: false, error: err.message };
-    }
+    });
   }
 
   public async autoDeleteWarga(nik: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
       const { error } = await client.from('warga_rt004').delete().eq('nik', nik);
       if (!error) {
         this.updateLastSyncTimestamp();
         this.notifySyncEvent('Data warga dihapus dari Supabase', `NIK: ${nik}`);
       }
-      return { success: !error };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
+      return { success: !error, error: error?.message };
+    });
   }
 
   public async autoSyncKK(kk: KartuKeluarga): Promise<{ success: boolean; error?: string }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
       const cleanKK = String(kk.nomorKK || '').trim();
       if (!cleanKK) return { success: false };
-      const kkPayload = {
-        id: kk.id || `kk-${cleanKK}`,
-        nomor_kk: cleanKK,
-        kepala_keluarga_nama: kk.kepalaKeluargaNama || 'Kepala Keluarga RT 004',
-        kepala_keluarga_nik: String(kk.kepalaKeluargaNik || '').trim() || `321606${Date.now().toString().slice(-10)}`,
-        alamat: kk.alamat || 'RT 004 RW 007 Kel. Jatimulya',
-        rt: kk.rt || '004',
-        rw: kk.rw || '007',
-        kelurahan: kk.kelurahan || 'Jatimulya',
-        kecamatan: kk.kecamatan || 'Tambun Selatan',
-        kabupaten_kota: kk.kabupatenKota || 'Kabupaten Bekasi',
-        provinsi: kk.provinsi || 'Jawa Barat',
-        kode_pos: kk.kodePos || '17510',
-        status_domisili: kk.statusDomisili || 'TETAP',
-        blok_rumah: kk.blokRumah || '',
-        tanggal_terbit: kk.tanggalTerbit || new Date().toISOString().slice(0, 10),
-        catatan: kk.catatan || 'Data KK RT 004'
-      };
-      const { error } = await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'nomor_kk' });
+      const kkPayload = toKKRow(kk);
+      const { error } = await client.from('kartu_keluarga_rt004').upsert(kkPayload, { onConflict: 'id' });
       if (!error) {
         this.updateLastSyncTimestamp();
         this.notifySyncEvent('KK tersinkron ke Supabase Cloud', `No. KK: ${cleanKK}`);
       }
-      return { success: !error };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
+      return { success: !error, error: error?.message };
+    });
   }
 
-  public async autoDeleteKK(nomorKK: string): Promise<{ success: boolean }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
-      await client.from('kartu_keluarga_rt004').delete().eq('nomor_kk', nomorKK);
+  public async autoDeleteKK(nomorKK: string): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const { error } = await client.from('kartu_keluarga_rt004').delete().eq('nomor_kk', nomorKK);
+      if (error) return { success: false, error: error.message };
       this.updateLastSyncTimestamp();
       return { success: true };
-    } catch {
-      return { success: false };
-    }
+    });
   }
 
-  public async autoSyncSurat(surat: any): Promise<{ success: boolean }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
-      const payload = {
-        id: surat.id || `sp-${Date.now()}`,
-        nomor_surat: surat.nomorSurat,
-        jenis_surat: surat.jenisSurat || 'LAINNYA',
-        judul_surat: surat.judulSurat || 'SURAT PENGANTAR',
-        nik_pemohon: surat.nikPemohon || '',
-        nama_pemohon: surat.namaPemohon || '',
-        nomor_kk_pemohon: surat.nomorKKPemohon || '',
-        tempat_tgl_lahir_pemohon: surat.tempatTglLahirPemohon || '',
-        jenis_kelamin_pemohon: surat.jenisKelaminPemohon || 'L',
-        agama_pemohon: surat.agamaPemohon || 'ISLAM',
-        pekerjaan_pemohon: surat.pekerjaanPemohon || 'Wiraswasta',
-        status_kawin_pemohon: surat.statusKawinPemohon || 'KAWIN',
-        alamat_pemohon: surat.alamatPemohon || 'RT 004 RW 007',
-        keperluan: surat.keperluan || '',
-        keterangan_lain: surat.keteranganLain || '',
-        tanggal_pengajuan: surat.tanggalPengajuan || new Date().toISOString().split('T')[0],
-        tanggal_disetujui: surat.tanggalDisetujui || null,
-        status: surat.status || 'PENDING',
-        alasan_penolakan: surat.alasanPenolakan || null,
-        nama_pejabat_ttd: surat.namaPejabatTtd || 'Yanto',
-        jabatan_ttd: surat.jabatanTtd || 'Ketua RT 004',
-        kode_verifikasi_qr: surat.kodeVerifikasiQr || '',
-        dibuat_oleh: surat.dibuatOleh || 'WARGA'
-      };
-      const { error } = await client.from('surat_pengantar_rt004').upsert(payload, { onConflict: 'nomor_surat' });
+  public async autoSyncSurat(surat: SuratPengantar): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const payload = toSuratRow(surat);
+      const { error } = await client.from('surat_pengantar_rt004').upsert(payload, { onConflict: 'id' });
       if (!error) {
         this.updateLastSyncTimestamp();
         this.notifySyncEvent('Surat Pengantar tersinkron ke Supabase', surat.nomorSurat);
       }
-      return { success: !error };
-    } catch {
-      return { success: false };
-    }
+      return { success: !error, error: error?.message };
+    });
   }
 
-  public async autoDeleteSurat(id: string): Promise<{ success: boolean }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
-      await client.from('surat_pengantar_rt004').delete().eq('id', id);
+  public async autoDeleteSurat(id: string): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const { error } = await client.from('surat_pengantar_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
       this.updateLastSyncTimestamp();
       return { success: true };
-    } catch {
-      return { success: false };
-    }
+    });
   }
 
-  public async autoSyncMutasi(mutasi: any): Promise<{ success: boolean }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
-      const payload = {
-        id: mutasi.id || `mut-${Date.now()}`,
-        tanggal: mutasi.tanggal || new Date().toISOString().split('T')[0],
-        jenis_mutasi: mutasi.jenisMutasi || 'PINDAH_MASUK',
-        nik: mutasi.nik || mutasi.nikWarga || '',
-        nama_warga: mutasi.namaWarga || '',
-        nomor_kk: mutasi.nomorKK || '',
-        alamat_asal: mutasi.alamatAsal || '',
-        alamat_tujuan: mutasi.alamatTujuan || '',
-        alasan: mutasi.alasan || mutasi.alasanMutasi || '',
-        no_surat_keterangan: mutasi.noSuratKeterangan || mutasi.nomorSuratPindah || mutasi.noSuratPindah || '',
-        petugas: mutasi.petugas || 'Admin RT',
-        catatan: mutasi.catatan || mutasi.keterangan || ''
-      };
+  public async autoSyncMutasi(mutasi: MutasiPenduduk): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const payload = toMutasiRow(mutasi);
       const { error } = await client.from('mutasi_penduduk_rt004').upsert(payload, { onConflict: 'id' });
       if (!error) {
         this.updateLastSyncTimestamp();
         this.notifySyncEvent('Mutasi tersinkron ke Supabase Cloud', mutasi.namaWarga);
       }
-      return { success: !error };
-    } catch {
-      return { success: false };
-    }
+      return { success: !error, error: error?.message };
+    });
   }
 
-  public async autoDeleteMutasi(id: string): Promise<{ success: boolean }> {
-    if (!this.isAutoSyncEnabled()) return { success: false };
-    const client = this.getClient();
-    if (!client) return { success: false };
-    try {
-      await client.from('mutasi_penduduk_rt004').delete().eq('id', id);
+  public async autoDeleteMutasi(id: string): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const { error } = await client.from('mutasi_penduduk_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
       this.updateLastSyncTimestamp();
       return { success: true };
-    } catch {
-      return { success: false };
-    }
+    });
+  }
+
+  public async autoSyncConfig(config: RTConfig): Promise<{ success: boolean; error?: string }> {
+    return this.runCloudWrite(async () => {
+      const client = this.getClient();
+      if (!client) return { success: false, error: 'Supabase client not initialized' };
+      const { error } = await client
+        .from('konfigurasi_rt004')
+        .upsert({ id: SHARED_CONFIG_ID, config_data: toSharedConfig(config) }, { onConflict: 'id' });
+      if (!error) {
+        this.updateLastSyncTimestamp();
+        this.notifySyncEvent('Template dan kop surat tersinkron', 'Konfigurasi bersama diperbarui untuk seluruh admin.');
+      }
+      return { success: !error, error: error?.message };
+    });
   }
 
   /**
@@ -1137,8 +1402,8 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
    * bukan data bawaan dari initialData.ts.
    */
   public async bootstrapFromSupabase(): Promise<{ pulled: boolean; message?: string }> {
-    if (!this.isAutoSyncEnabled()) {
-      return { pulled: false, message: 'Kredensial Supabase belum tersedia / auto-sync dimatikan.' };
+    if (!this.isCloudMode()) {
+      return { pulled: false, message: 'Sesi Supabase belum aktif.' };
     }
     try {
       const res = await this.pullFromSupabase();
@@ -1147,6 +1412,68 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
       console.warn('Bootstrap pull dari Supabase gagal:', e?.message);
       return { pulled: false, message: e?.message };
     }
+  }
+
+  public startRealtimeSync() {
+    const client = this.getClient();
+    if (!client || !this.isCloudMode() || this.realtimeChannel) return;
+
+    const applyChange = (table: string) => (payload: RealtimePostgresChangesPayload<CloudRow>) => {
+      const row = (payload.eventType === 'DELETE' ? payload.old : payload.new) as CloudRow;
+      if (!row) return;
+
+      if (table === 'warga_rt004') {
+        const list = storageService.getWargaList();
+        const next = payload.eventType === 'DELETE'
+          ? list.filter(item => item.id !== row.id && item.nik !== row.nik)
+          : [fromWargaRow(row), ...list.filter(item => item.id !== row.id && item.nik !== row.nik)];
+        storageService.saveWargaList(next);
+      } else if (table === 'kartu_keluarga_rt004') {
+        const list = storageService.getKKList();
+        const next = payload.eventType === 'DELETE'
+          ? list.filter(item => item.id !== row.id && item.nomorKK !== row.nomor_kk)
+          : [fromKKRow(row), ...list.filter(item => item.id !== row.id && item.nomorKK !== row.nomor_kk)];
+        storageService.saveKKList(next);
+      } else if (table === 'surat_pengantar_rt004') {
+        const list = storageService.getSuratList();
+        const next = payload.eventType === 'DELETE'
+          ? list.filter(item => item.id !== row.id)
+          : [fromSuratRow(row), ...list.filter(item => item.id !== row.id)];
+        storageService.saveSurat(next);
+      } else if (table === 'mutasi_penduduk_rt004') {
+        const list = storageService.getMutasiList();
+        const next = payload.eventType === 'DELETE'
+          ? list.filter(item => item.id !== row.id)
+          : [fromMutasiRow(row), ...list.filter(item => item.id !== row.id)];
+        storageService.saveMutasi(next);
+      } else if (table === 'konfigurasi_rt004' && payload.eventType !== 'DELETE') {
+        applySharedConfig(row.config_data);
+      }
+
+      this.setSyncState({ phase: 'online', lastSyncedAt: new Date().toISOString(), message: 'Perubahan realtime diterapkan.' });
+    };
+
+    this.realtimeChannel = client
+      .channel('sip-rt004-live-data')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kartu_keluarga_rt004' }, applyChange('kartu_keluarga_rt004'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'warga_rt004' }, applyChange('warga_rt004'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'surat_pengantar_rt004' }, applyChange('surat_pengantar_rt004'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mutasi_penduduk_rt004' }, applyChange('mutasi_penduduk_rt004'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'konfigurasi_rt004' }, applyChange('konfigurasi_rt004'))
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          this.setSyncState({ phase: 'online', message: 'Realtime Supabase aktif.' });
+          this.notifySyncEvent('Realtime Supabase aktif', 'Perubahan antar perangkat sedang dipantau.');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          this.setSyncState({ phase: 'error', message: 'Kanal realtime terputus.' });
+        }
+      });
+  }
+
+  public stopRealtimeSync() {
+    if (this.realtimeChannel && this.client) void this.client.removeChannel(this.realtimeChannel);
+    this.realtimeChannel = null;
+    this.setSyncState({ phase: this.isCloudMode() ? 'connecting' : 'local', message: undefined });
   }
 
   public initAutoSyncListener() {
@@ -1188,4 +1515,3 @@ CREATE TRIGGER trg_cegah_ubah_role_sendiri
 }
 
 export const supabaseService = new SupabaseService();
-supabaseService.initAutoSyncListener();

@@ -242,6 +242,15 @@ export interface RTConfig {
   lokasiSurat?: string; // default "Jatimulya"
   alamatBaris1Default?: string; // default "Kp Jati RT 004 RW 007 Kelurahan Jatimulya"
   alamatBaris2Default?: string; // default "Kec. Tambun Selatan Kab. Bekasi"
+  // Tipografi dan jarak dokumen surat
+  suratFontFamily?: 'Arial' | 'Times New Roman' | 'Calibri' | 'Georgia';
+  suratBodyFontSizePt?: number;
+  suratKopFontSizePt?: number;
+  suratTitleFontSizePt?: number;
+  suratLineHeight?: number;
+  suratRowSpacingPt?: number;
+  suratSectionSpacingPt?: number;
+  suratSignatureSpacePt?: number;
 }
 
 export interface AuditLog {

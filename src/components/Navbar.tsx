@@ -9,6 +9,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { CurrentUser, Notifikasi, RTConfig } from '../types';
+import { authState } from '../services/authState';
 
 interface NavbarProps {
   activeTab?: string;
@@ -69,7 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     ? unreadNotifCount 
     : (notifications ? notifications.filter(n => !n.dibaca).length : 0);
 
-  const isAutoSync = config.supabaseAutoSync !== false;
+  const hasCloudSession = authState.hasActiveSession();
+  const isAutoSync = hasCloudSession && config.supabaseAutoSync !== false;
 
   return (
     <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-30">
@@ -99,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Auto-Sync Live Status indicator in micro bar */}
             <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300 font-mono text-[10px]">
               <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
-              {isAutoSync ? 'Auto-Sync Cloud: Aktif' : 'Sync: Manual'}
+              {isAutoSync ? 'Auto-Sync Cloud: Aktif' : hasCloudSession ? 'Cloud: Manual' : 'Penyimpanan Lokal'}
               {config.terakhirSinkron && (
                 <span className="text-slate-400 font-normal hidden lg:inline">({config.terakhirSinkron.split(',')[1] || config.terakhirSinkron})</span>
               )}

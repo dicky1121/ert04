@@ -40,11 +40,15 @@ pengunjung.
 
 1. Buka **SQL Editor** di dashboard Supabase.
 2. Jalankan skrip skema yang tersedia di aplikasi: tab **Integrasi → Skema SQL**
-   (tombol salin skrip). Skrip tersebut membuat tabel data, tabel
-   `pengurus_profil`, mengaktifkan Row Level Security (RLS), dan mencabut akses
-   role `anon` sehingga data warga tidak bisa dibaca tanpa login.
-3. Buat akun pengurus di **Authentication → Users → Add user** (email + password).
-4. Tambahkan baris profil untuk akun tersebut agar rolenya dikenali aplikasi:
+   (tombol salin skrip). Skrip tersebut membuat tabel data dan
+   `pengurus_profil`, mengaktifkan Row Level Security (RLS), mencabut akses
+   `anon`, serta mengaktifkan publication realtime untuk empat tabel utama.
+3. Jalankan [`scripts/setup-realtime-sync.sql`](scripts/setup-realtime-sync.sql)
+   di SQL Editor. Migration idempotent ini menambahkan metadata perubahan,
+   `REPLICA IDENTITY FULL`, trigger pencatat pengguna, dan keempat tabel ke
+   publication `supabase_realtime`.
+4. Buat akun pengurus di **Authentication → Users → Add user** (email + password).
+5. Tambahkan baris profil untuk akun tersebut agar rolenya dikenali aplikasi:
 
 ```sql
 insert into public.pengurus_profil (id, username, nama_lengkap, role, role_label, is_active)
@@ -73,6 +77,21 @@ Role yang didukung: `ADMIN_KETUA_RT`, `ADMIN_SEKRETARIS`, `BENDAHARA`,
 
 Sinkronisasi data cloud hanya berjalan setelah sesi Supabase terverifikasi
 (dipicu dari `App.tsx`), sesuai policy RLS yang menolak permintaan anonim.
+Setelah login, aplikasi menarik snapshot terbaru lalu berlangganan perubahan
+Postgres pada tabel warga, KK, surat, dan mutasi. Pada mode cloud, setiap operasi
+tulis harus berhasil di Supabase terlebih dahulu; `localStorage` diperbarui
+setelahnya sebagai cache perangkat.
+
+### Batasan sinkronisasi
+
+- Sinkronisasi saat ini memakai pola last-write-wins per baris melalui `upsert`;
+  belum ada UI resolusi konflik untuk dua pengguna yang mengubah baris sama pada
+  saat bersamaan.
+- Saat perangkat offline, operasi tambah, ubah, hapus, dan impor ditolak agar UI
+  tidak menampilkan data yang belum tersimpan di cloud. Data cache terakhir
+  tetap dapat dibaca, lalu snapshot terbaru ditarik otomatis ketika koneksi pulih.
+- Operasi hapus mengikuti policy RLS: hanya role admin penuh yang dapat
+  menghapus data cloud.
 
 ## Deploy ke Vercel
 

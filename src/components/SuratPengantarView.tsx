@@ -25,9 +25,9 @@ interface SuratPengantarViewProps {
   suratList: SuratPengantar[];
   wargaList: Warga[];
   config: RTConfig;
-  onAddSurat: (surat: any) => void;
-  onUpdateStatus: (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string) => void;
-  onDeleteSurat: (id: string) => void;
+  onAddSurat: (surat: any) => Promise<boolean>;
+  onUpdateStatus: (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string) => Promise<boolean>;
+  onDeleteSurat: (id: string) => Promise<boolean>;
   selectedSuratId?: string | null;
 }
 
@@ -279,16 +279,15 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       dibuatOleh: 'ADMIN'
     };
 
-    onAddSurat(newSurat);
-    setIsFormOpen(false);
+    if (await onAddSurat(newSurat)) setIsFormOpen(false);
 
     // Open print preview immediately
     setActiveSurat(newSurat);
     setIsPrintModalOpen(true);
   };
 
-  const handleApprove = (surat: SuratPengantar) => {
-    onUpdateStatus(surat.id, 'DISETUJUI');
+  const handleApprove = async (surat: SuratPengantar) => {
+    await onUpdateStatus(surat.id, 'DISETUJUI');
   };
 
   const handleOpenReject = (id: string) => {
@@ -297,10 +296,10 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
     setIsRejectOpen(true);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (rejectId) {
-      onUpdateStatus(rejectId, 'DITOLAK', rejectReason || 'Persyaratan administrasi belum lengkap');
-      setIsRejectOpen(false);
+      const saved = await onUpdateStatus(rejectId, 'DITOLAK', rejectReason || 'Persyaratan administrasi belum lengkap');
+      if (saved) setIsRejectOpen(false);
     }
   };
 
@@ -314,7 +313,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       confirmLabel: 'Ya, Hapus Arsip',
       tone: 'danger'
     });
-    if (setuju) onDeleteSurat(surat.id);
+    if (setuju) await onDeleteSurat(surat.id);
   };
 
   const handleResetAlamat = () => {

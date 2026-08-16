@@ -8,10 +8,10 @@ interface LayananSuratViewProps {
   config: RTConfig;
   wargaList: Warga[];
   suratList: SuratPengantar[];
-  onSaveConfig: (updated: RTConfig) => void;
-  onAddSurat: (surat: any) => void;
-  onUpdateStatus: (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string) => void;
-  onDeleteSurat: (id: string) => void;
+  onSaveConfig: (updated: RTConfig) => Promise<boolean>;
+  onAddSurat: (surat: any) => Promise<boolean>;
+  onUpdateStatus: (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string) => Promise<boolean>;
+  onDeleteSurat: (id: string) => Promise<boolean>;
   selectedSuratId?: string | null;
 }
 
@@ -139,9 +139,7 @@ export const LayananSuratView: React.FC<LayananSuratViewProps> = ({
           config={config}
           wargaList={wargaList}
           onSaveConfig={onSaveConfig}
-          onAddSurat={(surat) => {
-            onAddSurat(surat);
-          }}
+          onAddSurat={onAddSurat}
         />
       )}
 

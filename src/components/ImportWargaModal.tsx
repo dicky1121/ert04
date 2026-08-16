@@ -20,19 +20,25 @@ import {
   ArrowRight,
   Sparkles
 } from 'lucide-react';
-import { ImportAnalysisResult, DetectedSheetInfo, SheetColumnMapping } from '../types';
+import { ImportAnalysisResult, DetectedSheetInfo, ImportPreviewRow, SheetColumnMapping } from '../types';
 import { storageService, formatDateDDMMYYYY } from '../services/storage';
 
 interface ImportWargaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess: (result: { added: number; updated: number; skipped: number }) => void;
+  onCommitImport?: (
+    rows: ImportPreviewRow[],
+    updateExisting: boolean,
+    clearExistingBeforeImport: boolean
+  ) => Promise<{ success: boolean; result?: { added: number; updated: number; skipped: number }; error?: string }>;
 }
 
 export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
   isOpen,
   onClose,
-  onImportSuccess
+  onImportSuccess,
+  onCommitImport
 }) => {
   // Main Tab: 'PENGONTRAK' (5-Column Copy-Paste) vs 'TETAP' (Excel File / Standard)
   const [activeImportTab, setActiveImportTab] = useState<'PENGONTRAK' | 'TETAP'>('PENGONTRAK');
@@ -192,13 +198,19 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     }
   };
 
-  const handleCommit = () => {
+  const handleCommit = async () => {
     if (!analysis || analysis.parsedRows.length === 0) return;
 
     setIsCommitting(true);
     try {
       const rowsToImport = analysis.parsedRows.filter(r => r.nama && r.nama.trim().length > 0);
-      const res = storageService.commitImportData(rowsToImport, updateExisting, clearExistingBeforeImport);
+      const commit = onCommitImport
+        ? await onCommitImport(rowsToImport, updateExisting, clearExistingBeforeImport)
+        : { success: true, result: storageService.commitImportData(rowsToImport, updateExisting, clearExistingBeforeImport) };
+      if (!commit.success || !commit.result) {
+        throw new Error(commit.error || 'Data impor gagal disimpan.');
+      }
+      const res = commit.result;
       onImportSuccess(res);
       onClose();
     } catch (err: any) {
@@ -224,10 +236,10 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-5xl max-h-[94vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold shadow-2xs">
               <FileSpreadsheet className="w-5 h-5 text-blue-700" />
@@ -255,7 +267,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-6">
           {errorMsg && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
@@ -270,7 +282,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
           {!analysis && (
             <div className="space-y-5">
               {/* Category Tab Switcher */}
-              <div className="flex items-center p-1.5 bg-slate-100 rounded-2xl border border-slate-200 gap-1.5">
+              <div className="flex flex-col sm:flex-row items-stretch p-1.5 bg-slate-100 rounded-2xl border border-slate-200 gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -879,7 +891,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
               </div>
 
               {/* Data Preview Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs max-h-80 overflow-y-auto">
+              <div className="border border-slate-200 rounded-xl overflow-auto shadow-2xs max-h-80">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 text-slate-700 font-semibold sticky top-0 border-b border-slate-200 z-10">
                     <tr>
@@ -992,7 +1004,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
           <button
             type="button"
             onClick={onClose}

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { RTConfig, CurrentUser } from '../types';
 import { BekasiLogo } from './BekasiLogo';
+import { authState } from '../services/authState';
 
 interface SidebarProps {
   activeTab: string;
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [isDataWargaOpen, setIsDataWargaOpen] = useState<boolean>(true);
   const [isSettingOpen, setIsSettingOpen] = useState<boolean>(true);
+  const hasCloudSession = authState.hasActiveSession();
 
   // Auto-expand group if active tab belongs to it
   useEffect(() => {
@@ -295,13 +297,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Database className="w-3.5 h-3.5 text-slate-500" />
                 Status Database
               </span>
-              <span className="flex items-center gap-1 text-[10px] text-emerald-700 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Terhubung
+              <span className={`flex items-center gap-1 text-[10px] font-bold ${hasCloudSession ? 'text-emerald-700' : 'text-slate-500'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${hasCloudSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                {hasCloudSession ? 'Terhubung' : 'Lokal'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 truncate">
-              {config.supabaseTersambung ? 'Supabase Cloud Database' : 'Penyimpanan Lokal & Cloud'}
+              {hasCloudSession ? 'Supabase Cloud Database' : 'Penyimpanan Lokal Browser'}
             </p>
           </div>
         </div>

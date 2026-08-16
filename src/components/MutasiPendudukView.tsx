@@ -22,8 +22,8 @@ interface MutasiPendudukViewProps {
   mutasiList: MutasiPenduduk[];
   wargaList: Warga[];
   config: RTConfig;
-  onAddMutasi: (mutasi: MutasiPenduduk) => void;
-  onDeleteMutasi: (id: string) => void;
+  onAddMutasi: (mutasi: MutasiPenduduk) => Promise<boolean>;
+  onDeleteMutasi: (id: string) => Promise<boolean>;
 }
 
 export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
@@ -60,7 +60,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
       confirmLabel: 'Ya, Hapus Catatan',
       tone: 'danger'
     });
-    if (setuju) onDeleteMutasi(item.id);
+    if (setuju) await onDeleteMutasi(item.id);
   };
 
   // Handle citizen selection for Pindah Keluar or Kematian
@@ -117,8 +117,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
       dicatatOleh: 'Pengurus RT 004'
     };
 
-    onAddMutasi(newMutasi);
-    setIsFormOpen(false);
+    if (await onAddMutasi(newMutasi)) setIsFormOpen(false);
   };
 
   const getBadgeStyle = (type: JenisMutasi) => {

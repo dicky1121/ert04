@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   FileText, 
   Upload, 
@@ -25,7 +25,8 @@ import {
   Plus,
   FileDown,
   Download,
-  ExternalLink
+  ExternalLink,
+  Type
 } from 'lucide-react';
 import { RTConfig, Warga, SuratPengantar } from '../types';
 import { LambangBekasiLogo } from './BekasiLogo';
@@ -35,8 +36,8 @@ import { printOfficialLetter, exportLetterToWord, downloadLetterHtml } from '../
 interface TemplateSuratPengantarViewProps {
   config: RTConfig;
   wargaList: Warga[];
-  onSaveConfig: (updated: RTConfig) => void;
-  onAddSurat?: (surat: any) => void;
+  onSaveConfig: (updated: RTConfig) => Promise<boolean>;
+  onAddSurat?: (surat: any) => Promise<boolean>;
 }
 
 export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProps> = ({
@@ -45,7 +46,7 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
   onSaveConfig,
   onAddSurat
 }) => {
-  const [activeTab, setActiveTab] = useState<'AUTO_FILL' | 'KOP_HEADER' | 'ISI_SURAT'>('AUTO_FILL');
+  const [activeTab, setActiveTab] = useState<'AUTO_FILL' | 'KOP_HEADER' | 'ISI_SURAT' | 'TIPOGRAFI'>('AUTO_FILL');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -79,6 +80,55 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
   const [tanggalSurat, setTanggalSurat] = useState<string>('12-08-2026');
   const [namaKetuaRT, setNamaKetuaRT] = useState<string>(config.namaKetuaRT || 'Yanto');
   const [namaKetuaRW, setNamaKetuaRW] = useState<string>(config.namaKetuaRW || 'Imron Rosadi');
+
+  // Typography & spacing
+  const [fontFamily, setFontFamily] = useState<NonNullable<RTConfig['suratFontFamily']>>(config.suratFontFamily || 'Arial');
+  const [bodyFontSizePt, setBodyFontSizePt] = useState(config.suratBodyFontSizePt || 10);
+  const [kopFontSizePt, setKopFontSizePt] = useState(config.suratKopFontSizePt || 12);
+  const [titleFontSizePt, setTitleFontSizePt] = useState(config.suratTitleFontSizePt || 12);
+  const [lineHeight, setLineHeight] = useState(config.suratLineHeight || 1.35);
+  const [rowSpacingPt, setRowSpacingPt] = useState(config.suratRowSpacingPt ?? 2);
+  const [sectionSpacingPt, setSectionSpacingPt] = useState(config.suratSectionSpacingPt || 12);
+  const [signatureSpacePt, setSignatureSpacePt] = useState(config.suratSignatureSpacePt || 60);
+
+  // Terapkan perubahan konfigurasi yang datang dari akun/perangkat lain
+  // tanpa memaksa pengguna memuat ulang halaman editor.
+  useEffect(() => {
+    setUseDefaultLogo(!config.kopLogoDataUrl);
+    setLogoDataUrl(config.kopLogoDataUrl || '');
+    setLogoName(config.kopLogoName || '');
+    setLogoWidthMm(config.kopLogoWidthMm || 24);
+    setOffsetX(config.kopLogoOffsetXMm || 0);
+    setOffsetY(config.kopLogoOffsetYMm || 0);
+    setKopInstansiAtas(config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI');
+    setKopTeksRT(config.kopTeksRT || 'RT 004  RW 007');
+    setKopKelurahan(config.kopKelurahan || 'KELURAHAN JATIMULYA');
+    setKopKecamatan(config.kopKecamatan || 'KECAMATAN TAMBUN SELATAN');
+    setKopSekretariatText(config.kopSekretariatText || 'Sekretariat : jl jampang no 111  jatimulya tlp 0896-7720-3444');
+    setJudulSurat(config.judulSuratPengantar || 'SURAT PENGANTAR');
+    setNomorSurat(config.formatNomorSurat || '185 / RT 004 RW 007 / SP / 2026');
+    setKalimatPembuka(config.kalimatPembukaSurat || 'Yang Bertanda Tangan Dibawah Ini Ketua Rt 004 Rw 007 Kelurahan Jatimulya, Menerangkan Bahwa :');
+    setKalimatPenutup(config.kalimatPenutupSurat || 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.');
+    setLokasiSurat(config.lokasiSurat || 'Jatimulya');
+    setNamaKetuaRT(config.namaKetuaRT || 'Yanto');
+    setNamaKetuaRW(config.namaKetuaRW || 'Imron Rosadi');
+    setFontFamily(config.suratFontFamily || 'Arial');
+    setBodyFontSizePt(config.suratBodyFontSizePt || 10);
+    setKopFontSizePt(config.suratKopFontSizePt || 12);
+    setTitleFontSizePt(config.suratTitleFontSizePt || 12);
+    setLineHeight(config.suratLineHeight || 1.35);
+    setRowSpacingPt(config.suratRowSpacingPt ?? 2);
+    setSectionSpacingPt(config.suratSectionSpacingPt || 12);
+    setSignatureSpacePt(config.suratSignatureSpacePt || 60);
+  }, [config]);
+
+  const documentFontFamily = fontFamily === 'Times New Roman'
+    ? '"Times New Roman", Times, serif'
+    : fontFamily === 'Georgia'
+      ? 'Georgia, "Times New Roman", serif'
+      : fontFamily === 'Calibri'
+        ? 'Calibri, "Segoe UI", Arial, sans-serif'
+        : 'Arial, Helvetica, sans-serif';
 
   // --- PEMOHON & AUTO-FILL DATA ---
   const [searchWargaQuery, setSearchWargaQuery] = useState('');
@@ -225,6 +275,14 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
     setTanggalSurat('12-08-2026');
     setNamaKetuaRT('Yanto');
     setNamaKetuaRW('Imron Rosadi');
+    setFontFamily('Arial');
+    setBodyFontSizePt(10);
+    setKopFontSizePt(12);
+    setTitleFontSizePt(12);
+    setLineHeight(1.35);
+    setRowSpacingPt(2);
+    setSectionSpacingPt(12);
+    setSignatureSpacePt(60);
 
     // Data pemohon dikosongkan (bukan bagian dari format kop surat)
     setNamaPemohon('');
@@ -243,7 +301,7 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
     showToast('Format berhasil direset sama persis sesuai contoh resmi Word!');
   };
 
-  const handleSaveAllConfig = () => {
+  const handleSaveAllConfig = async () => {
     const updated: RTConfig = {
       ...config,
       kopLogoDataUrl: useDefaultLogo ? '' : logoDataUrl,
@@ -264,12 +322,21 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
       namaKetuaRT,
       namaKetuaRW,
       alamatBaris1Default: alamatBaris1,
-      alamatBaris2Default: alamatBaris2
+      alamatBaris2Default: alamatBaris2,
+      suratFontFamily: fontFamily,
+      suratBodyFontSizePt: bodyFontSizePt,
+      suratKopFontSizePt: kopFontSizePt,
+      suratTitleFontSizePt: titleFontSizePt,
+      suratLineHeight: lineHeight,
+      suratRowSpacingPt: rowSpacingPt,
+      suratSectionSpacingPt: sectionSpacingPt,
+      suratSignatureSpacePt: signatureSpacePt
     };
 
-    onSaveConfig(updated);
-    storageService.saveConfig(updated);
-    showToast('Pengaturan Template Surat Pengantar & Kop Surat berhasil disimpan!');
+    const saved = await onSaveConfig(updated);
+    if (saved) {
+      showToast('Template dan logo kop berhasil disimpan untuk seluruh admin.');
+    }
   };
 
   const handlePrint = () => {
@@ -304,7 +371,15 @@ export const TemplateSuratPengantarView: React.FC<TemplateSuratPengantarViewProp
       lokasiSurat,
       tanggalSurat,
       namaKetuaRT,
-      namaKetuaRW
+      namaKetuaRW,
+      fontFamily,
+      bodyFontSizePt,
+      kopFontSizePt,
+      titleFontSizePt,
+      lineHeight,
+      rowSpacingPt,
+      sectionSpacingPt,
+      signatureSpacePt
     }, docFilename);
     showToast(`Dokumen Word (${docFilename}) berhasil diunduh! Siap dicetak langsung.`);
   };
@@ -355,7 +430,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
     showToast('Teks surat berhasil disalin ke clipboard.');
   };
 
-  const handleSaveToArsipSurat = () => {
+  const handleSaveToArsipSurat = async () => {
     const newSurat: Partial<SuratPengantar> = {
       id: `sp-${Date.now()}`,
       nomorSurat: nomorSurat,
@@ -385,7 +460,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
     };
 
     if (onAddSurat) {
-      onAddSurat(newSurat);
+      await onAddSurat(newSurat);
     } else {
       storageService.addSurat(newSurat);
     }
@@ -517,6 +592,18 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>Format & TTD</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('TIPOGRAFI')}
+              className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'TIPOGRAFI'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Type className="w-3.5 h-3.5" />
+              <span>Tipografi</span>
             </button>
           </div>
 
@@ -1041,6 +1128,74 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </div>
             </div>
           )}
+
+          {activeTab === 'TIPOGRAFI' && (
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                <Type className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Ukuran Font & Jarak Dokumen</h3>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Jenis Font</label>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value as NonNullable<RTConfig['suratFontFamily']>)}
+                    className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                  >
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Calibri">Calibri</option>
+                    <option value="Georgia">Georgia</option>
+                  </select>
+                </div>
+
+                {[
+                  ['Ukuran teks isi', bodyFontSizePt, setBodyFontSizePt, 8, 14, 0.5, 'pt'],
+                  ['Ukuran teks kop', kopFontSizePt, setKopFontSizePt, 10, 18, 0.5, 'pt'],
+                  ['Ukuran judul surat', titleFontSizePt, setTitleFontSizePt, 10, 18, 0.5, 'pt'],
+                  ['Spasi baris', lineHeight, setLineHeight, 1, 2, 0.05, 'x'],
+                  ['Jarak antar baris data', rowSpacingPt, setRowSpacingPt, 0, 8, 0.5, 'pt'],
+                  ['Jarak antar bagian', sectionSpacingPt, setSectionSpacingPt, 4, 30, 1, 'pt'],
+                  ['Ruang tanda tangan', signatureSpacePt, setSignatureSpacePt, 30, 110, 5, 'pt']
+                ].map(([label, value, setter, min, max, step, unit]) => (
+                  <div key={label as string}>
+                    <div className="flex justify-between text-slate-700 font-medium mb-1">
+                      <span>{label as string}</span>
+                      <span className="font-mono font-bold">{Number(value)} {unit as string}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={Number(min)}
+                      max={Number(max)}
+                      step={Number(step)}
+                      value={Number(value)}
+                      onChange={(e) => (setter as React.Dispatch<React.SetStateAction<number>>)(Number(e.target.value))}
+                      className="w-full accent-emerald-600 cursor-pointer"
+                    />
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFontFamily('Arial');
+                    setBodyFontSizePt(10);
+                    setKopFontSizePt(12);
+                    setTitleFontSizePt(12);
+                    setLineHeight(1.35);
+                    setRowSpacingPt(2);
+                    setSectionSpacingPt(12);
+                    setSignatureSpacePt(60);
+                  }}
+                  className="w-full py-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg font-semibold text-slate-700 transition"
+                >
+                  Reset Pengaturan Tipografi
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================================= */}
@@ -1058,7 +1213,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] font-sans text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                Font: Sans-Serif
+                {fontFamily} &bull; {bodyFontSizePt} pt &bull; {lineHeight}x
               </span>
               <button
                 type="button"
@@ -1089,13 +1244,15 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               id="official-letter-sheet"
               className="print-container bg-white text-black font-sans p-[1.4cm] sm:p-[1.8cm] max-w-[21cm] w-full min-h-[29.7cm] shadow-2xl border border-slate-300 leading-normal print:p-0 print:border-none print:shadow-none print:max-w-none print:w-full print:m-0"
               style={{
-                fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontFamily: documentFontFamily,
+                fontSize: `${bodyFontSizePt}pt`,
+                lineHeight,
                 color: '#000000',
                 backgroundColor: '#ffffff'
               }}
             >
               {/* KOP SURAT RESMI - 3 COLUMN BALANCED CENTER (ZERO TILT) */}
-              <div className="flex items-center justify-between gap-2 pb-1.5 border-b-2 border-black mb-4">
+              <div className="flex items-center justify-between gap-2 pb-1.5 border-b-2 border-black" style={{ marginBottom: `${sectionSpacingPt}pt` }}>
                 {/* Left: Logo */}
                 <div
                   className="shrink-0 flex items-center justify-center"
@@ -1123,19 +1280,19 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
                 {/* Center: Header Text Center (100% Mathematically Centered) */}
                 <div className="flex-1 text-center px-1">
-                  <h1 className="font-bold text-[15px] tracking-wide text-black leading-tight uppercase">
+                  <h1 className="font-bold tracking-wide text-black leading-tight uppercase" style={{ fontSize: `${kopFontSizePt}pt` }}>
                     {kopInstansiAtas}
                   </h1>
-                  <h2 className="font-bold text-[16px] tracking-wide text-black leading-tight uppercase mt-0.5">
+                  <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${kopFontSizePt + 1}pt` }}>
                     {kopTeksRT}
                   </h2>
-                  <h2 className="font-bold text-[13.5px] tracking-wide text-black leading-tight uppercase mt-0.5">
+                  <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${Math.max(8, kopFontSizePt - 1)}pt` }}>
                     {kopKelurahan}
                   </h2>
-                  <h2 className="font-bold text-[13.5px] tracking-wide text-black leading-tight uppercase mt-0.5">
+                  <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${Math.max(8, kopFontSizePt - 1)}pt` }}>
                     {kopKecamatan}
                   </h2>
-                  <p className="text-[10.5px] text-black mt-1 font-normal leading-tight">
+                  <p className="text-black mt-1 font-normal leading-tight" style={{ fontSize: `${Math.max(7, kopFontSizePt - 3)}pt` }}>
                     {kopSekretariatText}
                   </p>
                 </div>
@@ -1152,22 +1309,22 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </div>
 
               {/* JUDUL DAN NOMOR SURAT */}
-              <div className="text-center mb-4">
-                <h3 className="font-bold text-[15px] underline uppercase tracking-wide text-black leading-tight">
+              <div className="text-center" style={{ marginBottom: `${sectionSpacingPt}pt` }}>
+                <h3 className="font-bold underline uppercase tracking-wide text-black leading-tight" style={{ fontSize: `${titleFontSizePt}pt` }}>
                   {judulSurat}
                 </h3>
-                <p className="font-bold text-[12.5px] text-black mt-1 tracking-wider">
+                <p className="font-bold text-black mt-1 tracking-wider" style={{ fontSize: `${bodyFontSizePt}pt` }}>
                   NO : {nomorSurat}
                 </p>
               </div>
 
               {/* KALIMAT PEMBUKA */}
-              <div className="text-black text-[12.5px] leading-normal text-justify mb-3">
+              <div className="text-black text-justify" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
                 <p>{kalimatPembuka}</p>
               </div>
 
               {/* TABEL DATA PEMOHON (LASER ALIGNED COLONS & ROWS) */}
-              <div className="text-black text-[12.5px] leading-normal mb-4 space-y-1">
+              <div className="text-black" style={{ display: 'flex', flexDirection: 'column', gap: `${rowSpacingPt}pt`, fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
                 <div className="grid grid-cols-[145px_14px_1fr] items-start">
                   <span>Nama</span>
                   <span className="text-center">:</span>
@@ -1244,17 +1401,17 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </div>
 
               {/* KALIMAT PENUTUP */}
-              <div className="text-black text-[12.5px] leading-normal text-justify mb-6">
+              <div className="text-black text-justify" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
                 <p>{kalimatPenutup}</p>
               </div>
 
               {/* TANDA TANGAN (2 KOLOM BALANCED) */}
-              <div className="grid grid-cols-2 text-[12.5px] text-black pt-2">
+              <div className="grid grid-cols-2 text-black pt-2" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight }}>
                 {/* Kolom Kiri: Ketua RT */}
                 <div className="text-center px-4">
                   <div>{lokasiSurat} {tanggalSurat}</div>
                   <div className="font-semibold">Ketua Rt 004 Rw 007</div>
-                  <div className="h-16 sm:h-20"></div>
+                  <div style={{ height: `${signatureSpacePt}pt` }}></div>
                   <div className="font-bold underline text-black uppercase">{namaKetuaRT}</div>
                 </div>
 
@@ -1262,7 +1419,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 <div className="text-center px-4">
                   <div>Mengetahui</div>
                   <div className="font-semibold">Ketua Rw 007</div>
-                  <div className="h-16 sm:h-20"></div>
+                  <div style={{ height: `${signatureSpacePt}pt` }}></div>
                   <div className="font-bold underline text-black uppercase">{namaKetuaRW}</div>
                 </div>
               </div>

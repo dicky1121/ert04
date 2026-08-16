@@ -9,7 +9,8 @@ import {
   MutasiPenduduk, 
   RTConfig, 
   CurrentUser, 
-  AppNotification 
+  AppNotification,
+  ImportPreviewRow
 } from './types';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -27,7 +28,8 @@ import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
 import { LoginPortal } from './components/LoginPortal';
 import { authService } from './services/authService';
-import { supabaseService } from './services/supabaseService';
+import { CloudSyncState, supabaseService } from './services/supabaseService';
+import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 
 
 export default function App() {
@@ -42,6 +44,8 @@ export default function App() {
   const [rtConfig, setRtConfig] = useState<RTConfig>(storageService.getRTConfig());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser>(storageService.getCurrentUser());
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
 
   // Modal Visibility States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -81,6 +85,7 @@ export default function App() {
     const unsubscribe = storageService.subscribe(() => {
       refreshAllData();
     });
+    const unsubscribeSync = supabaseService.subscribeSyncState(setSyncState);
 
     // Keyboard shortcut for Search (Ctrl+K or Cmd+K)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -98,7 +103,11 @@ export default function App() {
       authService.initSessionListener((user) => {
         if (user) {
           setCurrentUser(user);
+          // Pull awal dijalankan oleh restoreSession() atau callback LoginPortal.
+          // Listener ini hanya menjaga lifecycle channel saat auth berubah.
+          supabaseService.startRealtimeSync();
         } else {
+          supabaseService.stopRealtimeSync();
           setCurrentUser(storageService.getCurrentUser());
         }
       });
@@ -106,77 +115,209 @@ export default function App() {
       void authService.restoreSession().then(async (user) => {
         if (user) {
           setCurrentUser(user);
-          await supabaseService.bootstrapFromSupabase();
+          const bootstrap = await supabaseService.bootstrapFromSupabase();
           refreshAllData();
+          if (bootstrap.pulled) supabaseService.startRealtimeSync();
         } else {
           // Tidak ada sesi valid: pastikan aplikasi kembali ke halaman login.
           storageService.logout();
           setCurrentUser(storageService.getCurrentUser());
         }
+      }).finally(() => {
+        setIsBootstrapping(false);
       });
+    } else {
+      setIsBootstrapping(false);
     }
+
+    const handleOnline = async () => {
+      if (!supabaseService.isCloudMode()) return;
+      const bootstrap = await supabaseService.bootstrapFromSupabase();
+      refreshAllData();
+      if (bootstrap.pulled) supabaseService.startRealtimeSync();
+    };
+    const handleOffline = () => supabaseService.markOffline();
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
       unsubscribe();
+      unsubscribeSync();
+      supabaseService.stopRealtimeSync();
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
 
   // Warga Handlers
-  const handleSaveWarga = (warga: Warga) => {
+  const handleSaveWarga = async (warga: Warga): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncWarga(warga);
+      if (!result.success) {
+        showToast(`Data warga gagal disimpan: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.saveWarga(warga);
     showToast(`Data warga ${warga.nama} berhasil disimpan!`);
+    return true;
   };
 
-  const handleDeleteWarga = (id: string) => {
+  const handleDeleteWarga = async (id: string): Promise<boolean> => {
+    const target = wargaList.find(w => w.id === id);
+    if (!target) return false;
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoDeleteWarga(target.nik);
+      if (!result.success) {
+        showToast(`Data warga gagal dihapus: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.deleteWarga(id);
     showToast('Data warga berhasil dihapus.', 'info');
+    return true;
+  };
+
+  const handleImportWarga = async (
+    rows: ImportPreviewRow[],
+    updateExisting: boolean,
+    clearExistingBeforeImport: boolean
+  ): Promise<{ success: boolean; result?: { added: number; updated: number; skipped: number }; error?: string }> => {
+    const prepared = storageService.commitImportData(rows, updateExisting, clearExistingBeforeImport, false);
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.pushAllToSupabase({
+        warga: prepared.wargaList,
+        kk: prepared.kkList,
+        surat: suratList,
+        mutasi: mutasiList,
+        replacePopulation: clearExistingBeforeImport
+      });
+      if (!result.success) {
+        showToast(`Impor gagal disimpan ke cloud: ${result.error || result.message}`, 'error');
+        return { success: false, error: result.error || result.message };
+      }
+    }
+    storageService.saveWargaList(prepared.wargaList);
+    storageService.saveKKList(prepared.kkList);
+    storageService.addAuditLog(
+      'Impor Data Spreadsheet',
+      `${prepared.added} Baru, ${prepared.updated} Diperbarui`,
+      `Impor berhasil disimpan${supabaseService.isCloudMode() ? ' ke Supabase Cloud dan cache perangkat' : ' ke perangkat'}.`
+    );
+    showToast(`Impor selesai: ${prepared.added} ditambahkan dan ${prepared.updated} diperbarui.`);
+    return { success: true, result: prepared };
   };
 
   // KK Handlers
-  const handleSaveKK = (kk: KartuKeluarga) => {
+  const handleSaveKK = async (kk: KartuKeluarga): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncKK(kk);
+      if (!result.success) {
+        showToast(`Kartu Keluarga gagal disimpan: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.saveKK(kk);
     showToast(`Kartu Keluarga ${kk.nomorKK} berhasil disimpan!`);
+    return true;
   };
 
-  const handleDeleteKK = (id: string) => {
+  const handleDeleteKK = async (id: string): Promise<boolean> => {
+    const target = kkList.find(k => k.id === id);
+    if (!target) return false;
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoDeleteKK(target.nomorKK);
+      if (!result.success) {
+        showToast(`Kartu Keluarga gagal dihapus: ${result.error || 'masih digunakan warga atau koneksi bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.deleteKK(id);
     showToast('Data Kartu Keluarga berhasil dihapus.', 'info');
+    return true;
   };
 
   // Surat Pengantar Handlers
-  const handleAddSurat = (suratData: any) => {
+  const handleAddSurat = async (suratData: SuratPengantar): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncSurat(suratData);
+      if (!result.success) {
+        showToast(`Surat gagal disimpan: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     const created = storageService.addSurat(suratData);
     showToast(`Surat pengantar ${created.nomorSurat} berhasil dibuat!`);
     setSelectedSuratId(created.id);
     setActiveTab('template-pengantar');
-
+    return true;
   };
 
-  const handleUpdateSuratStatus = (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string) => {
+  const handleUpdateSuratStatus = async (id: string, status: 'DISETUJUI' | 'DITOLAK', alasan?: string): Promise<boolean> => {
+    const target = suratList.find(s => s.id === id);
+    if (!target) return false;
+    const updated: SuratPengantar = {
+      ...target,
+      status,
+      tanggalDisetujui: status === 'DISETUJUI' ? new Date().toISOString().split('T')[0] : target.tanggalDisetujui,
+      alasanPenolakan: status === 'DITOLAK' ? (alasan || 'Persyaratan administrasi belum lengkap') : undefined
+    };
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncSurat(updated);
+      if (!result.success) {
+        showToast(`Status surat gagal diperbarui: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.updateSuratStatus(id, status, alasan);
     showToast(status === 'DISETUJUI' ? 'Surat pengantar telah disetujui & siap dicetak!' : 'Surat permohonan telah ditolak.');
+    return true;
   };
 
-  const handleDeleteSurat = (id: string) => {
+  const handleDeleteSurat = async (id: string): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoDeleteSurat(id);
+      if (!result.success) {
+        showToast(`Arsip surat gagal dihapus: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.deleteSurat(id);
     showToast('Arsip surat berhasil dihapus.', 'info');
+    return true;
   };
 
   // Mutasi Handlers
-  const handleAddMutasi = (mutasi: MutasiPenduduk) => {
+  const handleAddMutasi = async (mutasi: MutasiPenduduk): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncMutasi(mutasi);
+      if (!result.success) {
+        showToast(`Mutasi gagal disimpan: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.addMutasi(mutasi);
     showToast(`Mutasi penduduk ${mutasi.namaWarga} berhasil dicatat.`);
+    return true;
   };
 
-  const handleDeleteMutasi = (id: string) => {
+  const handleDeleteMutasi = async (id: string): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoDeleteMutasi(id);
+      if (!result.success) {
+        showToast(`Catatan mutasi gagal dihapus: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.deleteMutasi(id);
     showToast('Catatan mutasi dihapus.', 'info');
+    return true;
   };
 
   // Bansos update
-  const handleUpdateBansos = (wargaId: string, statusBansos: any, keterangan?: string) => {
+  const handleUpdateBansos = async (wargaId: string, statusBansos: any, keterangan?: string) => {
     const target = wargaList.find(w => w.id === wargaId);
     if (target) {
       const updated: Warga = {
@@ -184,15 +325,23 @@ export default function App() {
         statusBansos,
         keteranganBansos: keterangan || target.keteranganBansos
       };
-      storageService.saveWarga(updated);
-      showToast(`Status bansos ${target.nama} diperbarui ke ${statusBansos}.`);
+      const saved = await handleSaveWarga(updated);
+      if (saved) showToast(`Status bansos ${target.nama} diperbarui ke ${statusBansos}.`);
     }
   };
 
   // Config Update
-  const handleUpdateConfig = (newConfig: RTConfig) => {
+  const handleUpdateConfig = async (newConfig: RTConfig): Promise<boolean> => {
+    if (supabaseService.isCloudMode()) {
+      const result = await supabaseService.autoSyncConfig(newConfig);
+      if (!result.success) {
+        showToast(`Pengaturan gagal disimpan ke cloud: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+        return false;
+      }
+    }
     storageService.saveRTConfig(newConfig);
-    showToast('Pengaturan instansi RT 004 RW 007 berhasil diperbarui.');
+    showToast(`Pengaturan berhasil disimpan${supabaseService.isCloudMode() ? ' dan dibagikan ke seluruh admin' : ' di perangkat ini'}.`);
+    return true;
   };
 
   // Excel Handlers
@@ -203,21 +352,14 @@ export default function App() {
 
   const handleImportExcel = async (file: File) => {
     try {
-      const res = await storageService.importFromExcel(file);
-      if (res.success) {
-        showToast(res.message, 'success');
-      } else {
-        showToast(`Impor gagal: ${res.message}`, 'error');
-      }
+      const analysis = await storageService.analyzeImportFile(file);
+      const rows = analysis.parsedRows.filter(row => row.isValid && row.nama.trim().length > 0);
+      if (rows.length === 0) throw new Error('Tidak ada baris warga valid yang ditemukan.');
+      const imported = await handleImportWarga(rows, true, false);
+      if (!imported.success) throw new Error(imported.error || 'Sinkronisasi impor gagal.');
     } catch (err: any) {
       showToast(`Error impor: ${err.message}`, 'error');
     }
-  };
-
-  // Reset Data
-  const handleResetData = () => {
-    storageService.resetToInitial();
-    showToast('Data kependudukan berhasil direset ke pengaturan bawaan.', 'info');
   };
 
   // Navigation Deep Links
@@ -241,6 +383,7 @@ export default function App() {
 
   const handleLogout = async () => {
     // Tutup sesi di Supabase (token dicabut) sekaligus bersihkan sesi lokal.
+    supabaseService.stopRealtimeSync();
     if (authService.isCloudAuthAvailable()) {
       await authService.signOut();
     } else {
@@ -250,6 +393,18 @@ export default function App() {
     showToast('Sesi administrasi telah ditutup. Silakan login kembali.', 'info');
   };
 
+
+  if (isBootstrapping) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
+        <div className="text-center" role="status" aria-live="polite">
+          <Loader2 className="w-7 h-7 animate-spin mx-auto text-emerald-400" />
+          <p className="mt-4 text-sm font-semibold">Memulihkan sesi pengurus</p>
+          <p className="mt-1 text-xs text-slate-400">Mengambil data terbaru dari Supabase Cloud...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Gateway check: Show Login Portal first before entering dashboard
   if (!currentUser?.isLoggedIn) {
@@ -277,6 +432,12 @@ export default function App() {
             setCurrentUser(user);
             showToast(`Selamat Datang, ${user.nama}! Berhasil masuk ke dashboard.`);
             setActiveTab('dashboard');
+            if (authService.isCloudAuthAvailable()) {
+              void supabaseService.bootstrapFromSupabase().then(() => {
+                refreshAllData();
+                supabaseService.startRealtimeSync();
+              });
+            }
           }}
         />
       </div>
@@ -287,7 +448,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Toast Alert Banner */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-4 duration-200">
+        <div className="fixed top-4 inset-x-3 sm:left-auto sm:right-4 sm:max-w-md z-50 animate-in fade-in slide-in-from-top-4 duration-200">
           <div className={`px-4 py-3 rounded-full shadow-lg border text-xs font-semibold flex items-center gap-2 ${
             toastMessage.type === 'success' ? 'bg-slate-900 text-white border-slate-800' :
             toastMessage.type === 'info' ? 'bg-blue-900 text-blue-100 border-blue-800' :
@@ -339,7 +500,20 @@ export default function App() {
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
         />
 
-      {/* Main Content Area */}
+       {/* Main Content Area */}
+      {syncState.phase !== 'online' && syncState.phase !== 'local' && (
+        <div className={`no-print border-b px-4 py-2.5 text-xs font-semibold flex items-center justify-center gap-2 ${
+          syncState.phase === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+          syncState.phase === 'offline' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+          'bg-blue-50 border-blue-200 text-blue-800'
+        }`} role="status" aria-live="polite">
+          {syncState.phase === 'error' ? <AlertTriangle className="w-4 h-4 shrink-0" /> :
+           syncState.phase === 'offline' ? <CloudOff className="w-4 h-4 shrink-0" /> :
+           syncState.phase === 'syncing' ? <RefreshCw className="w-4 h-4 shrink-0 animate-spin" /> :
+           <Cloud className="w-4 h-4 shrink-0" />}
+          <span>{syncState.message || 'Menghubungkan ke Supabase Cloud...'}</span>
+        </div>
+      )}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {activeTab === 'dashboard' && (
           <DashboardView
@@ -365,6 +539,7 @@ export default function App() {
             config={rtConfig}
             onSaveWarga={handleSaveWarga}
             onDeleteWarga={handleDeleteWarga}
+            onImportWarga={handleImportWarga}
             onCreateSurat={handleCreateSuratForWarga}
             selectedWargaId={selectedWargaId}
           />
@@ -431,7 +606,6 @@ export default function App() {
             onUpdateConfig={handleUpdateConfig}
             onExportExcel={handleExportExcel}
             onImportExcel={handleImportExcel}
-            onResetData={handleResetData}
             onDataUpdated={refreshAllData}
           />
         )}

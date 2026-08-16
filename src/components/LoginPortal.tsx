@@ -199,9 +199,9 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   const namaAdministratorDisplay = 'Dicky Wahyudi';
 
   const cardContent = (
-    <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row my-auto animate-in zoom-in-95 duration-200">
+    <div className="bg-white w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row my-auto animate-in zoom-in-95 duration-200">
       {/* Left Side: Official Identity Branding */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white p-6 sm:p-8 md:w-5/12 flex flex-col justify-between relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white p-5 sm:p-8 md:w-5/12 flex flex-col justify-between relative overflow-hidden">
         {/* Subtle glow background */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         

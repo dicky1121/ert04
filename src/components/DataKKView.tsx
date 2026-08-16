@@ -26,8 +26,8 @@ interface DataKKViewProps {
   kkList: KartuKeluarga[];
   wargaList: Warga[];
   config: RTConfig;
-  onSaveKK: (kk: KartuKeluarga) => void;
-  onDeleteKK: (id: string) => void;
+  onSaveKK: (kk: KartuKeluarga) => Promise<boolean>;
+  onDeleteKK: (id: string) => Promise<boolean>;
   onCreateSuratForWarga: (warga: Warga) => void;
   selectedKKId?: string | null;
 }
@@ -81,7 +81,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       confirmLabel: 'Ya, Hapus KK',
       tone: 'danger'
     });
-    if (setuju) onDeleteKK(kk.id);
+    if (setuju) await onDeleteKK(kk.id);
   };
 
   // Trigger select from external props
@@ -164,7 +164,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -217,8 +217,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       catatan: formData.catatan || ''
     };
 
-    onSaveKK(payload);
-    setIsFormOpen(false);
+    if (await onSaveKK(payload)) setIsFormOpen(false);
   };
 
   return (

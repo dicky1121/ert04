@@ -91,7 +91,15 @@ export const SuratPrintTemplate: React.FC<SuratPrintTemplateProps> = ({
       lokasiSurat: config.lokasiSurat || 'Jatimulya',
       tanggalSurat,
       namaKetuaRT,
-      namaKetuaRW
+      namaKetuaRW,
+      fontFamily: config.suratFontFamily,
+      bodyFontSizePt: config.suratBodyFontSizePt,
+      kopFontSizePt: config.suratKopFontSizePt,
+      titleFontSizePt: config.suratTitleFontSizePt,
+      lineHeight: config.suratLineHeight,
+      rowSpacingPt: config.suratRowSpacingPt,
+      sectionSpacingPt: config.suratSectionSpacingPt,
+      signatureSpacePt: config.suratSignatureSpacePt
     }, docFilename);
   };
 
@@ -161,7 +169,21 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const selectedFontFamily = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  const fontFamily = config.suratFontFamily || 'Arial';
+  const selectedFontFamily = fontFamily === 'Times New Roman'
+    ? '"Times New Roman", Times, serif'
+    : fontFamily === 'Georgia'
+      ? 'Georgia, "Times New Roman", serif'
+      : fontFamily === 'Calibri'
+        ? 'Calibri, "Segoe UI", Arial, sans-serif'
+        : 'Arial, Helvetica, sans-serif';
+  const bodyFontSizePt = config.suratBodyFontSizePt || 10;
+  const kopFontSizePt = config.suratKopFontSizePt || 12;
+  const titleFontSizePt = config.suratTitleFontSizePt || 12;
+  const lineHeight = config.suratLineHeight || 1.35;
+  const rowSpacingPt = config.suratRowSpacingPt ?? 2;
+  const sectionSpacingPt = config.suratSectionSpacingPt || 12;
+  const signatureSpacePt = config.suratSignatureSpacePt || 60;
 
   return (
     <div className="space-y-4">
@@ -179,7 +201,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             <div className="text-xs sm:text-sm font-bold flex items-center gap-2">
               <span>Surat Pengantar RT 004 RW 007</span>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded border border-emerald-400/30">
-                Font: Sans-Serif A4
+                {fontFamily} &bull; {bodyFontSizePt} pt
               </span>
             </div>
             <div className="text-[10px] text-slate-400">
@@ -417,12 +439,14 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
           className="print-container bg-white text-black p-[1.4cm] sm:p-[1.8cm] max-w-[21cm] w-full min-h-[29.7cm] mx-auto shadow-2xl border border-slate-300 leading-normal print:p-0 print:border-none print:shadow-none print:max-w-none print:w-full print:m-0"
           style={{
             fontFamily: selectedFontFamily,
+            fontSize: `${bodyFontSizePt}pt`,
+            lineHeight,
             color: '#000000',
             backgroundColor: '#ffffff'
           }}
         >
           {/* KOP SURAT RESMI - 3 COLUMN BALANCED CENTER (ZERO TILT) */}
-          <div className="flex items-center justify-between gap-2 pb-1.5 border-b-2 border-black mb-4">
+          <div className="flex items-center justify-between gap-2 pb-1.5 border-b-2 border-black" style={{ marginBottom: `${sectionSpacingPt}pt` }}>
             {/* Logo Left */}
             <div
               className="shrink-0 flex items-center justify-center"
@@ -448,19 +472,19 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
             {/* Header Text Center (100% Mathematically Centered) */}
             <div className="flex-1 text-center px-1">
-              <h1 className="font-bold text-[15px] tracking-wide text-black leading-tight uppercase">
+              <h1 className="font-bold tracking-wide text-black leading-tight uppercase" style={{ fontSize: `${kopFontSizePt}pt` }}>
                 {config.kopInstansiAtas || 'PEMERINTAHAN KABUPATEN BEKASI'}
               </h1>
-              <h2 className="font-bold text-[16px] tracking-wide text-black leading-tight uppercase mt-0.5">
+              <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${kopFontSizePt + 1}pt` }}>
                 {config.kopTeksRT || `RT ${config.namaRT || '004'}  RW ${config.namaRW || '007'}`}
               </h2>
-              <h2 className="font-bold text-[13.5px] tracking-wide text-black leading-tight uppercase mt-0.5">
+              <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${Math.max(8, kopFontSizePt - 1)}pt` }}>
                 {config.kopKelurahan || `KELURAHAN ${config.kelurahan?.toUpperCase() || 'JATIMULYA'}`}
               </h2>
-              <h2 className="font-bold text-[13.5px] tracking-wide text-black leading-tight uppercase mt-0.5">
+              <h2 className="font-bold tracking-wide text-black leading-tight uppercase mt-0.5" style={{ fontSize: `${Math.max(8, kopFontSizePt - 1)}pt` }}>
                 {config.kopKecamatan || `KECAMATAN ${config.kecamatan?.toUpperCase() || 'TAMBUN SELATAN'}`}
               </h2>
-              <p className="text-[10.5px] text-black mt-1 font-normal leading-tight">
+              <p className="text-black mt-1 font-normal leading-tight" style={{ fontSize: `${Math.max(7, kopFontSizePt - 3)}pt` }}>
                 {config.kopSekretariatText || config.alamatSekretariat || 'Sekretariat : jl jampang no 111  jatimulya tlp 0896-7720-3444'}
               </p>
             </div>
@@ -477,22 +501,22 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
           </div>
 
           {/* JUDUL DAN NOMOR SURAT */}
-          <div className="text-center mb-4">
-            <h3 className="font-bold text-[15px] underline uppercase tracking-wide text-black leading-tight">
+          <div className="text-center" style={{ marginBottom: `${sectionSpacingPt}pt` }}>
+            <h3 className="font-bold underline uppercase tracking-wide text-black leading-tight" style={{ fontSize: `${titleFontSizePt}pt` }}>
               {config.judulSuratPengantar || 'SURAT PENGANTAR'}
             </h3>
-            <p className="font-bold text-[12.5px] text-black mt-1 tracking-wider">
+            <p className="font-bold text-black mt-1 tracking-wider" style={{ fontSize: `${bodyFontSizePt}pt` }}>
               NO : {nomorSurat}
             </p>
           </div>
 
           {/* KALIMAT PEMBUKA */}
-          <div className="text-black text-[12.5px] leading-normal text-justify mb-3">
+          <div className="text-black text-justify" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
             <p>{config.kalimatPembukaSurat || 'Yang Bertanda Tangan Dibawah Ini Ketua Rt 004 Rw 007 Kelurahan Jatimulya, Menerangkan Bahwa :'}</p>
           </div>
 
           {/* TABEL DATA PEMOHON (LASER ALIGNED COLONS & ROWS) */}
-          <div className="text-black text-[12.5px] leading-normal mb-4 space-y-1">
+          <div className="text-black" style={{ display: 'flex', flexDirection: 'column', gap: `${rowSpacingPt}pt`, fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
             <div className="grid grid-cols-[145px_14px_1fr] items-start">
               <span>Nama</span>
               <span className="text-center">:</span>
@@ -569,17 +593,17 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
           </div>
 
           {/* KALIMAT PENUTUP */}
-          <div className="text-black text-[12.5px] leading-normal text-justify mb-6">
+          <div className="text-black text-justify" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight, marginBottom: `${sectionSpacingPt}pt` }}>
             <p>{config.kalimatPenutupSurat || 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.'}</p>
           </div>
 
           {/* TANDA TANGAN (2 KOLOM BALANCED) */}
-          <div className="grid grid-cols-2 text-[12.5px] text-black pt-2">
+          <div className="grid grid-cols-2 text-black pt-2" style={{ fontSize: `${bodyFontSizePt}pt`, lineHeight }}>
             {/* Kolom Kiri: Ketua RT */}
             <div className="text-center px-4">
               <div>{config.lokasiSurat || 'Jatimulya'} {tanggalSurat}</div>
               <div className="font-semibold">Ketua Rt 004 Rw 007</div>
-              <div className="h-16 sm:h-20"></div>
+              <div style={{ height: `${signatureSpacePt}pt` }}></div>
               <div className="font-bold underline text-black uppercase">{namaKetuaRT}</div>
             </div>
 
@@ -587,7 +611,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             <div className="text-center px-4">
               <div>Mengetahui</div>
               <div className="font-semibold">Ketua Rw 007</div>
-              <div className="h-16 sm:h-20"></div>
+              <div style={{ height: `${signatureSpacePt}pt` }}></div>
               <div className="font-bold underline text-black uppercase">{namaKetuaRW}</div>
             </div>
           </div>
