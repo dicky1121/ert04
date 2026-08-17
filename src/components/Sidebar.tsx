@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
+  Siren,
   X
 } from 'lucide-react';
 import { RTConfig, CurrentUser } from '../types';
@@ -24,6 +25,7 @@ interface SidebarProps {
   config: RTConfig;
   currentUser: CurrentUser;
   pendingSuratCount?: number;
+  ewsBaruCount?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   onExportExcel?: () => void;
@@ -35,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   config,
   currentUser,
   pendingSuratCount = 0,
+  ewsBaruCount = 0,
   isOpenMobile = false,
   onCloseMobile,
   onExportExcel
@@ -142,6 +145,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-blue-600' : 'text-slate-500'}`} />
               <span className="truncate">Dashboard</span>
+            </button>
+          </div>
+
+          {/* EWS Darurat — tersedia di semua platform */}
+          <div>
+            <button
+              onClick={() => handleNavClick('ews')}
+              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'ews'
+                  ? 'bg-rose-50 text-rose-700 font-bold border-l-3 border-rose-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-rose-50 hover:text-rose-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Siren className={`w-4 h-4 shrink-0 ${activeTab === 'ews' ? 'text-rose-600' : 'text-rose-400'}`} />
+                <span className="truncate">EWS Darurat</span>
+              </div>
+              {ewsBaruCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold text-[10px] shrink-0 animate-pulse">
+                  {ewsBaruCount}
+                </span>
+              )}
             </button>
           </div>
 

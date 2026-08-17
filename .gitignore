@@ -10,3 +10,15 @@ audit-tmp.json
 .env*
 !.env.example
 .env
+
+# Capacitor / Android
+android/
+ios/
+.capacitor/
+capacitor.config.json
+
+# Firebase & Keystore (JANGAN PUSH!)
+google-services.json
+*.keystore
+*.jks
+keystore.properties

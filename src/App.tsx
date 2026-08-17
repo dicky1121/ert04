@@ -23,6 +23,7 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
 import { IntegrasiView } from './components/IntegrasiView';
+import { EWSAdminView } from './components/EWSAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
@@ -48,6 +49,7 @@ export default function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
   const [publicGatewayView, setPublicGatewayView] = useState<'welcome' | 'login'>('welcome');
+  const [ewsBaruCount, setEwsBaruCount] = useState(0);
 
   // Modal Visibility States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -88,6 +90,25 @@ export default function App() {
       refreshAllData();
     });
     const unsubscribeSync = supabaseService.subscribeSyncState(setSyncState);
+
+    // Subscribe realtime EWS untuk badge notifikasi di sidebar
+    const unsubscribeEWS = supabaseService.subscribeEWSRealtime(() => {
+      setEwsBaruCount(prev => prev + 1);
+    });
+
+    // Listener: notification EWS di-tap, navigasi ke tab EWS
+    const handleEWSNotificationTapped = () => {
+      setActiveTab('ews');
+      setEwsBaruCount(0); // Reset badge
+    };
+    window.addEventListener('ews-notification-tapped', handleEWSNotificationTapped);
+
+    // Listener: notification EWS diterima saat foreground, tampilkan toast
+    const handleEWSNotificationForeground = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      showToast(`🚨 ${detail.title}: ${detail.body}`, 'info');
+    };
+    window.addEventListener('ews-notification-foreground', handleEWSNotificationForeground);
 
     // Keyboard shortcut for Search (Ctrl+K or Cmd+K)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,10 +166,13 @@ export default function App() {
     return () => {
       unsubscribe();
       unsubscribeSync();
+      unsubscribeEWS();
       supabaseService.stopRealtimeSync();
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('ews-notification-tapped', handleEWSNotificationTapped);
+      window.removeEventListener('ews-notification-foreground', handleEWSNotificationForeground);
     };
   }, []);
 
@@ -489,10 +513,13 @@ export default function App() {
             setSelectedKKId(null);
             setSelectedSuratId(null);
             setActiveTab(tab);
+            // Reset badge EWS saat tab EWS dibuka
+            if (tab === 'ews') setEwsBaruCount(0);
           }}
           config={rtConfig}
           currentUser={currentUser}
           pendingSuratCount={suratList.filter(s => s.status === 'PENDING').length}
+          ewsBaruCount={ewsBaruCount}
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
           onExportExcel={handleExportExcel}
@@ -613,6 +640,12 @@ export default function App() {
 
         {activeTab === 'audit' && (
           <AuditLogView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'ews' && (
+          <EWSAdminView
             currentUser={currentUser}
           />
         )}

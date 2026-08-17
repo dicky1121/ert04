@@ -9,7 +9,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "cap:init": "npx cap init",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npm run build && npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:run": "npm run cap:sync && npx cap run android",
+    "android:build": "cd android && .\\gradlew assembleDebug",
+    "android:release": "cd android && .\\gradlew assembleRelease"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

@@ -12,14 +12,17 @@ import {
   MessageCircle,
   Phone,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  Siren
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { BekasiLogo } from './BekasiLogo';
 import { PublicSuratForm } from './PublicSuratForm';
 import { LacakPengajuanModal } from './LacakPengajuanModal';
 import { PengaduanWargaModal } from './PengaduanWargaModal';
+import { EWSLaporanModal } from './EWSLaporanModal';
 
 
 interface SapaWargaProps {
@@ -53,9 +56,13 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
   const [isSubmissionOpen, setIsSubmissionOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isPengaduanOpen, setIsPengaduanOpen] = useState(false);
+  const [isEWSOpen, setIsEWSOpen] = useState(false);
   const [konfigurasiPublik, setKonfigurasiPublik] = useState<KonfigurasiPublik | null>(null);
   const [statistik, setStatistik] = useState<StatistikPublik | null>(null);
   const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
+
+  // Deteksi apakah berjalan di Android native app (Capacitor)
+  const isNativeApp = Capacitor.isNativePlatform();
 
   // Portal publik dibuka tanpa login, jadi kontak/pengumuman/statistik diambil
   // lewat fungsi RPC khusus publik. Bila Supabase belum dikonfigurasi, seluruh
@@ -210,6 +217,25 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                 </span>
               </div>
 
+              {/* Tombol EWS — hanya tampil di Android native app */}
+              {isNativeApp && (
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsEWSOpen(true)}
+                    className="group inline-flex items-center gap-2.5 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-900/40 transition hover:bg-rose-500 active:scale-[.98]"
+                    aria-label="Laporkan kejadian darurat"
+                  >
+                    <Siren className="h-4 w-4 animate-pulse" />
+                    🚨 Laporkan Darurat
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </button>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    Kebakaran, kemalingan, kecelakaan, dan kejadian darurat lainnya
+                  </p>
+                </div>
+              )}
+
               {statistikCards.length > 0 && (
                 <dl className="mt-8 grid max-w-xl grid-cols-3 gap-3">
                   {statistikCards.map((item) => (
@@ -284,6 +310,27 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                   Nomor layanan belum tersedia. Silakan datang langsung ke sekretariat.
                 </p>
               )}
+
+              {/* Tombol darurat di card layanan — hanya Android */}
+              {isNativeApp && (
+                <button
+                  type="button"
+                  onClick={() => setIsEWSOpen(true)}
+                  className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-left transition hover:bg-rose-100 hover:border-rose-300"
+                  aria-label="Laporkan kejadian darurat"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 transition group-hover:bg-rose-600 group-hover:text-white">
+                    <Siren className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-extrabold text-rose-800">🚨 Laporkan Darurat</span>
+                    <span className="mt-0.5 block text-[11px] leading-relaxed text-rose-600">
+                      Kirim peringatan ke seluruh warga RT 004 seketika
+                    </span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-rose-400 transition group-hover:translate-x-0.5 group-hover:text-rose-700" />
+                </button>
+              )}
             </div>
           </section>
 
@@ -346,6 +393,12 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
         {isSubmissionOpen && <PublicSuratForm onClose={() => setIsSubmissionOpen(false)} />}
         {isTrackingOpen && <LacakPengajuanModal onClose={() => setIsTrackingOpen(false)} />}
         {isPengaduanOpen && <PengaduanWargaModal onClose={() => setIsPengaduanOpen(false)} />}
+        {isNativeApp && (
+          <EWSLaporanModal
+            isOpen={isEWSOpen}
+            onClose={() => setIsEWSOpen(false)}
+          />
+        )}
       </div>
     </div>
   );

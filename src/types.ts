@@ -327,6 +327,58 @@ export interface RTConfig {
   suratSignatureSpacePt?: number;
 }
 
+// =====================================================================
+// EWS (EARLY WARNING SYSTEM)
+// =====================================================================
+
+export type JenisKejadianEWS =
+  | 'KEBAKARAN'
+  | 'KEMALINGAN'
+  | 'KECELAKAAN'
+  | 'MENINGGAL'
+  | 'BANJIR'
+  | 'TAWURAN'
+  | 'LAINNYA';
+
+export type StatusEWS = 'BARU' | 'DITANGANI' | 'SELESAI';
+
+export interface LaporanEWS {
+  id: string;
+  jenis_kejadian: JenisKejadianEWS;
+  deskripsi: string;
+  nama_pelapor: string;
+  alamat: string;
+  foto_url?: string | null;
+  status: StatusEWS;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface LaporanEWSInput {
+  jenis_kejadian: JenisKejadianEWS;
+  deskripsi: string;
+  nama_pelapor: string;
+  alamat: string;
+  foto_file?: File | null;
+}
+
+export interface EWSJenisKejadianMeta {
+  value: JenisKejadianEWS;
+  label: string;
+  emoji: string;
+  warna: string; // Tailwind color class
+}
+
+export const EWS_JENIS_KEJADIAN: EWSJenisKejadianMeta[] = [
+  { value: 'KEBAKARAN',  label: 'Kebakaran',   emoji: '🔥', warna: 'rose' },
+  { value: 'KEMALINGAN', label: 'Kemalingan',  emoji: '🔓', warna: 'amber' },
+  { value: 'KECELAKAAN', label: 'Kecelakaan',  emoji: '🚑', warna: 'orange' },
+  { value: 'MENINGGAL',  label: 'Warga Meninggal', emoji: '🕊️', warna: 'slate' },
+  { value: 'BANJIR',     label: 'Banjir',      emoji: '🌊', warna: 'blue' },
+  { value: 'TAWURAN',    label: 'Tawuran',     emoji: '⚠️', warna: 'yellow' },
+  { value: 'LAINNYA',    label: 'Lainnya',     emoji: '📢', warna: 'purple' },
+];
+
 export interface AuditLog {
   id: string;
   timestamp: string;
