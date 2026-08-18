@@ -26,3 +26,9 @@ google-services.json
 *.keystore
 *.jks
 keystore.properties
+
+# Service Account Firebase (kunci induk FCM — JANGAN PUSH!)
+# Contoh nama file: ert004-firebase-adminsdk-fbsvc-5c30cf0e2d.json
+*-firebase-adminsdk-*.json
+service-account*.json
+
