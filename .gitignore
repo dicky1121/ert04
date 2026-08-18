@@ -32,3 +32,8 @@ keystore.properties
 *-firebase-adminsdk-*.json
 service-account*.json
 
+# Metadata lokal Supabase CLI (dibuat otomatis oleh `supabase link`)
+supabase/.temp/
+supabase/.branches/
+
+
