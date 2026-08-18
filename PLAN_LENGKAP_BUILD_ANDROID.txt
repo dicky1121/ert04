@@ -881,8 +881,10 @@ DISTRIBUSI:
 [ ] QR Code dibuat dan di-print (opsional)
 
 BERES-BERES SETELAH PENGUJIAN (WAJIB):
-[ ] Hapus data uji EWS: jalankan scripts\bersihkan-uji-ews.sql di SQL Editor
+[x] Hapus data uji EWS — SELESAI, dikonfirmasi user (19 Agustus 2026)
+    (kalau perlu ulang: scripts\bersihkan-uji-ews.sql di SQL Editor)
 [ ] ROTASI KUNCI FIREBASE — kunci lama pernah terlihat di screenshot:
+
     1. Firebase Console → Project Settings → Service accounts
     2. "Generate new private key" → simpan JSON baru
     3. Update secret Supabase dengan isi JSON baru
