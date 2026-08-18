@@ -18,15 +18,28 @@ Panduan ini memakai nilai **asli** proyek Anda, jadi bisa langsung diikuti tanpa
 | 3. Secret `FIREBASE_SERVICE_ACCOUNT` | ✅ sudah di-set |
 | 4. Deploy Edge Function | ✅ berhasil |
 | **Uji kirim notifikasi** | ✅ **notifikasi tampil di HP** |
-| 5. Database Webhook | ⚠️ perlu dipastikan (lihat Langkah 5) |
+| 5. Notifikasi otomatis | ✅ **selesai & teruji** |
 | 6. Build APK baru | ⚠️ perlu untuk HP lain / distribusi |
 
 Hasil uji Edge Function:
 `{"success":true,"sent":1,"total":1,"dibersihkan":0}`
 
-Artinya rantai JWT → OAuth2 → FCM → HP sudah terbukti bekerja.
-Sisanya hanya memastikan pengiriman berjalan **otomatis** (Langkah 5) dan
-membuat APK baru agar HP lain juga bisa menerima (Langkah 6).
+**Uji akhir (end-to-end):** satu laporan dimasukkan ke database lewat API
+biasa — tanpa memanggil Edge Function sama sekali — dan notifikasi muncul
+sendiri di HP. Jadi rantai lengkapnya sudah terbukti:
+
+```
+warga kirim laporan
+   -> tersimpan di ews_laporan_rt004
+   -> trigger trg_ews_notif_otomatis
+   -> Edge Function kirim-notif-ews
+   -> JWT RS256 -> OAuth2 access token
+   -> FCM
+   -> notifikasi tampil di HP pengurus
+```
+
+Yang tersisa hanya Langkah 6: build APK baru agar HP lain ikut menerima.
+
 
 
 ---
@@ -88,24 +101,37 @@ https://supabase.com/dashboard/project/nginmiqjfzycvbbufbev/functions
 
 ---
 
-## Langkah 5 — Pastikan Database Webhook aktif
+## Langkah 5 — Aktifkan notifikasi otomatis ✅ (sudah dilakukan)
 
-Webhook inilah yang memanggil Edge Function setiap ada laporan darurat masuk.
+Ini bagian yang membuat notifikasi terkirim **sendiri** setiap ada laporan
+darurat masuk, tanpa perlu ada yang menekan tombol apa pun.
 
-1. Buka https://supabase.com/dashboard/project/nginmiqjfzycvbbufbev/database/hooks
-2. Jika **belum ada** hook bernama `ews-notif-trigger`, klik **Create a new hook**
-   dan isi:
-   - **Name:** `ews-notif-trigger`
-   - **Table:** `ews_laporan_rt004`
-   - **Events:** centang **Insert**
-   - **Type:** `HTTP Request`
-   - **Method:** `POST`
-   - **URL:** `https://nginmiqjfzycvbbufbev.supabase.co/functions/v1/kirim-notif-ews`
-   - **HTTP Headers:** tambahkan satu baris
-     - Key: `Authorization`
-     - Value: `Bearer <SUPABASE_ANON_KEY>`
-       (ambil dari **Project Settings** → **API** → *anon public*)
-3. Klik **Create webhook**
+Sudah dikerjakan lewat `scripts/aktifkan-notif-otomatis-ews.sql`, yang membuat
+trigger `trg_ews_notif_otomatis` pada tabel `ews_laporan_rt004`.
+
+Bila suatu saat perlu dijalankan ulang (misalnya database di-reset):
+
+```powershell
+# Sisipkan anon key ke dalam skrip, hasilnya di folder Temp (di luar git)
+$anon = (Select-String -Path '.env' -Pattern '^VITE_SUPABASE_ANON_KEY=(.+)$').Matches.Groups[1].Value.Trim()
+$keluaran = Join-Path $env:TEMP 'aktifkan-notif-ews-SIAP-PAKAI.sql'
+(Get-Content 'scripts\aktifkan-notif-otomatis-ews.sql' -Raw).Replace('__ANON_KEY__', $anon) | Set-Content $keluaran -Encoding UTF8
+code $keluaran
+```
+
+Lalu salin seluruh isi file itu ke **SQL Editor** Supabase dan klik **Run**.
+Hasil yang benar: baris `Trigger notifikasi otomatis` bernilai **AKTIF**.
+
+Untuk memeriksa status kapan saja, jalankan `scripts/cek-webhook-ews.sql`.
+
+> Alternatif lewat Dashboard (**Database → Webhooks → Create a new hook**) juga
+> bisa, tapi harus mengisi 6 kolom manual. Skrip di atas hasilnya sama dan
+> cukup sekali tempel.
+
+> Catatan: skrip yang tersimpan di `scripts/` sengaja memakai penanda
+> `__ANON_KEY__`, bukan kunci sungguhan, supaya kunci tidak ikut ter-commit
+> ke git.
+
 
 ---
 
