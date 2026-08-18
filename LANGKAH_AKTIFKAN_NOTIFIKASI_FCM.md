@@ -9,9 +9,25 @@ Panduan ini memakai nilai **asli** proyek Anda, jadi bisa langsung diikuti tanpa
 | Project ref Supabase | `nginmiqjfzycvbbufbev` |
 | URL Edge Function | `https://nginmiqjfzycvbbufbev.supabase.co/functions/v1/kirim-notif-ews` |
 
-Kode sudah selesai diperbaiki (commit `cc74b57`). Yang tersisa adalah 6 langkah
-konfigurasi di bawah — ini **tidak bisa dilakukan dari kode**, harus lewat
-dashboard dan build APK.
+## Status Terkini (18 Agustus 2026)
+
+| Langkah | Status |
+|---|---|
+| 1. Service Account key | ✅ selesai |
+| 2. Cloud Messaging API | ✅ aktif (sudah diuji) |
+| 3. Secret `FIREBASE_SERVICE_ACCOUNT` | ✅ sudah di-set |
+| 4. Deploy Edge Function | ✅ berhasil |
+| **Uji kirim notifikasi** | ✅ **notifikasi tampil di HP** |
+| 5. Database Webhook | ⚠️ perlu dipastikan (lihat Langkah 5) |
+| 6. Build APK baru | ⚠️ perlu untuk HP lain / distribusi |
+
+Hasil uji Edge Function:
+`{"success":true,"sent":1,"total":1,"dibersihkan":0}`
+
+Artinya rantai JWT → OAuth2 → FCM → HP sudah terbukti bekerja.
+Sisanya hanya memastikan pengiriman berjalan **otomatis** (Langkah 5) dan
+membuat APK baru agar HP lain juga bisa menerima (Langkah 6).
+
 
 ---
 
