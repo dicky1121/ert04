@@ -850,22 +850,45 @@ BUILD ANDROID:
 SETUP BACKEND:
 [x] SQL schema di-run di Supabase (tabel ews_laporan_rt004, ews_fcm_tokens)
 [x] Bucket ews-foto + policy upload/baca (scripts\perbaiki-ews-rls.sql)
-[ ] Edge Function deployed (supabase functions deploy kirim-notif-ews)
-[ ] Secrets di-set (FIREBASE_PROJECT_ID, FIREBASE_ACCESS_TOKEN)
-[ ] Database Webhook configured (ews_laporan_rt004 INSERT → Edge Function)
+[x] Edge Function deployed (supabase functions deploy kirim-notif-ews)
+[x] Secrets di-set (FIREBASE_PROJECT_ID + Service Account, JWT RS256)
+[x] Notifikasi otomatis aktif (trigger DB → Edge Function, teruji end-to-end)
 
 TESTING:
-[ ] FCM token terdaftar (cek tabel ews_fcm_tokens)
-[ ] Kirim laporan EWS dari app → notifikasi masuk
-[ ] Notifikasi masuk ke device lain (broadcast)
-[ ] Dashboard admin bisa lihat laporan baru
+[x] FCM token terdaftar (cek tabel ews_fcm_tokens)
+[x] Kirim laporan EWS dari app → notifikasi MASUK ke HP
+[x] Notifikasi otomatis (tanpa panggil manual) teruji end-to-end
+[ ] Notifikasi masuk ke device lain (broadcast) — perlu HP kedua
+[x] Dashboard admin bisa lihat laporan baru
 [ ] Update status laporan di dashboard
+
+BUILD RELEASE FINAL (19 Agustus 2026):
+[x] npm run build (web assets, 11.16s)
+[x] npx cap sync android (3 plugin: push-notifications, splash-screen, status-bar)
+[x] gradlew assembleRelease → BUILD SUCCESSFUL (3m 18s)
+[x] Verifikasi tanda tangan: OK, 4.18 MB
+    Signer  : CN=E-RT04 Jatimulya, OU=RT 004, O=Kelurahan Jatimulya
+    SHA-1   : 55:A5:41:B6:34:F0:8E:07:31:FD:56:9D:2B:8B:19:E8:D0:C3:66:20
+              (SAMA dengan build sebelumnya → warga bisa update tanpa uninstall)
+    SHA-256 file APK: C1188A1C4E3626C969ABCEC6801FEDB278AFBC040748411BF142BC248E72C6B4
+[x] APK siap kirim: C:\Users\ADMIN OS\Desktop\E-RT04-v1.0.0.apk
+    (dibuat ulang kapan saja: scripts\siapkan-apk-distribusi.ps1)
 
 DISTRIBUSI:
 [ ] APK release di-upload ke Google Drive
 [ ] Link sharing di-set "Anyone with the link"
 [ ] Pesan instruksi dikirim ke grup WA RT
 [ ] QR Code dibuat dan di-print (opsional)
+
+BERES-BERES SETELAH PENGUJIAN (WAJIB):
+[ ] Hapus data uji EWS: jalankan scripts\bersihkan-uji-ews.sql di SQL Editor
+[ ] ROTASI KUNCI FIREBASE — kunci lama pernah terlihat di screenshot:
+    1. Firebase Console → Project Settings → Service accounts
+    2. "Generate new private key" → simpan JSON baru
+    3. Update secret Supabase dengan isi JSON baru
+    4. Hapus/disable kunci LAMA di Google Cloud Console → IAM → Service Accounts → Keys
+[ ] Backup keystore: scripts\backup-keystore.ps1 (SIMPAN DI LUAR KOMPUTER INI!)
+
 
 MONITORING:
 [ ] Cek jumlah device install (tabel ews_fcm_tokens)
