@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'id.go.bekasi.jatimulya.rt004',
-  appName: 'SIP RT 004 Jatimulya',
+  appName: 'E-RT04',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

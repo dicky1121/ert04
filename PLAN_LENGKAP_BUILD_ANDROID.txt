@@ -1,0 +1,922 @@
+================================================================================
+PLAN LENGKAP: BUILD APLIKASI ANDROID SIP RT 004 + FITUR EWS
+================================================================================
+
+TANGGAL: 17 Agustus 2026
+STATUS SAAT INI: 
+- ✅ Code React sudah selesai (push ke GitHub berhasil)
+- ✅ Capacitor sudah di-setup (folder android/ sudah dibuat)
+- ✅ Firebase project sudah dibuat (google-services.json sudah di-copy)
+- ✅ Build React (npm run build) berhasil
+- ❌ Build APK gagal (masalah Java version mismatch)
+
+YANG PERLU DILAKUKAN:
+1. Install JDK 17 (untuk build Android)
+2. Setup database Supabase (jalankan SQL)
+3. Deploy Supabase Edge Function (untuk push notification)
+4. Setup Database Webhook di Supabase
+5. Build APK debug untuk testing
+6. Test fitur EWS end-to-end
+7. Build APK release untuk distribusi
+8. Distribusi ke warga RT 004
+
+================================================================================
+LANGKAH 1: INSTALL JDK 17 (Java Development Kit)
+================================================================================
+
+KENAPA PERLU:
+- Android build memerlukan Java (JDK)
+- Android Studio Anda bundled dengan Java 25 (terlalu baru)
+- Gradle belum support Java 25, max support Java 23
+- JDK 17 adalah versi LTS (Long Term Support), stable untuk Android
+
+CARA INSTALL:
+
+OPSI A: Microsoft Build of OpenJDK 17 (Recommended, no login)
+------------------------------------------------------------
+1. Buka browser, akses:
+   https://learn.microsoft.com/en-us/java/openjdk/download#openjdk-17
+
+2. Download installer:
+   - Cari section "OpenJDK 17 LTS"
+   - Klik link "Windows x64 .msi"
+   - File: microsoft-jdk-17.x.x-windows-x64.msi (~180 MB)
+
+3. Install:
+   - Double-click file .msi
+   - Next → Accept License → Next → Install
+   - Default path: C:\Program Files\Microsoft\jdk-17.x.x
+   - Finish
+
+4. Verifikasi:
+   - Buka Command Prompt baru
+   - Ketik: "C:\Program Files\Microsoft\jdk-17.0.13\bin\java.exe" -version
+   - Harus muncul: openjdk version "17.x.x"
+
+OPSI B: Adoptium Temurin 17 (Open Source)
+------------------------------------------------------------
+1. Buka: https://adoptium.net/temurin/releases/?version=17
+2. Download: Windows x64 .msi installer
+3. Install dengan default settings
+4. Path default: C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot
+
+OPSI C: Oracle JDK 17 (Requires Oracle account)
+------------------------------------------------------------
+1. Buka: https://www.oracle.com/java/technologies/downloads/#java17
+2. Download: Windows x64 Installer
+3. Login dengan Oracle account (gratis, tapi perlu registrasi)
+4. Install
+5. Path default: C:\Program Files\Java\jdk-17
+
+CATATAN PENTING:
+- Setelah install, CATAT PATH instalasi JDK (contoh: C:\Program Files\Microsoft\jdk-17.0.13)
+- PATH ini akan digunakan di langkah berikutnya
+
+================================================================================
+LANGKAH 2: BUILD APK DEBUG (Untuk Testing)
+================================================================================
+
+Setelah JDK 17 terinstall:
+
+1. Buka Command Prompt atau PowerShell
+
+2. Set JAVA_HOME ke JDK 17 yang baru diinstall:
+   
+   $env:JAVA_HOME="C:\Program Files\Microsoft\jdk-17.0.13"
+   
+   (Ganti path sesuai instalasi JDK Anda)
+
+3. Masuk ke folder android:
+   
+   cd "C:\Users\ADMIN OS\Desktop\sip3\android"
+
+4. Build APK Debug:
+   
+   .\gradlew.bat assembleDebug
+   
+   Proses ini akan:
+   - Download dependencies Android (~500 MB, pertama kali)
+   - Compile code (~5-10 menit)
+   - Generate APK
+
+5. Jika berhasil, APK akan ada di:
+   
+   C:\Users\ADMIN OS\Desktop\sip3\android\app\build\outputs\apk\debug\app-debug.apk
+   
+   Size: ~15-20 MB
+
+6. Verifikasi APK ada:
+   
+   dir "app\build\outputs\apk\debug"
+
+TROUBLESHOOTING BUILD ANDROID:
+
+ERROR: "SDK location not found"
+SOLUSI: Buat file local.properties di folder android/ dengan isi:
+        sdk.dir=C\:\\Users\\ADMIN OS\\AppData\\Local\\Android\\Sdk
+        (Ganti path sesuai lokasi Android SDK Anda)
+
+ERROR: "Execution failed for task ':app:processDebugGoogleServices'"
+SOLUSI: Pastikan google-services.json ada di android/app/
+        Package name di google-services.json harus: id.go.bekasi.jatimulya.rt004
+
+ERROR: Build timeout atau stuck
+SOLUSI: Tambahkan flag --no-daemon:
+        .\gradlew.bat assembleDebug --no-daemon
+
+ERROR: "Unsupported class file major version"
+SOLUSI: Pastikan JAVA_HOME mengarah ke JDK 17, bukan JDK 25
+
+================================================================================
+LANGKAH 3: TEST APK DI DEVICE ANDROID (Sebelum Setup Database)
+================================================================================
+
+TUJUAN: 
+Test apakah APK bisa diinstall dan buka, meskipun fitur EWS belum jalan
+(karena database belum di-setup)
+
+CARA INSTALL APK KE HP:
+
+OPSI A: Via USB Cable
+------------------------------------------------------------
+1. Enable USB Debugging di HP Android:
+   - Settings → About Phone → tap "Build Number" 7 kali
+   - Settings → Developer Options → USB Debugging (ON)
+
+2. Hubungkan HP ke PC via USB
+
+3. Install ADB (Android Debug Bridge) jika belum ada:
+   - Sudah termasuk di Android SDK
+   - Path: C:\Users\ADMIN OS\AppData\Local\Android\Sdk\platform-tools\adb.exe
+
+4. Install APK via ADB:
+   cd "C:\Users\ADMIN OS\Desktop\sip3"
+   "C:\Users\ADMIN OS\AppData\Local\Android\Sdk\platform-tools\adb.exe" install "android\app\build\outputs\apk\debug\app-debug.apk"
+
+5. Cek HP, app "SIP RT 004 Jatimulya" harus muncul di home screen
+
+OPSI B: Via File Sharing (Lebih Mudah)
+------------------------------------------------------------
+1. Copy file app-debug.apk ke HP via:
+   - USB cable (copy ke folder Download HP)
+   - Google Drive / OneDrive (upload, lalu download di HP)
+   - WhatsApp send to self
+
+2. Di HP, buka File Manager → tap file app-debug.apk
+
+3. Jika muncul "Install blocked":
+   - Tap "Settings"
+   - Enable "Install unknown apps" untuk browser/File Manager
+   - Kembali, tap Install
+
+4. App akan terinstall
+
+TEST BASIC (Tanpa Database):
+- Buka app
+- Halaman Sapa Warga harus muncul
+- Tombol "🚨 Laporkan Darurat" muncul di halaman Sapa Warga
+  (tombol ini HANYA tampil di Android app, tidak di browser — lihat SapaWarga.tsx)
+- Menu "EWS Darurat" di sidebar BELUM muncul, karena sidebar hanya tampil
+  setelah login pengurus. Setelah login, menu ini tersedia di semua platform
+  (browser maupun Android app) — lihat Sidebar.tsx
+- Dashboard statistik akan kosong (normal, karena database belum ada)
+
+JIKA APP CRASH SAAT DIBUKA:
+- Buka Settings → Apps → SIP RT 004 → Storage → Clear Data
+- Uninstall app, install ulang
+
+================================================================================
+LANGKAH 4: SETUP DATABASE SUPABASE (SQL)
+================================================================================
+
+KENAPA PERLU:
+- Untuk menyimpan laporan EWS dari warga
+- Untuk menyimpan FCM tokens device (untuk push notification)
+- Untuk storage foto laporan
+
+CARA SETUP:
+
+1. Login ke Supabase Dashboard:
+   https://supabase.com/dashboard
+
+2. Pilih project Anda (yang sudah digunakan untuk webapp)
+
+3. Klik "SQL Editor" di menu kiri
+
+4. Klik "New query"
+
+5. Buka file SQL di project:
+   C:\Users\ADMIN OS\Desktop\sip3\scripts\setup-ews.sql
+
+6. Copy SEMUA isi file setup-ews.sql
+
+7. Paste ke SQL Editor di Supabase
+
+8. Klik "Run" (atau tekan F5)
+
+9. Tunggu proses selesai (~5-10 detik)
+
+VERIFIKASI BERHASIL:
+
+1. Klik "Table Editor" di menu kiri
+
+2. Harus ada 2 tabel baru:
+   ✅ ews_laporan_rt004 (untuk laporan darurat)
+   ✅ ews_fcm_tokens (untuk token push notification)
+
+3. Klik "Storage" di menu kiri
+
+4. Harus ada 1 bucket baru:
+   ✅ ews-foto (untuk foto laporan, max 2MB per file)
+
+JIKA ADA ERROR SQL:
+
+ERROR: "relation already exists"
+SOLUSI: Tabel sudah ada, skip error ini (aman)
+
+ERROR: "function is_pengurus_aktif() does not exist"
+SOLUSI: Jalankan SQL di webapp dulu (scripts/setup-public-submission.sql)
+        atau hapus baris policy yang pakai is_pengurus_aktif()
+
+ERROR: Permission denied
+SOLUSI: Pastikan Anda login sebagai owner project, bukan collaborator
+
+================================================================================
+LANGKAH 5: DEPLOY SUPABASE EDGE FUNCTION (Untuk Push Notification)
+================================================================================
+
+KENAPA PERLU:
+- Edge Function menerima webhook dari database saat ada laporan baru
+- Edge Function mengambil semua FCM tokens dari tabel ews_fcm_tokens
+- Edge Function mengirim push notification ke semua device Android
+
+CARA DEPLOY:
+
+1. Install Supabase CLI (jika belum ada):
+   
+   npm install -g supabase
+
+2. Login ke Supabase:
+   
+   supabase login
+   
+   (Browser akan terbuka, authorize Supabase CLI)
+
+3. Link project lokal ke Supabase project:
+   
+   cd "C:\Users\ADMIN OS\Desktop\sip3"
+   supabase link --project-ref YOUR_PROJECT_REF
+   
+   Ganti YOUR_PROJECT_REF dengan ref project Anda
+   (Lihat di URL Supabase Dashboard: https://supabase.com/dashboard/project/YOUR_PROJECT_REF)
+
+4. Deploy Edge Function:
+   
+   supabase functions deploy kirim-notif-ews
+
+5. Set Secrets (Environment Variables):
+   
+   # Firebase Project ID (lihat di Firebase Console → Project Settings)
+   supabase secrets set FIREBASE_PROJECT_ID=sip-rt004-jatimulya
+   
+   # Firebase Access Token (untuk development, berlaku ~1 jam)
+   # Cara dapat token:
+   firebase login:ci
+   # Copy token yang muncul
+   
+   supabase secrets set FIREBASE_ACCESS_TOKEN="1//0abcdef...xyz"
+
+6. Verifikasi secrets tersimpan:
+   
+   supabase secrets list
+
+CATATAN FIREBASE ACCESS TOKEN:
+
+Token dari firebase login:ci berlaku ~1 jam saja (untuk development/testing).
+
+Untuk PRODUCTION (jika app sudah stabil):
+- Download Service Account JSON dari Firebase Console
+- Gunakan library google-auth-library untuk generate token programmatically
+- Lihat dokumentasi lengkap di: supabase/functions/kirim-notif-ews/README.md
+
+UNTUK TESTING AWAL (1-2 minggu):
+- Gunakan firebase login:ci sudah cukup
+- Jika token expired (push notif tidak masuk), generate token baru dengan firebase login:ci
+- Update secret: supabase secrets set FIREBASE_ACCESS_TOKEN="token_baru"
+
+================================================================================
+LANGKAH 6: SETUP DATABASE WEBHOOK DI SUPABASE
+================================================================================
+
+KENAPA PERLU:
+- Webhook trigger Edge Function setiap kali ada INSERT baru ke tabel ews_laporan_rt004
+- Tanpa webhook, Edge Function tidak akan jalan, push notification tidak terkirim
+
+CARA SETUP (Via Supabase Dashboard - RECOMMENDED):
+
+1. Buka Supabase Dashboard:
+   https://supabase.com/dashboard
+
+2. Pilih project Anda
+
+3. Klik "Database" di menu kiri
+
+4. Klik "Webhooks" (sub-menu di bawah Database)
+
+5. Klik "Create a new hook" atau "Enable Webhooks"
+
+6. Isi form:
+   
+   Name: webhook_kirim_notif_ews
+   
+   Table: ews_laporan_rt004
+   
+   Events: ☑ Insert (centang Insert saja, uncheck Update/Delete)
+   
+   Type: HTTP Request
+   
+   Method: POST
+   
+   URL: https://YOUR_PROJECT_REF.supabase.co/functions/v1/kirim-notif-ews
+   (Ganti YOUR_PROJECT_REF dengan ref project Anda)
+   
+   HTTP Headers:
+   {
+     "Content-Type": "application/json",
+     "Authorization": "Bearer YOUR_ANON_KEY"
+   }
+   
+   (Ganti YOUR_ANON_KEY dengan anon key project Anda)
+   (Lihat di: Settings → API → Project API keys → anon public)
+
+7. Klik "Create webhook"
+
+VERIFIKASI WEBHOOK BERHASIL:
+
+1. Test manual dengan INSERT SQL:
+   
+   Buka SQL Editor, jalankan:
+   
+   INSERT INTO ews_laporan_rt004 (jenis_kejadian, deskripsi, nama_pelapor, alamat, status)
+   VALUES ('KEBAKARAN', 'Test webhook', 'Admin Test', 'Jl. Test No. 1', 'BARU');
+
+   PENTING: nilai jenis_kejadian dan status HARUS HURUF BESAR.
+   Kode frontend (src/types.ts) memakai:
+   - jenis_kejadian: KEBAKARAN | BANJIR | KECELAKAAN | KRIMINALITAS | MEDIS | LAINNYA
+   - status: BARU | DITANGANI | SELESAI
+   Jika diisi huruf kecil, data tetap masuk ke database tapi dashboard admin
+   tidak bisa menampilkan label/warna dengan benar.
+
+2. Cek logs Edge Function:
+   
+   supabase functions logs kirim-notif-ews --tail
+   
+   Harus muncul log:
+   [kirim-notif-ews] Received webhook: {...}
+   [kirim-notif-ews] FCM tokens found: X
+   [kirim-notif-ews] FCM send result: {...}
+
+3. Jika log muncul dan tidak ada error, webhook berhasil!
+
+TROUBLESHOOTING WEBHOOK:
+
+ERROR: Edge Function tidak terpanggil (tidak ada log)
+SOLUSI: 
+- Cek URL webhook sudah benar (https://PROJECT_REF.supabase.co/functions/v1/kirim-notif-ews)
+- Cek Authorization header sudah ada
+- Cek event Insert sudah dicentang
+
+ERROR: "unauthorized" di logs
+SOLUSI: 
+- Anon key di Authorization header salah
+- Update webhook, ganti dengan anon key yang benar
+
+ERROR: "FIREBASE_PROJECT_ID not found"
+SOLUSI:
+- Secret belum di-set
+- Jalankan: supabase secrets set FIREBASE_PROJECT_ID=your-project-id
+
+================================================================================
+LANGKAH 7: TEST FITUR EWS END-TO-END
+================================================================================
+
+Setelah semua setup selesai (database, Edge Function, webhook), test full flow:
+
+TEST 1: Registrasi FCM Token
+------------------------------------------------------------
+1. Buka app di HP Android
+2. Jika muncul notifikasi permission, tap "Allow"
+3. Cek tabel Supabase:
+   - Table Editor → ews_fcm_tokens
+   - Harus ada 1 row baru dengan token device Anda
+
+TEST 2: Kirim Laporan EWS
+------------------------------------------------------------
+1. Buka app di HP
+2. Halaman Sapa Warga → tap tombol "🚨 Laporkan Darurat" (merah)
+3. Isi form:
+   - Jenis Kejadian: Kebakaran
+   - Deskripsi: Test laporan dari aplikasi
+   - Nama: [Nama Anda]
+   - Alamat: Blok A No. 1
+   - Foto: (opsional)
+4. Tap "Kirim Laporan"
+5. Tunggu ~2-5 detik
+
+TEST 3: Verifikasi Push Notification
+------------------------------------------------------------
+HARUS TERJADI:
+- ✅ Notifikasi masuk ke HP yang mengirim laporan
+- ✅ Notifikasi berbunyi (sound + vibration)
+- ✅ Notifikasi muncul sebagai heads-up (popup di atas layar)
+- ✅ Tap notifikasi → app terbuka di tab "EWS Darurat"
+
+Jika ada HP lain yang sudah install app:
+- ✅ HP lain juga menerima notifikasi yang sama (broadcast)
+
+TEST 4: Cek Dashboard Admin
+------------------------------------------------------------
+1. Login sebagai pengurus di webapp browser atau app
+2. Klik menu "EWS Darurat" di sidebar
+3. Laporan test harus muncul dengan status "BARU"
+4. Coba update status → "DITANGANI"
+5. Verifikasi status berubah
+
+TROUBLESHOOTING TEST:
+
+MASALAH: Notifikasi tidak masuk
+SOLUSI:
+1. Cek logs Edge Function:
+   supabase functions logs kirim-notif-ews
+   Lihat apakah ada error FCM send
+
+2. Cek token terdaftar:
+   SELECT * FROM ews_fcm_tokens;
+   Harus ada token device
+
+3. Cek Firebase Access Token belum expired:
+   supabase secrets list
+   Jika sudah >1 jam, generate token baru:
+   firebase login:ci
+   supabase secrets set FIREBASE_ACCESS_TOKEN="token_baru"
+
+4. Cek permission notifikasi di HP:
+   Settings → Apps → SIP RT 004 → Notifications → Enabled
+
+5. Test manual FCM via Firebase Console:
+   - Firebase Console → Cloud Messaging → Send test message
+   - Masukkan FCM token dari tabel ews_fcm_tokens
+   - Jika notifikasi masuk, berarti masalah di Edge Function
+   - Jika tidak masuk, berarti masalah di Firebase setup
+
+MASALAH: App crash saat kirim laporan
+SOLUSI:
+1. Cek koneksi internet HP
+2. Cek Supabase credentials di tab Integrasi webapp
+3. Reinstall app
+4. Cek logs browser (jika test di webapp):
+   F12 → Console tab → lihat error
+
+================================================================================
+LANGKAH 8: BUILD APK RELEASE (Untuk Distribusi)
+================================================================================
+
+KENAPA PERLU APK RELEASE:
+- APK debug ukurannya lebih besar (~15-20 MB)
+- APK release lebih kecil dan optimized (~8-12 MB)
+- APK release harus di-sign dengan keystore (seperti "stempel digital")
+
+CARA BUILD APK RELEASE:
+
+STEP 8.1: Generate Keystore (Sekali Saja)
+------------------------------------------------------------
+1. Buka Command Prompt
+
+2. Generate keystore:
+   
+   keytool -genkey -v -keystore sip-rt004-release.keystore -alias sip-rt004 -keyalg RSA -keysize 2048 -validity 10000
+   
+3. Isi pertanyaan:
+   
+   Keystore password: [Buat password kuat, CATAT BAIK-BAIK!]
+   Re-enter password: [Ulangi password]
+   
+   What is your first and last name? RT 004 Jatimulya
+   What is your organizational unit? RT 004
+   What is your organization? Kelurahan Jatimulya
+   What is your City/Locality? Bekasi
+   What is your State/Province? Jawa Barat
+   What is two-letter country code? ID
+   
+   Is CN=RT 004 Jatimulya, OU=RT 004, ... correct? yes
+   
+4. File sip-rt004-release.keystore akan dibuat di folder saat ini
+
+5. PINDAHKAN keystore ke folder project:
+   
+   move sip-rt004-release.keystore "C:\Users\ADMIN OS\Desktop\sip3\"
+
+PENTING SEKALI:
+- BACKUP file sip-rt004-release.keystore ke tempat aman (USB, cloud)
+- CATAT password dengan aman (password manager)
+- Jika keystore hilang, TIDAK BISA update app di masa depan!
+- User harus uninstall app lama, install app baru (data hilang)
+
+STEP 8.2: Konfigurasi Signing di Gradle
+------------------------------------------------------------
+1. Buat file keystore.properties di folder android/:
+   
+   Buka Notepad, buat file baru dengan isi:
+   
+   storePassword=PASSWORD_KEYSTORE_ANDA
+   keyPassword=PASSWORD_KEYSTORE_ANDA
+   keyAlias=sip-rt004
+   storeFile=../../sip-rt004-release.keystore
+   
+   (Ganti PASSWORD_KEYSTORE_ANDA dengan password yang dibuat tadi)
+   
+   Save as: C:\Users\ADMIN OS\Desktop\sip3\android\keystore.properties
+
+2. Edit file android/app/build.gradle:
+   
+   Buka: C:\Users\ADMIN OS\Desktop\sip3\android\app\build.gradle
+   
+   Cari baris:
+   android {
+       ...
+   }
+   
+   TAMBAHKAN di ATAS baris "android {":
+   
+   def keystorePropertiesFile = rootProject.file("keystore.properties")
+   def keystoreProperties = new Properties()
+   if (keystorePropertiesFile.exists()) {
+       keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+   }
+   
+   TAMBAHKAN di DALAM "android {", sebelum "buildTypes":
+   
+   signingConfigs {
+       release {
+           keyAlias keystoreProperties['keyAlias']
+           keyPassword keystoreProperties['keyPassword']
+           storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+           storePassword keystoreProperties['storePassword']
+       }
+   }
+   
+   UBAH "buildTypes { release { ... } }":
+   
+   buildTypes {
+       release {
+           signingConfig signingConfigs.release
+           minifyEnabled false
+           proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+       }
+   }
+
+3. Save file build.gradle
+
+STEP 8.3: Build APK Release
+------------------------------------------------------------
+1. Buka Command Prompt
+
+2. Set JAVA_HOME:
+   
+   $env:JAVA_HOME="C:\Program Files\Microsoft\jdk-17.0.13"
+
+3. Build APK Release:
+   
+   cd "C:\Users\ADMIN OS\Desktop\sip3\android"
+   .\gradlew.bat assembleRelease
+
+4. Tunggu proses selesai (~5-10 menit)
+
+5. APK Release ada di:
+   
+   C:\Users\ADMIN OS\Desktop\sip3\android\app\build\outputs\apk\release\app-release.apk
+   
+   Size: ~8-12 MB (lebih kecil dari debug)
+
+6. RENAME APK agar mudah dikenali:
+   
+   copy "app\build\outputs\apk\release\app-release.apk" "C:\Users\ADMIN OS\Desktop\SIP-RT004-v1.0.0.apk"
+
+TROUBLESHOOTING BUILD RELEASE:
+
+ERROR: "Keystore file not found"
+SOLUSI: Cek path storeFile di keystore.properties
+        Pastikan file sip-rt004-release.keystore ada di C:\Users\ADMIN OS\Desktop\sip3\
+
+ERROR: "Incorrect keystore password"
+SOLUSI: Password di keystore.properties salah
+        Cek ulang password, pastikan tidak ada spasi
+
+ERROR: "Failed to read key"
+SOLUSI: keyAlias salah, pastikan: keyAlias=sip-rt004
+
+================================================================================
+LANGKAH 9: DISTRIBUSI APK KE WARGA RT 004
+================================================================================
+
+KARENA INI INTERNAL RT (BUKAN PLAY STORE):
+
+OPSI A: Via WhatsApp Group RT
+------------------------------------------------------------
+1. Upload APK ke Google Drive atau OneDrive:
+   - Buka Google Drive di browser
+   - Klik "New" → "File upload"
+   - Pilih: C:\Users\ADMIN OS\Desktop\SIP-RT004-v1.0.0.apk
+   - Tunggu upload selesai
+
+2. Set sharing permission:
+   - Klik kanan file APK → "Share"
+   - Change to: "Anyone with the link can view"
+   - Copy link
+
+3. Kirim ke grup WhatsApp RT 004:
+   
+   📱 *Aplikasi SIP RT 004 Jatimulya - ANDROID*
+   
+   Aplikasi resmi untuk warga RT 004 RW 007 Jatimulya, Bekasi.
+   
+   🆕 *Fitur Baru: Laporan Darurat (EWS)*
+   - Laporkan kejadian darurat (kebakaran, banjir, kecelakaan, dll)
+   - Notifikasi otomatis ke semua warga
+   - Dashboard realtime untuk pengurus
+   
+   📥 *Download APK:*
+   [LINK GOOGLE DRIVE]
+   
+   📖 *Cara Install:*
+   1. Klik link, download file APK (~10 MB)
+   2. Buka file APK yang sudah didownload
+   3. Jika muncul "Install blocked", tap Settings → enable "Install unknown apps"
+   4. Tap Install
+   5. Buka app, enjoy! 🎉
+   
+   ℹ️ *Info Teknis:*
+   - Versi: 1.0.0
+   - Size: ~10 MB
+   - Minimum: Android 8.0+
+   - Gratis, tanpa iklan
+   - Data tersimpan aman di server Supabase
+   
+   ❓ *Bantuan:*
+   Jika ada kendala instalasi, hubungi [ADMIN NAMA] di grup ini.
+
+OPSI B: Via Link Shortened (Lebih Rapi)
+------------------------------------------------------------
+1. Gunakan bit.ly atau TinyURL untuk shorten link Google Drive
+2. Link pendek: bit.ly/siprt004 (contoh)
+3. Lebih mudah diingat dan ditulis di spanduk/poster
+
+OPSI C: Via QR Code (Untuk Papan Pengumuman RT)
+------------------------------------------------------------
+1. Generate QR Code dari link Google Drive:
+   - Buka: https://www.qr-code-generator.com/
+   - Paste link Google Drive
+   - Klik "Create QR Code"
+   - Download QR Code image
+
+2. Buat poster:
+   - Canva atau Word
+   - Tambahkan QR Code + instruksi install
+   - Print A4, tempel di papan pengumuman RT
+
+3. Warga scan QR Code → langsung download APK
+
+MONITORING INSTALASI:
+- Cek tabel ews_fcm_tokens di Supabase
+- Jumlah row = jumlah device yang install app
+- Token device akan ter-register otomatis saat app dibuka
+
+================================================================================
+LANGKAH 10: MAINTENANCE & UPDATE APP
+================================================================================
+
+CARA UPDATE APP (New Version):
+
+1. Edit code di folder src/ (fix bug, tambah fitur, dll)
+
+2. Update version di package.json:
+   
+   "version": "1.0.1"  (dari 1.0.0 → 1.0.1)
+
+3. Update version di android/app/build.gradle:
+   
+   defaultConfig {
+       ...
+       versionCode 2       (dari 1 → 2, naik 1 setiap update)
+       versionName "1.0.1" (sama dengan package.json)
+   }
+
+4. Build ulang:
+   
+   npm run build
+   cd android
+   .\gradlew.bat assembleRelease
+
+5. Rename APK:
+   
+   SIP-RT004-v1.0.1.apk
+
+6. Distribusi APK baru ke grup WA dengan instruksi:
+   
+   "Uninstall app lama, install app baru (data tidak hilang, tersimpan di server)"
+
+MONITORING & LOGS:
+
+1. Cek laporan EWS masuk:
+   - Supabase Dashboard → Table Editor → ews_laporan_rt004
+   - Lihat laporan baru dari warga
+
+2. Cek push notification berhasil:
+   - supabase functions logs kirim-notif-ews
+   - Lihat success rate FCM send
+
+3. Cek jumlah device aktif:
+   - SELECT COUNT(*) FROM ews_fcm_tokens;
+   - Jumlah device yang pernah buka app
+
+4. Cek error di app:
+   - User report via grup WA
+   - Screenshot error untuk troubleshooting
+
+BACKUP DATA:
+
+Export data Supabase secara berkala:
+- Supabase Dashboard → SQL Editor
+- Run: SELECT * FROM ews_laporan_rt004;
+- Export as CSV (klik icon export)
+- Simpan di Google Drive
+
+================================================================================
+FAQ & TROUBLESHOOTING
+================================================================================
+
+Q: Apakah perlu update SQL lagi setelah setup awal?
+A: TIDAK PERLU, kecuali:
+   - Ada perubahan struktur tabel (jarang)
+   - Ada fitur baru yang butuh tabel/column baru
+   - Ada bug di RLS policy yang perlu diperbaiki
+   
+   Untuk update app biasa (fix UI, tambah fitur minor), SQL tidak perlu dijalankan ulang.
+
+Q: Bagaimana cara uninstall app di HP?
+A: Settings → Apps → SIP RT 004 Jatimulya → Uninstall
+
+Q: Apakah data hilang jika uninstall app?
+A: TIDAK. Data tersimpan di server Supabase (cloud), bukan di HP.
+   Install ulang app, data masih ada.
+
+Q: Berapa lama Firebase Access Token berlaku?
+A: Token dari "firebase login:ci" berlaku ~1 jam.
+   Untuk production, gunakan Service Account JSON (unlimited).
+   Lihat dokumentasi: supabase/functions/kirim-notif-ews/README.md
+
+Q: Apakah bisa update app tanpa uninstall?
+A: YA, jika:
+   - Package name sama (id.go.bekasi.jatimulya.rt004)
+   - Ditandatangani dengan keystore yang sama
+   - versionCode lebih besar dari versi sebelumnya
+   
+   Install APK baru, app akan otomatis update (data tidak hilang).
+
+Q: Apakah app bisa diupload ke Play Store?
+A: BISA, tapi:
+   - Perlu Google Play Console account ($25 sekali bayar)
+   - Perlu App Signing key dari Play Store
+   - Review process ~1-7 hari
+   - Untuk internal RT, distribusi manual (via APK) lebih cepat
+
+Q: Apakah fitur EWS muncul di webapp browser?
+A: Dashboard admin EWS (menu sidebar "EWS Darurat"): YA, muncul di browser
+   maupun Android app, asalkan sudah login sebagai pengurus (Sidebar.tsx).
+   Form laporan darurat (tombol "🚨 Laporkan Darurat" di Sapa Warga): TIDAK,
+   hanya tampil di Android app karena dibatasi pengecekan isNativeApp
+   (SapaWarga.tsx).
+   Jadi yang "hanya ada di aplikasi" adalah form pelaporannya, bukan dashboardnya.
+
+Q: Bagaimana cara menghapus laporan EWS?
+A: Via Supabase Dashboard:
+   - Table Editor → ews_laporan_rt004
+   - Pilih row → klik icon delete
+   (Atau tambahkan fitur delete di dashboard admin)
+
+Q: Apakah notifikasi masuk jika app tertutup?
+A: YA. FCM push notification bekerja meskipun app tertutup/di-background.
+
+Q: Bagaimana cara test notifikasi tanpa kirim laporan?
+A: Via Firebase Console:
+   - Cloud Messaging → Send test message
+   - Masukkan FCM token dari tabel ews_fcm_tokens
+   - Tulis message, klik Send
+
+Q: Error "INSTALL_FAILED_UPDATE_INCOMPATIBLE" saat install APK baru
+A: Uninstall app lama dulu, baru install APK baru.
+   Atau pastikan package name dan signing key sama.
+
+Q: App tidak bisa connect ke Supabase
+A: Cek:
+   1. HP connect ke internet (WiFi/data)
+   2. Supabase URL dan Anon Key sudah diisi di tab Integrasi webapp
+   3. RLS policies di Supabase sudah benar (anon user boleh INSERT)
+
+================================================================================
+CHECKLIST PROGRESS
+================================================================================
+
+Centang (✓) setelah selesai:
+
+PERSIAPAN:
+[x] Install JDK 17
+[x] Verifikasi Java: java -version (Temurin 17.0.20 terdeteksi)
+[x] google-services.json sudah di-copy ke android/app/
+
+BUILD ANDROID:
+[x] Set JAVA_HOME ke JDK 17
+[x] Build APK debug berhasil (E-RT04-v1.0.0-debug.apk)
+[ ] Install APK debug ke HP, app bisa dibuka
+[x] Keystore release dibuat (scripts\buat-keystore.ps1 -> android\ert04-release.keystore)
+[x] Signing config release aktif di android\app\build.gradle
+[x] Build APK release berhasil + TERTANDATANGANI (4.18 MB)
+    File   : android\app\build\outputs\apk\release\E-RT04-v1.0.0-release.apk
+    SHA-1  : 55:A5:41:B6:34:F0:8E:07:31:FD:56:9D:2B:8B:19:E8:D0:C3:66:20
+    Verifikasi ulang: powershell -ExecutionPolicy Bypass -File scripts\cek-apk-release.ps1
+    PENTING: BACKUP android\ert04-release.keystore + android\keystore.properties!
+             Kalau hilang, update APK tidak bisa di-install di atas versi lama.
+
+SETUP BACKEND:
+[x] SQL schema di-run di Supabase (tabel ews_laporan_rt004, ews_fcm_tokens)
+[x] Bucket ews-foto + policy upload/baca (scripts\perbaiki-ews-rls.sql)
+[ ] Edge Function deployed (supabase functions deploy kirim-notif-ews)
+[ ] Secrets di-set (FIREBASE_PROJECT_ID, FIREBASE_ACCESS_TOKEN)
+[ ] Database Webhook configured (ews_laporan_rt004 INSERT → Edge Function)
+
+TESTING:
+[ ] FCM token terdaftar (cek tabel ews_fcm_tokens)
+[ ] Kirim laporan EWS dari app → notifikasi masuk
+[ ] Notifikasi masuk ke device lain (broadcast)
+[ ] Dashboard admin bisa lihat laporan baru
+[ ] Update status laporan di dashboard
+
+DISTRIBUSI:
+[ ] APK release di-upload ke Google Drive
+[ ] Link sharing di-set "Anyone with the link"
+[ ] Pesan instruksi dikirim ke grup WA RT
+[ ] QR Code dibuat dan di-print (opsional)
+
+MONITORING:
+[ ] Cek jumlah device install (tabel ews_fcm_tokens)
+[ ] Cek logs Edge Function (supabase functions logs)
+[ ] Cek laporan masuk (tabel ews_laporan_rt004)
+
+================================================================================
+KONTAK & DUKUNGAN
+================================================================================
+
+Jika ada kendala teknis:
+
+1. Cek dokumentasi di project:
+   - ANDROID_BUILD.md (panduan build APK lengkap)
+   - CAPACITOR_SETUP.md (setup Capacitor)
+   - PUSH_NOTIFICATION_SETUP.md (troubleshooting FCM)
+   - supabase/functions/kirim-notif-ews/README.md (Edge Function)
+
+2. Cek logs:
+   - Edge Function: supabase functions logs kirim-notif-ews
+   - Gradle build: lihat error message di terminal
+   - App crash: Settings → Apps → SIP RT 004 → Force Stop → buka lagi
+
+3. Google error message:
+   - Copy error lengkap ke Google
+   - Tambahkan keyword: "Capacitor Android" atau "Supabase Edge Function"
+
+4. Community support:
+   - Capacitor Discord: https://discord.com/invite/UPYYRhtyzp
+   - Supabase Discord: https://discord.supabase.com/
+   - Stack Overflow: tag [capacitor] [supabase]
+
+================================================================================
+SELAMAT! 🎉
+================================================================================
+
+Jika semua langkah di atas selesai, Anda sekarang punya:
+
+✅ Aplikasi Android SIP RT 004 dengan fitur EWS
+✅ Push notification realtime ke semua warga
+✅ Dashboard admin untuk monitoring laporan
+✅ APK siap distribusi ke warga RT 004
+✅ Backend Supabase + Edge Function fully configured
+
+Aplikasi ini gratis, open source, dan bisa dikembangkan lebih lanjut sesuai kebutuhan RT.
+
+Good luck! 💪🚀
+
+---
+Dokumen ini dibuat: 17 Agustus 2026
+Author: Kiro AI Assistant
+Project: SIP RT 004 RW 007 Jatimulya, Bekasi
+Tech Stack: React + Vite + Tailwind + Supabase + Capacitor + Firebase FCM
+================================================================================

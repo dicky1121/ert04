@@ -36,6 +36,7 @@ declare module '@capacitor/push-notifications' {
       vibration?: boolean;
       visibility?: number;
     }): Promise<void>;
+    removeAllListeners(): Promise<void>;
   };
 }
 

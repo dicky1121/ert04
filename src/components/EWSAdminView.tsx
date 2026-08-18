@@ -102,11 +102,15 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    const data = await supabaseService.fetchRiwayatEWS();
+    // Pakai versi detail agar kegagalan (sesi habis / RLS menolak) tampil
+    // sebagai pesan yang jelas, bukan sebagai daftar kosong yang membingungkan.
+    const { data, error: fetchError } = await supabaseService.fetchRiwayatEWSDetail();
     setLaporanList(data);
     setNewCount(data.filter(l => l.status === 'BARU').length);
+    if (fetchError) setError(fetchError);
     setIsLoading(false);
   }, []);
+
 
   useEffect(() => {
     void loadData();

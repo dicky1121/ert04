@@ -956,7 +956,9 @@ BEGIN
               'mutasi_penduduk_rt004',
               'konfigurasi_rt004',
               'pengurus_profil',
-              'pengurus_rt004'
+              'pengurus_rt004',
+              'ews_laporan_rt004',
+              'ews_fcm_tokens'
           )
     LOOP
         EXECUTE format(
@@ -1745,11 +1747,39 @@ ON CONFLICT (id) DO NOTHING;
   // ==========================================
 
   /**
+   * Buat nomor laporan EWS di sisi klien.
+   * Formatnya dibuat sama dengan DEFAULT kolom `id` di database:
+   *   EWS-YYYYMMDD-XXXXXX  (XXXXXX = 6 karakter hex huruf besar)
+   */
+  private buatNomorLaporanEWS(): string {
+    const now = new Date();
+    const tanggal =
+      String(now.getFullYear()) +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0');
+
+    let acak = '';
+    for (let i = 0; i < 6; i++) {
+      acak += Math.floor(Math.random() * 16).toString(16);
+    }
+
+    return `EWS-${tanggal}-${acak.toUpperCase()}`;
+  }
+
+  /**
    * Kirim laporan darurat dari warga.
    * Bisa dipanggil tanpa login (anon) — RLS mengizinkan INSERT dari anon.
    * Jika ada foto, upload dulu ke Supabase Storage bucket 'ews-foto',
    * lalu simpan URL-nya ke kolom foto_url.
+   *
+   * PENTING: jangan pakai `.select()` setelah `.insert()` di sini.
+   * `INSERT ... RETURNING` membuat PostgreSQL ikut memeriksa policy SELECT,
+   * sedangkan policy SELECT tabel ini sengaja dibatasi hanya untuk pengurus
+   * aktif (supaya nama & alamat pelapor tidak bisa dibaca publik). Akibatnya
+   * anon akan ditolak dengan error 42501 walau INSERT-nya sendiri diizinkan.
+   * Karena itu nomor laporan dibuat di sisi klien.
    */
+
   public async kirimLaporanEWS(
     input: LaporanEWSInput
   ): Promise<{ success: boolean; id?: string; error?: string }> {
@@ -1778,21 +1808,23 @@ ON CONFLICT (id) DO NOTHING;
         }
       }
 
-      const { data, error } = await client
+      const nomorLaporan = this.buatNomorLaporanEWS();
+
+      const { error } = await client
         .from('ews_laporan_rt004')
         .insert({
+          id: nomorLaporan,
           jenis_kejadian: input.jenis_kejadian,
           deskripsi: input.deskripsi,
           nama_pelapor: input.nama_pelapor,
           alamat: input.alamat,
           foto_url: fotoUrl,
           status: 'BARU'
-        })
-        .select('id')
-        .single();
+        });
 
       if (error) return { success: false, error: error.message };
-      return { success: true, id: data?.id };
+      return { success: true, id: nomorLaporan };
+
     } catch (err: any) {
       return { success: false, error: err?.message || 'Laporan tidak dapat dikirim.' };
     }
@@ -1800,10 +1832,28 @@ ON CONFLICT (id) DO NOTHING;
 
   /**
    * Ambil semua laporan EWS — hanya untuk pengurus yang sudah login.
+   *
+   * Versi ini SELALU melaporkan penyebab kegagalan lewat `error`, supaya
+   * dashboard tidak lagi tampak "kosong" padahal sebenarnya query gagal
+   * (mis. sesi kedaluwarsa, atau baris profil pengurus tidak ada sehingga
+   * policy RLS `is_pengurus_aktif()` menolak SELECT).
    */
-  public async fetchRiwayatEWS(): Promise<LaporanEWS[]> {
+  public async fetchRiwayatEWSDetail(): Promise<{ data: LaporanEWS[]; error?: string }> {
     const client = this.getClient();
-    if (!client) return [];
+    if (!client) {
+      return {
+        data: [],
+        error:
+          'Aplikasi belum tersambung ke Supabase. Isi URL & anon key di menu Integrasi, lalu muat ulang halaman.'
+      };
+    }
+
+    if (!authState.hasActiveSession()) {
+      return {
+        data: [],
+        error: 'Sesi login sudah berakhir. Silakan keluar lalu masuk kembali untuk melihat laporan EWS.'
+      };
+    }
 
     try {
       const { data, error } = await client
@@ -1811,8 +1861,22 @@ ON CONFLICT (id) DO NOTHING;
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error || !Array.isArray(data)) return [];
-      return data.map(row => ({
+      if (error) {
+        // 42501 = insufficient_privilege, PGRST301 = JWT tidak valid/kedaluwarsa
+        const kodeRls = error.code === '42501' || /row-level security|permission denied/i.test(error.message);
+        return {
+          data: [],
+          error: kodeRls
+            ? 'Akun Anda belum terdaftar sebagai pengurus aktif, sehingga laporan EWS tidak boleh dibaca. Tambahkan baris pada tabel pengurus_profil (id = User UID, is_active = true).'
+            : `Gagal memuat laporan EWS: ${error.message}`
+        };
+      }
+
+      if (!Array.isArray(data)) {
+        return { data: [], error: 'Respons dari server tidak dikenali saat memuat laporan EWS.' };
+      }
+
+      const mapped = data.map(row => ({
         id: String(row.id || ''),
         jenis_kejadian: row.jenis_kejadian || 'LAINNYA',
         deskripsi: row.deskripsi || '',
@@ -1823,10 +1887,39 @@ ON CONFLICT (id) DO NOTHING;
         created_at: row.created_at || '',
         updated_at: row.updated_at || ''
       })) as LaporanEWS[];
-    } catch {
-      return [];
+
+      // Query sukses tapi 0 baris. RLS memfilter tanpa melempar error, jadi
+      // bedakan "memang belum ada laporan" dari "profil pengurus belum aktif".
+      if (mapped.length === 0) {
+        const profil = authState.getProfile();
+        if (!profil || !profil.isActive) {
+          return {
+            data: [],
+            error:
+              'Laporan tidak dapat ditampilkan karena profil pengurus Anda belum aktif di database. ' +
+              'Periksa tabel pengurus_profil: baris dengan id = User UID akun ini harus ada dan is_active = true.'
+          };
+        }
+      }
+
+      return { data: mapped };
+    } catch (err: any) {
+      return {
+        data: [],
+        error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi internet Anda.'}`
+      };
     }
   }
+
+  /**
+   * Ambil semua laporan EWS — hanya untuk pengurus yang sudah login.
+   * Dipertahankan agar pemanggil lama tetap berfungsi.
+   */
+  public async fetchRiwayatEWS(): Promise<LaporanEWS[]> {
+    const { data } = await this.fetchRiwayatEWSDetail();
+    return data;
+  }
+
 
   /**
    * Update status laporan EWS — hanya pengurus aktif.
