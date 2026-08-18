@@ -29,41 +29,42 @@ npx supabase functions deploy kirim-notif-ews
 
 Buka **Supabase Dashboard** → **Edge Functions** → **kirim-notif-ews** → **Settings** → **Secrets**, lalu tambahkan:
 
-| Secret Name | Value | Keterangan |
-|---|---|---|
-| `FIREBASE_PROJECT_ID` | `your-project-id` | Project ID Firebase (dari Firebase Console) |
-| `FIREBASE_ACCESS_TOKEN` | `ya29.a0...` | OAuth2 access token Firebase (lihat cara generate di bawah) |
-
-**ATAU** untuk production yang lebih aman:
+Hanya **satu** secret yang wajib:
 
 | Secret Name | Value | Keterangan |
 |---|---|---|
-| `FIREBASE_SERVICE_ACCOUNT` | `{ "type": "service_account", ... }` | JSON Service Account dari Firebase Console → Project Settings → Service Accounts → Generate new private key |
+| `FIREBASE_SERVICE_ACCOUNT` | `{ "type": "service_account", ... }` | Seluruh isi file JSON Service Account dari Firebase Console → Project Settings → Service Accounts → **Generate new private key** |
 
-> **Catatan:** Implementasi JWT signing untuk Service Account memerlukan library crypto tambahan di Deno. Untuk development, pakai `FIREBASE_ACCESS_TOKEN` manual yang valid ~1 jam.
+Opsional:
 
-### 3. Generate Firebase Access Token (Development)
+| Secret Name | Value | Keterangan |
+|---|---|---|
+| `FIREBASE_PROJECT_ID` | `ert004` | Hanya perlu bila ingin menimpa `project_id` yang sudah ada di dalam JSON service account |
 
-Cara cepat untuk development/testing:
+> `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` **tidak perlu** di-set manual — Supabase menyediakannya otomatis.
+
+Cara set via CLI:
 
 ```bash
-# Install Firebase CLI jika belum
-npm install -g firebase-tools
-
-# Login
-firebase login
-
-# Dapatkan access token
-firebase login:ci
-# Output: 1//0g... (copy token ini)
+npx supabase secrets set FIREBASE_SERVICE_ACCOUNT="$(cat ~/Downloads/ert004-firebase-adminsdk.json)"
 ```
 
-Atau gunakan Google Cloud Console:
-1. Buka [Google Cloud Console](https://console.cloud.google.com/)
-2. Pilih project Firebase
-3. IAM & Admin → Service Accounts
-4. Create Key (JSON) untuk service account
-5. Gunakan JSON tersebut untuk generate OAuth2 token via `gcloud auth application-default print-access-token`
+> **Tidak perlu lagi `FIREBASE_ACCESS_TOKEN`.** Function ini menandatangani JWT
+> RS256 sendiri memakai Web Crypto API bawaan Deno, lalu menukarnya dengan
+> OAuth2 access token dan menyimpannya di cache sampai 5 menit sebelum
+> kedaluwarsa. Jadi tidak ada lagi token yang mati setiap 1 jam.
+
+### 3. Pastikan izin notifikasi ada di AndroidManifest.xml
+
+Android 13+ (API 33) menolak notifikasi tanpa izin ini. Karena folder `android/`
+tidak ikut di-commit ke git, cek ulang setiap kali project di-clone atau
+di-generate ulang dengan `npx cap add android`:
+
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.VIBRATE" />
+```
+
 
 ### 4. Setup Database Webhook di Supabase Dashboard
 
@@ -95,40 +96,50 @@ Kirim laporan EWS test dari form di aplikasi Android, lalu cek:
 
 ## Troubleshooting
 
-### Error: "FIREBASE_ACCESS_TOKEN tidak ditemukan"
-- Set secret `FIREBASE_ACCESS_TOKEN` di Supabase Dashboard Edge Functions settings
-- Token valid ~1 jam, perlu di-regenerate untuk production
+### Error: "Secret FIREBASE_SERVICE_ACCOUNT belum di-set"
+- Set secret `FIREBASE_SERVICE_ACCOUNT` di Supabase Dashboard → Edge Functions → Secrets
+- Isinya harus **seluruh** isi file JSON service account, termasuk tanda `{` dan `}`
+
+### Error: "FIREBASE_SERVICE_ACCOUNT bukan JSON yang valid"
+- JSON terpotong saat di-paste. Pastikan tersalin utuh dari awal `{` sampai akhir `}`
+
+### Error: "Gagal menukar JWT dengan access token: 400 invalid_grant"
+- Jam server tidak sinkron, atau `private_key` rusak saat di-paste
+- Cara paling aman: generate ulang private key baru di Firebase Console
 
 ### Error: "FCM error 401 Unauthorized"
-- Access token expired atau tidak valid
-- Regenerate token atau implementasi Service Account JWT signing
+- Service account tidak punya peran **Firebase Cloud Messaging API Admin**
+- Buka Google Cloud Console → IAM & Admin → tambahkan peran tersebut
+
 
 ### Error: "FCM error 404 Not Found"
 - `FIREBASE_PROJECT_ID` salah atau project tidak ada
 - Verifikasi Project ID di Firebase Console
 
 ### Notifikasi tidak masuk ke device
+- **Cek `POST_NOTIFICATIONS` ada di AndroidManifest.xml** (lihat langkah 3) — ini
+  penyebab paling sering pada Android 13+
 - Pastikan FCM token sudah terdaftar di tabel `ews_fcm_tokens`
 - Cek apakah device mengaktifkan notifikasi untuk aplikasi
 - Verifikasi `google-services.json` sudah ditambahkan ke folder `android/app/`
+- APK harus di-build ulang setelah manifest berubah (`npx cap sync android`)
 - Test kirim notifikasi manual via Firebase Console → Cloud Messaging
 
-## Production Notes
+## Catatan Implementasi
 
-Untuk production, implementasikan JWT signing otomatis menggunakan Service Account:
+JWT signing sudah **selesai diimplementasikan** di `index.ts`, memakai
+`crypto.subtle` bawaan Deno tanpa library eksternal:
 
-1. Install Deno JWT library:
-   ```typescript
-   import { create } from "https://deno.land/x/djwt@v2.8/mod.ts";
-   ```
+1. Susun JWT (header + claim) lalu encode Base64URL
+2. Tanda tangani dengan `RSASSA-PKCS1-v1_5` + SHA-256 (setara RS256) memakai
+   `private_key` dari service account
+3. Tukar JWT dengan OAuth2 token via `https://oauth2.googleapis.com/token`
+4. Cache token di memori sampai 5 menit sebelum kedaluwarsa
 
-2. Sign JWT dengan RS256 algorithm menggunakan private key dari Service Account
+Function juga otomatis menghapus token yang dijawab `UNREGISTERED`/404 oleh FCM,
+sehingga tabel `ews_fcm_tokens` tidak menumpuk token milik aplikasi yang sudah
+di-uninstall.
 
-3. Exchange JWT dengan OAuth2 token via `https://oauth2.googleapis.com/token`
-
-4. Cache token selama ~50 menit (expires 1 jam)
-
-Alternatif: gunakan Firebase Admin SDK untuk Deno jika tersedia.
 
 ## Reference
 
