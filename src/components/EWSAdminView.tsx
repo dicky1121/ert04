@@ -28,6 +28,12 @@ interface EWSAdminViewProps {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// Salinan aman daftar jenis kejadian. Bila konstanta dari '../types' gagal
+// dimuat (mis. urutan modul berubah setelah bundling), pemakaian .find()/.map()
+// pada nilai undefined akan melempar TypeError dan membuat seluruh halaman
+// menjadi putih kosong. Fallback array kosong mencegah hal itu.
+const DAFTAR_JENIS = Array.isArray(EWS_JENIS_KEJADIAN) ? EWS_JENIS_KEJADIAN : [];
+
 const STATUS_META: Record<StatusEWS, { label: string; badgeClass: string; dotClass: string }> = {
   BARU: {
     label: 'Baru',
@@ -102,33 +108,63 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    // Pakai versi detail agar kegagalan (sesi habis / RLS menolak) tampil
-    // sebagai pesan yang jelas, bukan sebagai daftar kosong yang membingungkan.
-    const { data, error: fetchError } = await supabaseService.fetchRiwayatEWSDetail();
-    setLaporanList(data);
-    setNewCount(data.filter(l => l.status === 'BARU').length);
-    if (fetchError) setError(fetchError);
-    setIsLoading(false);
+    try {
+      // Pakai versi detail agar kegagalan (sesi habis / RLS menolak) tampil
+      // sebagai pesan yang jelas, bukan sebagai daftar kosong yang membingungkan.
+      const { data, error: fetchError } = await supabaseService.fetchRiwayatEWSDetail();
+      // Pastikan selalu array: jika tidak, .filter()/.map() akan melempar
+      // TypeError dan menghapus seluruh tampilan (layar putih).
+      const list = Array.isArray(data) ? data : [];
+      setLaporanList(list);
+      setNewCount(list.filter(l => l.status === 'BARU').length);
+      if (fetchError) setError(fetchError);
+    } catch (err) {
+      console.error('Gagal memuat riwayat EWS:', err);
+      setLaporanList([]);
+      setNewCount(0);
+      setError(
+        `Gagal memuat riwayat EWS: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
 
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
-  // Realtime subscription — laporan baru masuk otomatis
+  // Realtime subscription — laporan baru masuk otomatis.
+  // Dibungkus try/catch dan pengecekan tipe: bila kanal realtime gagal dibuat,
+  // panel tetap tampil (memakai data hasil refresh) alih-alih membuat React
+  // melepas seluruh halaman sehingga layar jadi putih kosong.
   useEffect(() => {
-    const unsubscribe = supabaseService.subscribeEWSRealtime((laporan) => {
-      setLaporanList(prev => {
-        // Hindari duplikat jika sudah ada
-        if (prev.some(l => l.id === laporan.id)) return prev;
-        return [laporan, ...prev];
+    let unsubscribe: (() => void) | undefined;
+    try {
+      const result = supabaseService.subscribeEWSRealtime((laporan) => {
+        setLaporanList(prev => {
+          // Hindari duplikat jika sudah ada
+          if (prev.some(l => l.id === laporan.id)) return prev;
+          return [laporan, ...prev];
+        });
+        setNewCount(prev => prev + 1);
+        showToast(`🚨 Laporan baru: ${laporan.jenis_kejadian} — ${laporan.nama_pelapor}`);
       });
-      setNewCount(prev => prev + 1);
-      showToast(`🚨 Laporan baru: ${laporan.jenis_kejadian} — ${laporan.nama_pelapor}`);
-    });
-    return unsubscribe;
+      if (typeof result === 'function') unsubscribe = result;
+    } catch (err) {
+      console.warn('Kanal realtime EWS tidak dapat dibuka:', err);
+    }
+    return () => {
+      try {
+        unsubscribe?.();
+      } catch (err) {
+        console.warn('Gagal menutup kanal realtime EWS:', err);
+      }
+    };
   }, []);
+
 
   // Cleanup toast timer
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
@@ -158,14 +194,17 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
   });
 
   const jenisMeta = (jenis: string) =>
-    EWS_JENIS_KEJADIAN.find(j => j.value === jenis) ?? { emoji: '📢', label: jenis, warna: 'purple' };
+    DAFTAR_JENIS.find(j => j.value === jenis) ?? { emoji: '📢', label: jenis, warna: 'purple' };
 
-  // Role check — hanya pengurus aktif yang bisa update status
+  // Role check — hanya pengurus aktif yang bisa update status.
+  // Memakai optional chaining supaya panel tidak crash (layar putih) bila prop
+  // currentUser belum siap saat render pertama.
   const canUpdateStatus =
-    currentUser.role === 'ADMIN_KETUA_RT' ||
-    currentUser.role === 'ADMIN_SEKRETARIS' ||
-    currentUser.role === 'ADMIN_SISTEM' ||
-    currentUser.role === 'SEKSI_KEAMANAN';
+    currentUser?.role === 'ADMIN_KETUA_RT' ||
+    currentUser?.role === 'ADMIN_SEKRETARIS' ||
+    currentUser?.role === 'ADMIN_SISTEM' ||
+    currentUser?.role === 'SEKSI_KEAMANAN';
+
 
   return (
     <div className="space-y-6">
@@ -244,8 +283,9 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
           className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 font-medium focus:outline-none focus:border-rose-400"
         >
           <option value="SEMUA">Semua Jenis</option>
-          {EWS_JENIS_KEJADIAN.map(j => (
+          {DAFTAR_JENIS.map(j => (
             <option key={j.value} value={j.value}>{j.emoji} {j.label}</option>
+
           ))}
         </select>
         <select

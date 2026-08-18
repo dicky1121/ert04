@@ -1,7 +1,9 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+
 import { pushNotificationService } from './services/pushNotificationService';
 import { StatusBar } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
@@ -32,8 +34,13 @@ if (Capacitor.isNativePlatform()) {
 // Penarikan data dari Supabase TIDAK lagi dilakukan di sini. Sejak akses tabel
 // dilindungi RLS (hanya untuk pengurus terautentikasi), sinkronisasi awal
 // dijalankan di App.tsx setelah sesi Supabase Auth berhasil dipulihkan.
+// ErrorBoundary membungkus App agar error render tidak lagi menghasilkan
+// layar putih kosong tanpa keterangan — pesan error ditampilkan ke pengguna.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
+
