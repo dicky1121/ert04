@@ -1947,21 +1947,65 @@ ON CONFLICT (id) DO NOTHING;
   /**
    * Daftarkan FCM token device ke Supabase.
    * Dipanggil saat app Android pertama dibuka / token diperbarui.
-   * Menggunakan UPSERT by token agar tidak ada duplikat.
+   *
+   * PENTING: fungsi ini WAJIB melaporkan kegagalan ke pemanggil.
+   * Versi sebelumnya mengembalikan `void` dan hanya menangkap exception —
+   * padahal supabase-js TIDAK melempar exception saat permintaan ditolak
+   * (RLS, token kedaluwarsa, tabel belum ada); ia mengembalikan `{ error }`.
+   * Akibatnya kegagalan pendaftaran token sama sekali tidak terdeteksi dan
+   * HP tidak pernah menerima notifikasi tanpa ada pesan error apa pun.
+   *
+   * Jalur utama memakai RPC `daftar_fcm_token` (SECURITY DEFINER) supaya
+   * pendaftaran tidak bisa digagalkan oleh perubahan policy RLS. Bila RPC
+   * belum dibuat di database, otomatis jatuh ke UPSERT biasa.
    */
-  public async registerFCMToken(token: string, deviceInfo?: string): Promise<void> {
-    const client = this.getClient();
-    if (!client || !token) return;
+  public async registerFCMToken(
+    token: string,
+    deviceInfo?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!token) return { success: false, error: 'Token FCM kosong.' };
 
+    const client = this.getClient();
+    if (!client) {
+      return {
+        success: false,
+        error: 'Supabase belum dikonfigurasi (URL / anon key kosong).'
+      };
+    }
+
+    const info = deviceInfo || (typeof navigator !== 'undefined' ? navigator.userAgent : '') || 'Android';
+
+    // Jalur 1: RPC SECURITY DEFINER — tahan terhadap perubahan policy RLS.
     try {
-      await client
+      const { error } = await client.rpc('daftar_fcm_token', {
+        p_token: token,
+        p_device_info: info
+      });
+
+      if (!error) return { success: true };
+
+      // Fungsi belum ada di database (PGRST202 / 404) → pakai jalur cadangan.
+      const kodeTidakAda = error.code === 'PGRST202' || /(does not exist|not found)/i.test(error.message || '');
+      if (!kodeTidakAda) {
+        return { success: false, error: `${error.code || 'RPC'}: ${error.message}` };
+      }
+    } catch (err: any) {
+      // Gangguan jaringan — laporkan agar pemanggil bisa mencoba ulang.
+      return { success: false, error: `Jaringan: ${err?.message || String(err)}` };
+    }
+
+    // Jalur 2 (cadangan): UPSERT langsung ke tabel.
+    try {
+      const { error } = await client
         .from('ews_fcm_tokens')
-        .upsert(
-          { token, device_info: deviceInfo || navigator.userAgent || 'Android' },
-          { onConflict: 'token' }
-        );
-    } catch (err) {
-      console.warn('Gagal mendaftarkan FCM token:', err);
+        .upsert({ token, device_info: info }, { onConflict: 'token' });
+
+      if (error) {
+        return { success: false, error: `${error.code || 'DB'}: ${error.message}` };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: `Jaringan: ${err?.message || String(err)}` };
     }
   }
 

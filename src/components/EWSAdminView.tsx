@@ -21,6 +21,7 @@ import {
   StatusEWS,
 } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { StatusNotifikasiPanel } from './StatusNotifikasiPanel';
 
 interface EWSAdminViewProps {
   currentUser: CurrentUser;
@@ -249,6 +250,11 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
           Refresh
         </button>
       </div>
+
+      {/* Status notifikasi perangkat ini.
+          Ditempatkan tepat di atas daftar laporan supaya pengurus langsung
+          tahu bila HP-nya tidak akan berbunyi saat laporan darurat masuk. */}
+      <StatusNotifikasiPanel />
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
