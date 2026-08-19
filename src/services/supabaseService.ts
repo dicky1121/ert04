@@ -7,12 +7,15 @@ import {
   LaporanEWS,
   LaporanEWSInput,
   MutasiPenduduk,
+  PendaftaranWargaInput,
   PengaduanInput,
   PengajuanSuratPublik,
+  PengajuanWarga,
   PengumumanPublik,
   RTConfig,
   StatistikPublik,
   StatusEWS,
+  StatusPendaftaranWarga,
   StatusPengajuanPublik,
   SuratPengantar,
   Warga
@@ -159,6 +162,35 @@ const fromWargaRow = (w: CloudRow): Warga => ({
   tanggalInput: w.tanggal_input || today(),
   catatan: w.catatan || ''
 } as Warga);
+
+const fromSubmissionRow = (r: CloudRow): PengajuanWarga => ({
+  id: String(r.id || ''),
+  nik: String(r.nik || ''),
+  nomorKK: String(r.nomor_kk || ''),
+  nama: r.nama || '',
+  jenisKelamin: r.jenis_kelamin === 'P' ? 'P' : r.jenis_kelamin === 'L' ? 'L' : '',
+  tempatLahir: r.tempat_lahir || '',
+  tanggalLahir: r.tanggal_lahir || '',
+  agama: (r.agama || '').toUpperCase(),
+  pekerjaan: r.pekerjaan || '',
+  statusPerkawinan: (r.status_perkawinan || '').toUpperCase(),
+  statusHubunganKK: (r.status_hubungan_kk || '').toUpperCase(),
+  golonganDarah: r.golongan_darah || '-',
+  nomorHp: r.nomor_hp || '',
+  email: r.email || '',
+  statusTinggal: r.status_tinggal || 'TETAP',
+  isYatim: Boolean(r.is_yatim),
+  isDisabilitas: Boolean(r.is_disabilitas),
+  statusBansos: r.status_bansos || 'TIDAK_ADA',
+  keteranganBansos: r.keterangan_bansos || '',
+  catatan: r.catatan || '',
+  jenisPengajuan: r.jenis_pengajuan === 'PERBARUI' ? 'PERBARUI' : 'BARU',
+  status: (['PENDING', 'DISETUJUI', 'DITOLAK'].includes(r.status) ? r.status : 'PENDING') as PengajuanWarga['status'],
+  matchedWargaId: r.matched_warga_id || null,
+  catatanAdmin: r.catatan_admin || null,
+  submittedAt: r.submitted_at || '',
+  reviewedAt: r.reviewed_at || null
+});
 
 const toKKRow = (k: KartuKeluarga): CloudRow => ({
   id: k.id,
@@ -547,6 +579,132 @@ class SupabaseService {
       return { success: true, tiket: typeof data === 'string' ? data : String(data || '') };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Laporan tidak dapat dikirim.' };
+    }
+  }
+
+  // ===================================================================
+  // Fitur: Daftar / Perbarui Data Warga (pengajuan warga self-service)
+  // ===================================================================
+
+  /**
+   * Warga (tanpa login) mengirim pengajuan data lewat RPC SECURITY DEFINER.
+   * Data masuk ke tabel karantina berstatus PENDING, tidak menyentuh master.
+   */
+  public async ajukanPendaftaranWarga(
+    input: PendaftaranWargaInput
+  ): Promise<{ success: boolean; referensi?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Layanan pendaftaran online belum dikonfigurasi.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('ajukan_pendaftaran_warga', {
+        p_nik: input.nik,
+        p_nomor_kk: input.nomorKK,
+        p_nama: input.nama,
+        p_jenis_kelamin: input.jenisKelamin,
+        p_tempat_lahir: input.tempatLahir,
+        p_tanggal_lahir: input.tanggalLahir || null,
+        p_agama: input.agama,
+        p_pekerjaan: input.pekerjaan,
+        p_status_perkawinan: input.statusPerkawinan,
+        p_status_hubungan_kk: input.statusHubunganKK,
+        p_golongan_darah: input.golonganDarah,
+        p_nomor_hp: input.nomorHp,
+        p_status_tinggal: input.statusTinggal,
+        p_is_yatim: Boolean(input.isYatim),
+        p_is_disabilitas: Boolean(input.isDisabilitas),
+        p_status_bansos: input.statusBansos,
+        p_keterangan_bansos: input.keteranganBansos || '',
+        p_catatan: input.catatan || ''
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, referensi: typeof data === 'string' ? data : String(data || '') };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Pengajuan tidak dapat dikirim.' };
+    }
+  }
+
+  /** Warga memantau status pengajuannya berdasarkan NIK (RPC publik). */
+  public async cekStatusPendaftaranWarga(
+    nik: string
+  ): Promise<{ success: boolean; data?: StatusPendaftaranWarga; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Layanan pelacakan online belum dikonfigurasi.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('cek_status_pendaftaran_warga', { p_nik: nik });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: (data || { ditemukan: false }) as StatusPendaftaranWarga };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Status pengajuan tidak dapat diambil.' };
+    }
+  }
+
+  /** Admin: ambil seluruh pengajuan warga (terbaru dulu). Butuh sesi pengurus. */
+  public async fetchPengajuanWarga(): Promise<PengajuanWarga[]> {
+    const client = this.getClient();
+    if (!client) return [];
+
+    try {
+      const { data, error } = await client
+        .from('warga_submissions_rt004')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+      if (error || !Array.isArray(data)) return [];
+      return data.map(fromSubmissionRow);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Admin: setujui pengajuan. fields = daftar kolom (snake_case) yang diterapkan
+   * saat "setujui sebagian"; undefined/null = terapkan semua kolom.
+   */
+  public async setujuiPendaftaranWarga(
+    submissionId: string,
+    fields?: string[] | null
+  ): Promise<{ success: boolean; wargaId?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Supabase belum terhubung.' };
+    }
+
+    try {
+      const { data, error } = await client.rpc('setujui_pendaftaran_warga', {
+        p_submission_id: submissionId,
+        p_fields: fields && fields.length > 0 ? fields : null
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, wargaId: typeof data === 'string' ? data : String(data || '') };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Pengajuan gagal disetujui.' };
+    }
+  }
+
+  /** Admin: tolak pengajuan dengan catatan. */
+  public async tolakPendaftaranWarga(
+    submissionId: string,
+    catatan: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { success: false, error: 'Supabase belum terhubung.' };
+    }
+
+    try {
+      const { error } = await client.rpc('tolak_pendaftaran_warga', {
+        p_submission_id: submissionId,
+        p_catatan: catatan || ''
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Pengajuan gagal ditolak.' };
     }
   }
 
@@ -2036,6 +2194,27 @@ ON CONFLICT (id) DO NOTHING;
             updated_at: row.updated_at || ''
           });
         }
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  /**
+   * Subscribe realtime tabel pengajuan warga — dipakai dashboard admin untuk
+   * daftar & badge pending. onChange dipanggil untuk setiap INSERT/UPDATE/DELETE
+   * (pemanggil cukup re-fetch daftar terbaru). Butuh sesi pengurus (RLS).
+   */
+  public subscribePengajuanWarga(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('warga-submissions-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'warga_submissions_rt004' },
+        () => onChange()
       )
       .subscribe();
 

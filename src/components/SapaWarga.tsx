@@ -13,7 +13,8 @@ import {
   Phone,
   Search,
   ShieldCheck,
-  Siren
+  Siren,
+  UserPlus
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../types';
@@ -23,6 +24,7 @@ import { PublicSuratForm } from './PublicSuratForm';
 import { LacakPengajuanModal } from './LacakPengajuanModal';
 import { PengaduanWargaModal } from './PengaduanWargaModal';
 import { EWSLaporanModal } from './EWSLaporanModal';
+import { DaftarWargaModal } from './DaftarWargaModal';
 
 
 interface SapaWargaProps {
@@ -57,6 +59,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isPengaduanOpen, setIsPengaduanOpen] = useState(false);
   const [isEWSOpen, setIsEWSOpen] = useState(false);
+  const [isDaftarWargaOpen, setIsDaftarWargaOpen] = useState(false);
   const [konfigurasiPublik, setKonfigurasiPublik] = useState<KonfigurasiPublik | null>(null);
   const [statistik, setStatistik] = useState<StatistikPublik | null>(null);
   const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
@@ -119,6 +122,14 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
       accent: 'emerald'
     },
     {
+      icon: UserPlus,
+      title: 'Daftar / Perbarui Data Warga',
+      description: 'Daftarkan diri sebagai warga baru atau ajukan perbaruan data — diverifikasi pengurus sebelum disimpan.',
+      href: undefined,
+      action: () => setIsDaftarWargaOpen(true),
+      accent: 'teal'
+    },
+    {
       icon: Search,
       title: 'Lacak Status Pengajuan',
       description: 'Pantau perkembangan surat memakai nomor referensi dan NIK pemohon.',
@@ -146,6 +157,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
 
   const accentClasses = {
     emerald: 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white',
+    teal: 'bg-teal-50 text-teal-700 group-hover:bg-teal-600 group-hover:text-white',
     blue: 'bg-blue-50 text-blue-700 group-hover:bg-blue-600 group-hover:text-white',
     rose: 'bg-rose-50 text-rose-700 group-hover:bg-rose-600 group-hover:text-white',
     amber: 'bg-amber-50 text-amber-700 group-hover:bg-amber-500 group-hover:text-white'
@@ -393,6 +405,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
         {isSubmissionOpen && <PublicSuratForm onClose={() => setIsSubmissionOpen(false)} />}
         {isTrackingOpen && <LacakPengajuanModal onClose={() => setIsTrackingOpen(false)} />}
         {isPengaduanOpen && <PengaduanWargaModal onClose={() => setIsPengaduanOpen(false)} />}
+        {isDaftarWargaOpen && <DaftarWargaModal onClose={() => setIsDaftarWargaOpen(false)} />}
         {isNativeApp && (
           <EWSLaporanModal
             isOpen={isEWSOpen}

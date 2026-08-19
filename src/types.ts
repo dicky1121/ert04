@@ -186,6 +186,78 @@ export interface PengaduanInput {
   isiLaporan: string;
 }
 
+// ---------------------------------------------------------------------
+// Fitur: Daftar / Perbarui Data Warga (pengajuan warga self-service)
+// ---------------------------------------------------------------------
+
+export type StatusPendaftaranWargaKode = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+export type JenisPengajuanWarga = 'BARU' | 'PERBARUI';
+
+/** Payload form warga yang dikirim lewat RPC ajukan_pendaftaran_warga. */
+export interface PendaftaranWargaInput {
+  nik: string;
+  nomorKK: string;
+  nama: string;
+  jenisKelamin: JenisKelamin;
+  tempatLahir: string;
+  tanggalLahir: string;
+  agama: string;
+  pekerjaan: string;
+  statusPerkawinan: string;
+  statusHubunganKK: string;
+  golonganDarah: string;
+  nomorHp: string;
+  statusTinggal: string;
+  isYatim: boolean;
+  isDisabilitas: boolean;
+  statusBansos: string;
+  keteranganBansos: string;
+  catatan: string;
+}
+
+/** Satu baris pengajuan warga (tabel warga_submissions_rt004) untuk dashboard admin. */
+export interface PengajuanWarga {
+  id: string;
+  nik: string;
+  nomorKK: string;
+  nama: string;
+  jenisKelamin: JenisKelamin | '';
+  tempatLahir: string;
+  tanggalLahir: string;
+  agama: string;
+  pekerjaan: string;
+  statusPerkawinan: string;
+  statusHubunganKK: string;
+  golonganDarah: string;
+  nomorHp: string;
+  email: string;
+  statusTinggal: string;
+  isYatim: boolean;
+  isDisabilitas: boolean;
+  statusBansos: string;
+  keteranganBansos: string;
+  catatan: string;
+  jenisPengajuan: JenisPengajuanWarga;
+  status: StatusPendaftaranWargaKode;
+  matchedWargaId: string | null;
+  catatanAdmin: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+}
+
+/** Hasil RPC cek_status_pendaftaran_warga (dipakai warga di aplikasi Android). */
+export interface StatusPendaftaranWarga {
+  ditemukan: boolean;
+  pesan?: string;
+  referensi?: string;
+  nama?: string;
+  jenisPengajuan?: JenisPengajuanWarga;
+  status?: StatusPendaftaranWargaKode;
+  submittedAt?: string;
+  reviewedAt?: string | null;
+  catatanAdmin?: string | null;
+}
+
 export type JenisMutasi = 'PINDAH_MASUK' | 'PINDAH_KELUAR' | 'KELAHIRAN' | 'KEMATIAN' | 'PERUBAHAN_STATUS';
 
 

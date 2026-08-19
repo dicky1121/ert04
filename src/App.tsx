@@ -8,9 +8,10 @@ import {
   SuratPengantar, 
   MutasiPenduduk, 
   RTConfig, 
-  CurrentUser, 
+  CurrentUser,
   AppNotification,
-  ImportPreviewRow
+  ImportPreviewRow,
+  PengajuanWarga
 } from './types';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -23,6 +24,7 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
+import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
@@ -61,6 +63,8 @@ export default function App() {
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
   const [publicGatewayView, setPublicGatewayView] = useState<'welcome' | 'login'>('welcome');
   const [ewsBaruCount, setEwsBaruCount] = useState(0);
+  const [pengajuanList, setPengajuanList] = useState<PengajuanWarga[]>([]);
+  const [wargaSubTab, setWargaSubTab] = useState<'data' | 'pengajuan'>('data');
 
   // Modal Visibility States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -245,6 +249,54 @@ export default function App() {
     );
     showToast(`Impor selesai: ${prepared.added} ditambahkan dan ${prepared.updated} diperbarui.`);
     return { success: true, result: prepared };
+  };
+
+  // ------- Pengajuan Data Warga (self-service dari warga) -------
+  const refetchPengajuan = async () => {
+    setPengajuanList(await supabaseService.fetchPengajuanWarga());
+  };
+
+  // Muat & pantau realtime pengajuan HANYA saat pengurus terautentikasi
+  // (RLS mewajibkan sesi; tanpa sesi fetch mengembalikan daftar kosong).
+  useEffect(() => {
+    if (!currentUser.isAuthenticated) {
+      setPengajuanList([]);
+      return;
+    }
+    let aktif = true;
+    void (async () => {
+      const list = await supabaseService.fetchPengajuanWarga();
+      if (aktif) setPengajuanList(list);
+    })();
+    const unsub = supabaseService.subscribePengajuanWarga(() => {
+      void refetchPengajuan();
+    });
+    return () => {
+      aktif = false;
+      unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser.isAuthenticated]);
+
+  const handleSetujuiPengajuan = async (id: string, fields?: string[] | null) => {
+    const result = await supabaseService.setujuiPendaftaranWarga(id, fields ?? null);
+    if (!result.success) {
+      showToast(`Pengajuan gagal disetujui: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+      throw new Error(result.error || 'Gagal menyetujui pengajuan.');
+    }
+    // Data master diperbarui server-side; realtime warga_rt004 menyinkron lokal.
+    showToast('Pengajuan disetujui. Data warga tersimpan ke data induk.');
+    await refetchPengajuan();
+  };
+
+  const handleTolakPengajuan = async (id: string, catatan: string) => {
+    const result = await supabaseService.tolakPendaftaranWarga(id, catatan);
+    if (!result.success) {
+      showToast(`Pengajuan gagal ditolak: ${result.error || 'koneksi cloud bermasalah'}`, 'error');
+      throw new Error(result.error || 'Gagal menolak pengajuan.');
+    }
+    showToast('Pengajuan ditolak.', 'info');
+    await refetchPengajuan();
   };
 
   // KK Handlers
@@ -592,16 +644,54 @@ export default function App() {
         )}
 
         {activeTab === 'warga' && (
-          <DataWargaView
-            wargaList={wargaList}
-            kkList={kkList}
-            config={rtConfig}
-            onSaveWarga={handleSaveWarga}
-            onDeleteWarga={handleDeleteWarga}
-            onImportWarga={handleImportWarga}
-            onCreateSurat={handleCreateSuratForWarga}
-            selectedWargaId={selectedWargaId}
-          />
+          <div className="space-y-5">
+            {/* Sub-tab: data induk vs pengajuan warga self-service */}
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setWargaSubTab('data')}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  wargaSubTab === 'data' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Data Warga
+              </button>
+              <button
+                type="button"
+                onClick={() => setWargaSubTab('pengajuan')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  wargaSubTab === 'pengajuan' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Pengajuan Warga
+                {pengajuanList.filter((p) => p.status === 'PENDING').length > 0 && (
+                  <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-bold text-white">
+                    {pengajuanList.filter((p) => p.status === 'PENDING').length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {wargaSubTab === 'data' ? (
+              <DataWargaView
+                wargaList={wargaList}
+                kkList={kkList}
+                config={rtConfig}
+                onSaveWarga={handleSaveWarga}
+                onDeleteWarga={handleDeleteWarga}
+                onImportWarga={handleImportWarga}
+                onCreateSurat={handleCreateSuratForWarga}
+                selectedWargaId={selectedWargaId}
+              />
+            ) : (
+              <PengajuanWargaAdminView
+                pengajuanList={pengajuanList}
+                wargaList={wargaList}
+                onSetujui={handleSetujuiPengajuan}
+                onTolak={handleTolakPengajuan}
+              />
+            )}
+          </div>
         )}
 
         {activeTab === 'kk' && (
