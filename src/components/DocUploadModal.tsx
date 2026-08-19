@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   X
 } from 'lucide-react';
-import mammoth from 'mammoth';
+// mammoth di-import dinamis saat parsing .docx (lihat handleFileUpload) — code-splitting
 import { RTConfig, SuratPengantar } from '../types';
 import { BekasiLogo } from './BekasiLogo';
 
@@ -182,6 +182,8 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
 
       // Check file type
       if (uploadedFile.name.endsWith('.docx')) {
+        // Dynamic import: mammoth hanya diunduh saat benar-benar mem-parse .docx
+        const mammoth = (await import('mammoth')).default;
         const resultText = await mammoth.extractRawText({ arrayBuffer });
         const resultHtml = await mammoth.convertToHtml({ arrayBuffer });
         

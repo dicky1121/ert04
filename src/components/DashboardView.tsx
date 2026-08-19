@@ -340,7 +340,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           {surat.status === 'PENDING' && (
                             <button
                               onClick={() => onApproveSurat(surat.id)}
-                              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer"
                             >
                               Setujui
                             </button>
@@ -374,7 +374,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="text-xs text-slate-500 mt-0.5">{surat.tanggalPengajuan}</div>
                       <div className="flex items-center gap-2 mt-2">
                         {surat.status === 'PENDING' && (
-                          <button onClick={() => onApproveSurat(surat.id)} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer">Setujui</button>
+                          <button onClick={() => onApproveSurat(surat.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer">Setujui</button>
                         )}
                         <button onClick={() => onNavigateTab('surat', surat.id)} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer">Cetak</button>
                       </div>

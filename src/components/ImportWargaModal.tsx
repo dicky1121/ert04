@@ -430,7 +430,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       <button
                         type="button"
                         onClick={() => storageService.downloadRT004TemplateExcel()}
-                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
                         <Download className="w-4 h-4" />
                         Unduh Template Excel RT 004 (.xlsx)
@@ -468,7 +468,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                         type="button"
                         onClick={handleAnalyzeWargaTetap}
                         disabled={!pastedTetapText.trim() || isAnalyzing}
-                        className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-full shadow transition flex items-center gap-2 cursor-pointer"
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-full shadow transition flex items-center gap-2 cursor-pointer"
                       >
                         {isAnalyzing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                         {isAnalyzing ? 'Memproses Data...' : 'Proses & Pratinjau Data Warga Tetap'}

@@ -19,7 +19,10 @@ if (Capacitor.isNativePlatform()) {
     console.warn('StatusBar.setBackgroundColor failed:', e)
   );
 
-  // Hide splash screen setelah app siap
+  // Sembunyikan splash ~1 detik setelah bundle mount — trigger UTAMA saat app siap.
+  // Backstop native `launchShowDuration` (2 dtk) di capacitor.config.ts menahan splash
+  // lebih lama HANYA bila cold-start HP lambat sehingga JS belum sempat jalan
+  // (mencegah kedip layar kosong). Keduanya sengaja berbeda peran, bukan konflik.
   setTimeout(() => {
     SplashScreen.hide().catch((e) => console.warn('SplashScreen.hide failed:', e));
   }, 1000);

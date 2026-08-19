@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { 
   Plus, 
   Search, 
@@ -24,8 +24,13 @@ import {
 } from 'lucide-react';
 import { Warga, KartuKeluarga, RTConfig, ImportPreviewRow } from '../types';
 import { calculateDemographics, storageService, formatDateDDMMYYYY, maskNik, maskKK, maskPhone } from '../services/storage';
-import { ImportWargaModal } from './ImportWargaModal';
 import { useConfirm } from './ConfirmDialog';
+
+// Lazy-load modal import warga (~1000 baris + parser Excel) — chunk hanya dimuat
+// saat modal import benar-benar dibuka pengguna.
+const ImportWargaModal = lazy(() =>
+  import('./ImportWargaModal').then((m) => ({ default: m.ImportWargaModal }))
+);
 
 
 interface DataWargaViewProps {
@@ -718,7 +723,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                   setIsDetailOpen(false);
                   onCreateSurat(currentWarga);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
               >
                 <FileText className="w-4 h-4" />
                 Buat Surat Pengantar RT
@@ -1024,7 +1029,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition"
                 >
                   Simpan Data Warga
                 </button>
@@ -1034,16 +1039,20 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
         </div>
       )}
 
-      {/* Advanced Pre-Import Validation Modal */}
-      <ImportWargaModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        onCommitImport={onImportWarga}
-        onImportSuccess={({ added, updated }) => {
-          // Trigger storage listeners
-          setIsImportOpen(false);
-        }}
-      />
+      {/* Advanced Pre-Import Validation Modal (lazy — dimuat saat dibuka) */}
+      {isImportOpen && (
+        <Suspense fallback={null}>
+          <ImportWargaModal
+            isOpen={isImportOpen}
+            onClose={() => setIsImportOpen(false)}
+            onCommitImport={onImportWarga}
+            onImportSuccess={({ added, updated }) => {
+              // Trigger storage listeners
+              setIsImportOpen(false);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Confirmation Modal to Clear Dummy Data */}
       {isConfirmClearDummyOpen && (

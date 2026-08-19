@@ -445,7 +445,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 type="button"
                 onClick={handlePushToSupabase}
                 disabled={isSyncing}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                 title="Unggah seluruh data lokal ke tabel Supabase Cloud"
               >
                 <UploadCloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-bounce' : ''}`} />
@@ -523,7 +523,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleCopySQL}
-                      className="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow"
+                      className="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow"
                     >
                       {hasCopiedSQL ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       {hasCopiedSQL ? 'Tersalin!' : 'Salin SQL'}

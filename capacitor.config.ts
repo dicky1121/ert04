@@ -16,6 +16,8 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     SplashScreen: {
+      // Backstop native: batas maksimum splash tampil bila JS lambat boot (cold-start
+      // HP lemah). Trigger utama sembunyi ada di src/main.tsx (~1 dtk saat app siap).
       launchShowDuration: 2000,
       backgroundColor: '#020617', // slate-950
       androidSplashResourceName: 'splash',

@@ -29,6 +29,9 @@ export const LambangBekasiLogo: React.FC<LogoProps> = ({
         src={LOGO_SRC}
         alt="Lambang Resmi Kabupaten Bekasi"
         className={`${sizeClass} object-contain`}
+        width={96}
+        height={120}
+        decoding="async"
         draggable={false}
       />
 

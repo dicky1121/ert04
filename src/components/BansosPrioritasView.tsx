@@ -125,7 +125,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
 
         <button
           onClick={onExportExcel}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
         >
           <FileSpreadsheet className="w-4 h-4" />
           Ekspor Daftar Penerima Bansos (Excel)
@@ -413,7 +413,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl"
                 >
                   Simpan Status Bansos
                 </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   storageService 
 } from './services/storage';
@@ -22,7 +22,6 @@ import { MutasiPendudukView } from './components/MutasiPendudukView';
 import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
-import { IntegrasiView } from './components/IntegrasiView';
 import { EWSAdminView } from './components/EWSAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
@@ -33,6 +32,18 @@ import { authService } from './services/authService';
 import { CloudSyncState, supabaseService } from './services/supabaseService';
 import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 
+// Lazy-load view berat (code-splitting): IntegrasiView (~800 baris) hanya dimuat
+// saat tab "Integrasi" pertama kali dibuka — mengecilkan bundle awal.
+const IntegrasiView = lazy(() =>
+  import('./components/IntegrasiView').then((m) => ({ default: m.IntegrasiView }))
+);
+
+// Fallback ringan saat chunk view berat sedang diunduh.
+const ViewLoader: React.FC = () => (
+  <div className="flex items-center justify-center py-20 text-slate-500">
+    <Loader2 className="w-6 h-6 animate-spin" />
+  </div>
+);
 
 export default function App() {
   // Navigation State
@@ -651,17 +662,19 @@ export default function App() {
         )}
 
         {activeTab === 'integrasi' && (
-          <IntegrasiView
-            config={rtConfig}
-            wargaList={wargaList}
-            kkList={kkList}
-            suratList={suratList}
-            mutasiList={mutasiList}
-            onUpdateConfig={handleUpdateConfig}
-            onExportExcel={handleExportExcel}
-            onImportExcel={handleImportExcel}
-            onDataUpdated={refreshAllData}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <IntegrasiView
+              config={rtConfig}
+              wargaList={wargaList}
+              kkList={kkList}
+              suratList={suratList}
+              mutasiList={mutasiList}
+              onUpdateConfig={handleUpdateConfig}
+              onExportExcel={handleExportExcel}
+              onImportExcel={handleImportExcel}
+              onDataUpdated={refreshAllData}
+            />
+          </Suspense>
         )}
 
       </main>

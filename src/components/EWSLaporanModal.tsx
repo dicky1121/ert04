@@ -157,7 +157,7 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
             </p>
             <button
               onClick={handleClose}
-              className="mt-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-full transition-colors"
+              className="mt-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-full transition-colors"
             >
               Selesai
             </button>

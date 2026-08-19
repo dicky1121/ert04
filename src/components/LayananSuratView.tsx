@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { FileSignature, Archive, FileText } from 'lucide-react';
+import React, { useState, lazy, Suspense } from 'react';
+import { FileSignature, Archive, FileText, Loader2 } from 'lucide-react';
 import { RTConfig, Warga, SuratPengantar } from '../types';
-import { TemplateSuratPengantarView } from './TemplateSuratPengantarView';
 import { SuratPengantarView } from './SuratPengantarView';
+
+// Lazy-load editor/template surat (~1400 baris) — hanya dimuat saat section FORMAT aktif.
+const TemplateSuratPengantarView = lazy(() =>
+  import('./TemplateSuratPengantarView').then((m) => ({ default: m.TemplateSuratPengantarView }))
+);
 
 interface LayananSuratViewProps {
   config: RTConfig;
@@ -135,12 +139,20 @@ export const LayananSuratView: React.FC<LayananSuratViewProps> = ({
       </div>
 
       {section === 'FORMAT' && (
-        <TemplateSuratPengantarView
-          config={config}
-          wargaList={wargaList}
-          onSaveConfig={onSaveConfig}
-          onAddSurat={onAddSurat}
-        />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-20 text-slate-500">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          }
+        >
+          <TemplateSuratPengantarView
+            config={config}
+            wargaList={wargaList}
+            onSaveConfig={onSaveConfig}
+            onAddSurat={onAddSurat}
+          />
+        </Suspense>
       )}
 
       {section === 'ARSIP' && (

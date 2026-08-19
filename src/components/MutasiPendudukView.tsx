@@ -172,7 +172,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
             setAlamatTujuan('RT 004 RW 007 Kelurahan Jatimulya');
             setIsFormOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           Catat Mutasi Penduduk Baru
@@ -544,7 +544,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow transition"
                 >
                   Simpan Catatan Mutasi
                 </button>
