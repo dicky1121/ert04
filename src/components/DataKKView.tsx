@@ -294,8 +294,8 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
         </div>
       </div>
 
-      {/* Table of Kartu Keluarga */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Data KK — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -395,6 +395,81 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Data KK — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredKK.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
+            <Users className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="font-semibold text-slate-600">Tidak ada data Kartu Keluarga</p>
+            <p className="text-xs text-slate-500 mt-0.5">Coba sesuaikan kata kunci pencarian Anda.</p>
+          </div>
+        ) : (
+          filteredKK.map((kk) => {
+            const memberCount = kk.anggota?.length || 0;
+            const hasLansia = kk.anggota?.some(m => m.isLansia);
+            const hasBalita = kk.anggota?.some(m => m.isBalita);
+            const hasYatim = kk.anggota?.some(m => m.isYatim);
+            return (
+              <article key={kk.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                {/* Header kartu */}
+                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{kk.kepalaKeluargaNama}</div>
+                    <div className="font-mono text-emerald-700 font-semibold text-xs mt-0.5 truncate">No. KK: {isPrivacyMasked ? maskKK(kk.nomorKK) : kk.nomorKK}</div>
+                  </div>
+                  <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                    kk.statusDomisili === 'TETAP'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : kk.statusDomisili === 'KONTRAK'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                      : 'bg-purple-100 text-purple-800 border border-purple-200'
+                  }`}>
+                    {kk.statusDomisili}
+                  </span>
+                </div>
+
+                {/* Isi kartu */}
+                <div className="px-4 py-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">NIK Kepala</span>
+                    <span className="font-mono text-slate-700 text-right">{isPrivacyMasked ? maskNik(kk.kepalaKeluargaNik) : kk.kepalaKeluargaNik}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Alamat</span>
+                    <span className="font-medium text-slate-800 text-right">{kk.alamat}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Blok / Pos</span>
+                    <span className="text-slate-600 text-right">{kk.blokRumah || 'RT 004 RW 007'} &bull; {kk.kodePos}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 pt-0.5">
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">{memberCount} Jiwa</span>
+                    <div className="flex items-center gap-1">
+                      {hasLansia && <span className="text-xs px-1 bg-amber-100 text-amber-800 rounded font-semibold">Lansia</span>}
+                      {hasBalita && <span className="text-xs px-1 bg-purple-100 text-purple-800 rounded font-semibold">Balita</span>}
+                      {hasYatim && <span className="text-xs px-1 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aksi kartu */}
+                <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2">
+                  <button onClick={() => handleOpenDetail(kk)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-slate-200 text-xs font-semibold cursor-pointer" title="Lihat Anggota Keluarga">
+                    <Eye className="w-4 h-4" /> Anggota
+                  </button>
+                  <button onClick={() => handleOpenEdit(kk)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit KK" aria-label="Edit KK">
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDeleteKK(kk)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus KK" aria-label="Hapus KK">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
       </div>
 
       {/* DETAIL MODAL: LIHAT ANGGOTA KELUARGA */}

@@ -207,8 +207,8 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
         />
       </div>
 
-      {/* Table of Beneficiaries */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Data prioritas bansos — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -289,6 +289,77 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Data prioritas bansos — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredList.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
+            <HeartHandshake className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="font-semibold text-slate-600">Tidak ada data warga di kategori ini</p>
+            <p className="text-xs text-slate-500 mt-0.5">Pilih tab lain atau periksa data warga.</p>
+          </div>
+        ) : (
+          filteredList.map((w) => {
+            const demo = calculateDemographics(w.tanggalLahir);
+            return (
+              <article key={w.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                {/* Header kartu */}
+                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{w.nama}</div>
+                    <div className="font-mono text-slate-500 text-xs truncate">NIK: {w.nik}</div>
+                  </div>
+                  <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                    w.statusBansos === 'PKH'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : w.statusBansos === 'BPNT'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                      : w.statusBansos === 'BLT'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {w.statusBansos !== 'TIDAK_ADA' ? w.statusBansos : 'Bukan Penerima'}
+                  </span>
+                </div>
+
+                {/* Isi kartu */}
+                <div className="px-4 py-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">No. KK</span>
+                    <span className="font-mono text-emerald-800 font-semibold text-right">{w.nomorKK}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Hubungan</span>
+                    <span className="text-slate-700 text-right">{w.statusHubunganKK}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Usia</span>
+                    <span className="font-semibold text-slate-800 text-right">{demo.usia} Tahun ({w.jenisKelamin === 'L' ? 'L' : 'P'})</span>
+                  </div>
+                  {((demo.isLansia || Boolean(w.isLansia)) || (demo.isBalita || Boolean(w.isBalita)) || w.isYatim) && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(demo.isLansia || Boolean(w.isLansia)) && <span className="text-xs px-1.5 bg-amber-100 text-amber-800 rounded font-semibold">Lansia ≥60</span>}
+                      {(demo.isBalita || Boolean(w.isBalita)) && <span className="text-xs px-1.5 bg-purple-100 text-purple-800 rounded font-semibold">Balita ≤5</span>}
+                      {w.isYatim && <span className="text-xs px-1.5 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
+                    </div>
+                  )}
+                  <div className="text-slate-600 pt-0.5">{w.keteranganBansos || (w.statusBansos !== 'TIDAK_ADA' ? 'Tercatat dalam DTKS Kemensos' : '-')}</div>
+                </div>
+
+                {/* Aksi kartu */}
+                <div className="px-4 py-3 border-t border-slate-100">
+                  <button
+                    onClick={() => handleOpenEdit(w)}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200 cursor-pointer"
+                  >
+                    Ubah Status Bansos
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
       </div>
 
       {/* EDIT BANSOS MODAL */}

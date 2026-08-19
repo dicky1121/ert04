@@ -18,10 +18,25 @@ import { AuditLog, CurrentUser } from '../types';
 import { storageService } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 import * as XLSX from 'xlsx';
+import { statusBadge } from '../utils/statusBadge';
 
 interface AuditLogViewProps {
   currentUser: CurrentUser;
 }
+
+/**
+ * Badge status audit — dipakai di tabel (desktop) & kartu (mobile).
+ * Warna dari helper statusBadge() (sumber tunggal, lolos WCAG AA).
+ */
+const AuditStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  if (status === 'SUKSES')
+    return <span className={`px-2.5 py-1 font-bold rounded-full text-xs border inline-flex items-center gap-1 ${statusBadge('success')}`}><CheckCircle2 className="w-3 h-3" /> Berhasil</span>;
+  if (status === 'PERINGATAN')
+    return <span className={`px-2.5 py-1 font-bold rounded-full text-xs border inline-flex items-center gap-1 ${statusBadge('warning')}`}><AlertTriangle className="w-3 h-3" /> Warning</span>;
+  if (status === 'GAGAL')
+    return <span className={`px-2.5 py-1 font-bold rounded-full text-xs border inline-flex items-center gap-1 ${statusBadge('danger')}`}><XCircle className="w-3 h-3" /> Gagal</span>;
+  return null;
+};
 
 export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
   const [logs, setLogs] = useState<AuditLog[]>(storageService.getAuditLogs());
@@ -189,8 +204,8 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Log Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* Log audit — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="table-scroll table-head-slate-100">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
@@ -230,21 +245,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
                       {log.detail}
                     </td>
                     <td className="p-3.5 text-center">
-                      {log.status === 'SUKSES' && (
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full text-xs border border-emerald-200 inline-flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Berhasil
-                        </span>
-                      )}
-                      {log.status === 'PERINGATAN' && (
-                        <span className="px-2.5 py-1 bg-amber-50 text-amber-700 font-bold rounded-full text-xs border border-amber-200 inline-flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Warning
-                        </span>
-                      )}
-                      {log.status === 'GAGAL' && (
-                        <span className="px-2.5 py-1 bg-rose-50 text-rose-700 font-bold rounded-full text-xs border border-rose-200 inline-flex items-center gap-1">
-                          <XCircle className="w-3 h-3" /> Gagal
-                        </span>
-                      )}
+                      <AuditStatusBadge status={log.status} />
                     </td>
                   </tr>
                 ))
@@ -258,6 +259,40 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Log audit — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredLogs.length > 0 ? (
+          filteredLogs.map((log) => (
+            <article key={log.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              {/* Header kartu */}
+              <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+                <div className="min-w-0">
+                  <div className="font-semibold text-slate-900 text-sm truncate">{log.adminNama}</div>
+                  <div className="text-xs text-slate-500 font-mono truncate">{log.adminRole}</div>
+                </div>
+                <AuditStatusBadge status={log.status} />
+              </div>
+
+              {/* Isi kartu */}
+              <div className="px-4 py-3 space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-slate-500 font-mono">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" /> {log.timestamp}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs">{log.aktivitas}</span>
+                  <span className="font-mono text-slate-700 text-xs">{log.target}</span>
+                </div>
+                <div className="text-slate-600 leading-relaxed">{log.detail}</div>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center text-slate-500 text-xs">
+            Tidak ada catatan aktivitas yang sesuai dengan filter pencarian.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -209,8 +209,8 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
         </div>
       </div>
 
-      {/* Log Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Riwayat mutasi — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -304,6 +304,65 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Riwayat mutasi — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredMutasi.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
+            <History className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="font-semibold text-slate-600">Belum ada riwayat mutasi penduduk</p>
+            <p className="text-xs text-slate-500 mt-0.5">Catat setiap perpindahan warga untuk laporan kelurahan yang akurat.</p>
+          </div>
+        ) : (
+          filteredMutasi.map((item) => (
+            <article key={item.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              {/* Header kartu */}
+              <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-slate-100 shrink-0">{getIcon(item.jenisMutasi)}</div>
+                  <div className="min-w-0">
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold border ${getBadgeStyle(item.jenisMutasi)}`}>{item.jenisMutasi.replace('_', ' ')}</span>
+                    <div className="font-bold text-slate-900 text-sm truncate mt-1">{item.namaWarga}</div>
+                  </div>
+                </div>
+                <button onClick={() => handleDeleteMutasi(item)} className="shrink-0 p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus Log" aria-label="Hapus Log">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Isi kartu */}
+              <div className="px-4 py-3 space-y-1.5 text-xs">
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 shrink-0">NIK / KK</span>
+                  <span className="font-mono text-slate-700 text-right">{item.nikWarga} &bull; {item.nomorKK}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 shrink-0">Asal</span>
+                  <span className="font-medium text-slate-800 text-right">{item.alamatAsal}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 shrink-0">Tujuan</span>
+                  <span className="font-medium text-slate-800 text-right">{item.alamatTujuan}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 shrink-0">Tanggal</span>
+                  <span className="text-slate-700 text-right">Peristiwa {item.tanggalPeristiwa} &bull; Lapor {item.tanggalLapor}</span>
+                </div>
+                {item.nomorSuratPindah && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500 shrink-0">No. Surat</span>
+                    <span className="font-mono text-emerald-800 text-right">{item.nomorSuratPindah}</span>
+                  </div>
+                )}
+                <div className="pt-0.5">
+                  <span className="font-medium text-slate-800">{item.alasanMutasi}</span>
+                  {item.keterangan && <span className="text-slate-500 italic"> — {item.keterangan}</span>}
+                </div>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       {/* FORM MODAL: CATAT MUTASI */}

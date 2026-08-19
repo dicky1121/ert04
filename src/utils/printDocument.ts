@@ -97,7 +97,7 @@ export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Sura
       gap: 8px;
     }
     .print-toolbar-badge {
-      background: #10b981;
+      background: #059669;
       color: #ffffff;
       font-size: 11px;
       padding: 2px 8px;
@@ -110,7 +110,7 @@ export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Sura
       gap: 8px;
     }
     .btn-print {
-      background: #16a34a;
+      background: #059669;
       color: #ffffff;
       border: none;
       border-radius: 6px;
@@ -124,7 +124,7 @@ export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Sura
       transition: background 0.2s;
     }
     .btn-print:hover {
-      background: #15803d;
+      background: #047857;
     }
     .btn-secondary {
       background: #334155;

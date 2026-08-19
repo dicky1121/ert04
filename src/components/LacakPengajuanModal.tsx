@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Search, X, XCircle } from 'lucide-react';
 import { StatusPengajuanPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
 
 interface LacakPengajuanModalProps {
   onClose: () => void;
@@ -10,17 +11,17 @@ interface LacakPengajuanModalProps {
 const statusMeta: Record<string, { label: string; className: string; Icon: typeof Clock3 }> = {
   PENDING: {
     label: 'Sedang Diproses Pengurus',
-    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    className: statusBadge(SURAT_TONE.PENDING),
     Icon: Clock3
   },
   DISETUJUI: {
     label: 'Disetujui — Surat Siap Diambil',
-    className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    className: statusBadge(SURAT_TONE.DISETUJUI),
     Icon: CheckCircle2
   },
   DITOLAK: {
     label: 'Ditolak',
-    className: 'bg-rose-50 text-rose-800 border-rose-200',
+    className: statusBadge(SURAT_TONE.DITOLAK),
     Icon: XCircle
   }
 };

@@ -381,8 +381,8 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
         />
       </div>
 
-      {/* Table of Citizens */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Data warga — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -521,6 +521,93 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Data warga — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredWarga.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
+            <User className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="font-semibold text-slate-600">Tidak ada data warga ditemukan</p>
+            <p className="text-xs text-slate-500 mt-0.5">Coba ubah filter atau kata kunci pencarian.</p>
+          </div>
+        ) : (
+          filteredWarga.map((w) => {
+            const demo = calculateDemographics(w.tanggalLahir);
+            const isLansia = demo.isLansia || Boolean(w.isLansia);
+            const isBalita = demo.isBalita || Boolean(w.isBalita);
+            return (
+              <article key={w.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                {/* Header kartu */}
+                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                      w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                    }`}>
+                      {w.jenisKelamin}
+                    </div>
+                    <div className="min-w-0">
+                      <button onClick={() => handleOpenDetail(w)} className="font-bold text-slate-900 text-sm text-left hover:text-emerald-700 truncate block w-full">
+                        {w.nama}
+                      </button>
+                      <div className="font-mono text-slate-500 text-xs truncate">NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}</div>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
+                    w.statusTinggal === 'TETAP'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-blue-50 text-blue-800 border border-blue-200'
+                  }`}>
+                    {w.statusTinggal}
+                  </span>
+                </div>
+
+                {/* Isi kartu */}
+                <div className="px-4 py-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Hubungan</span>
+                    <span className="font-semibold text-slate-800 text-right">{w.statusHubunganKK}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">No. KK</span>
+                    <span className="font-mono text-emerald-700 text-right">{isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Lahir / Usia</span>
+                    <span className="font-mono text-slate-700 text-right">{formatDateDDMMYYYY(w.tanggalLahir)} &bull; {demo.usia} th</span>
+                  </div>
+                  {(isLansia || isBalita || w.isYatim || w.statusBansos !== 'TIDAK_ADA') && (
+                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                      {isLansia && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">Lansia ≥60</span>}
+                      {isBalita && <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">Balita ≤5</span>}
+                      {w.isYatim && <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">Yatim</span>}
+                      {w.statusBansos !== 'TIDAK_ADA' && <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">{w.statusBansos}</span>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Aksi kartu */}
+                <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2">
+                  <button
+                    onClick={() => onCreateSurat(w)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4" /> Surat
+                  </button>
+                  <button onClick={() => handleOpenDetail(w)} className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Detail Warga" aria-label="Detail Warga">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleOpenEdit(w)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit Data" aria-label="Edit Data">
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDeleteWarga(w)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus Data" aria-label="Hapus Data">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
       </div>
 
       {/* DETAIL MODAL WARGA */}

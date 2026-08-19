@@ -20,6 +20,23 @@ import { SuratPrintTemplate } from './SuratPrintTemplate';
 import { DocUploadModal, getSavedDocTemplate, DocTemplateStructure } from './DocUploadModal';
 import { formatDateDDMMYYYY } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
+import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
+
+/**
+ * Badge status pengajuan surat — dipakai di tabel (desktop) & kartu (mobile).
+ * Resep warna berasal dari helper `statusBadge()` (sumber tunggal, lolos WCAG AA).
+ */
+const StatusChip: React.FC<{ status: string }> = ({ status }) => {
+  const tone = SURAT_TONE[status as keyof typeof SURAT_TONE] ?? 'neutral';
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${statusBadge(tone)}`}>
+      {status === 'DISETUJUI' && <CheckCircle2 className="w-3 h-3" />}
+      {status === 'PENDING' && <Clock className="w-3 h-3" />}
+      {status === 'DITOLAK' && <XCircle className="w-3 h-3" />}
+      <span>{status === 'PENDING' ? 'Menunggu' : status === 'DISETUJUI' ? 'Disetujui' : 'Ditolak'}</span>
+    </span>
+  );
+};
 
 interface SuratPengantarViewProps {
   suratList: SuratPengantar[];
@@ -401,8 +418,8 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
         </div>
       </div>
 
-      {/* Table of Letters */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Daftar surat — tabel (tampil ≥ md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
@@ -472,18 +489,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                     </td>
 
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${
-                        surat.status === 'DISETUJUI'
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          : surat.status === 'PENDING'
-                          ? 'bg-amber-50 text-amber-800 border-amber-200'
-                          : 'bg-rose-50 text-rose-800 border-rose-200'
-                      }`}>
-                        {surat.status === 'DISETUJUI' && <CheckCircle2 className="w-3 h-3" />}
-                        {surat.status === 'PENDING' && <Clock className="w-3 h-3" />}
-                        {surat.status === 'DITOLAK' && <XCircle className="w-3 h-3" />}
-                        <span>{surat.status === 'PENDING' ? 'Menunggu' : surat.status === 'DISETUJUI' ? 'Disetujui' : 'Ditolak'}</span>
-                      </span>
+                      <StatusChip status={surat.status} />
                     </td>
 
                     <td className="px-4 py-3 text-right">
@@ -538,6 +544,85 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Daftar surat — kartu (mobile, tampil < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredSurat.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-12 px-4">
+            <FileText className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+            <p className="font-semibold text-slate-600">Tidak ada data surat pengantar</p>
+            <p className="text-xs text-slate-500 mt-0.5">Klik &quot;Buat Surat Pengantar Baru&quot; untuk mencetak surat format resmi.</p>
+          </div>
+        ) : (
+          filteredSurat.map((surat) => (
+            <article key={surat.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              {/* Header kartu */}
+              <div className="flex items-start justify-between gap-3 px-4 py-3 bg-slate-50 border-b border-slate-100">
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-900 text-xs">SURAT PENGANTAR</div>
+                  <div className="font-mono text-emerald-800 font-semibold text-xs mt-0.5 truncate">NO : {surat.nomorSurat}</div>
+                  <span className="text-xs text-slate-500">{surat.jenisSurat}</span>
+                </div>
+                <StatusChip status={surat.status} />
+              </div>
+
+              {/* Isi kartu */}
+              <div className="px-4 py-3 space-y-2 text-xs">
+                <div>
+                  <div className="font-semibold text-slate-900 text-sm">{surat.namaPemohon}</div>
+                  <div className="font-mono text-slate-500">NIK: {surat.nikPemohon}</div>
+                  {surat.teleponPemohon && (
+                    <div className="font-semibold text-emerald-700">WA: {surat.teleponPemohon}</div>
+                  )}
+                  <div className="text-slate-500">{surat.pekerjaanPemohon} &bull; {surat.statusKawinPemohon}</div>
+                </div>
+                <div className="text-slate-600">
+                  <span className="font-medium text-slate-900">{surat.keperluan}</span>
+                  {surat.keteranganLain && <span className="text-slate-500"> &bull; {surat.keteranganLain}</span>}
+                </div>
+                <div className="text-slate-500">Alamat: {surat.alamatPemohon}</div>
+                <div className="text-slate-500">
+                  Tgl: {surat.tanggalPengajuan ? formatDateDDMMYYYY(surat.tanggalPengajuan) : '-'} &bull; TTD: {surat.namaKetuaRT || config.namaKetuaRT || 'Yanto'}
+                </div>
+              </div>
+
+              {/* Aksi kartu */}
+              <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                {surat.status === 'PENDING' && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(surat)}
+                      className="flex-1 min-w-[7rem] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold text-xs transition shadow-2xs cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Setujui
+                    </button>
+                    <button
+                      onClick={() => handleOpenReject(surat.id)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-lg font-semibold text-xs transition cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4" /> Tolak
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => { setActiveSurat(surat); setIsPrintModalOpen(true); }}
+                  className="flex-1 min-w-[7rem] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition shadow-2xs cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-emerald-400" /> Cetak A4
+                </button>
+                <button
+                  onClick={() => handleDeleteSurat(surat)}
+                  className="inline-flex items-center justify-center p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                  title="Hapus Surat"
+                  aria-label="Hapus Surat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       {/* PRINT PREVIEW MODAL */}
