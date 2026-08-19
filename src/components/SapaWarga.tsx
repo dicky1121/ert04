@@ -173,7 +173,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
               </div>
               <div className="min-w-0 text-white">
                 <p className="truncate text-sm font-extrabold tracking-tight sm:text-base">RT {rt} RW {rw} Kelurahan {kelurahan}</p>
-                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300 sm:text-xs">
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300 sm:text-xs">
                   Kecamatan {kecamatan} · Kabupaten Bekasi
                 </p>
               </div>
@@ -230,7 +230,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                     🚨 Laporkan Darurat
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                   </button>
-                  <p className="mt-2 text-[11px] text-slate-500">
+                  <p className="mt-2 text-xs text-slate-500">
                     Kebakaran, kemalingan, kecelakaan, dan kejadian darurat lainnya
                   </p>
                 </div>
@@ -241,7 +241,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                   {statistikCards.map((item) => (
                     <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3.5">
                       <dd className="text-2xl font-black tracking-tight text-white">{item.value}</dd>
-                      <dt className="mt-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-400">
+                      <dt className="mt-1 text-xs font-semibold uppercase leading-tight tracking-wide text-slate-400">
                         {item.label}
                       </dt>
                     </div>
@@ -272,7 +272,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-extrabold text-slate-900">{service.title}</span>
-                        <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">{service.description}</span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{service.description}</span>
                       </span>
                       <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
                     </>
@@ -306,7 +306,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
               </div>
 
               {!whatsappNumber && (
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-800">
+                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
                   Nomor layanan belum tersedia. Silakan datang langsung ke sekretariat.
                 </p>
               )}
@@ -324,7 +324,7 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-extrabold text-rose-800">🚨 Laporkan Darurat</span>
-                    <span className="mt-0.5 block text-[11px] leading-relaxed text-rose-600">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-rose-600">
                       Kirim peringatan ke seluruh warga RT 004 seketika
                     </span>
                   </span>
@@ -353,13 +353,13 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
                   return (
                     <li key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${badgeClass}`}>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${badgeClass}`}>
                           {String(item.kategori).toUpperCase()}
                         </span>
-                        {periode && <span className="text-[10px] font-semibold text-slate-400">{periode}</span>}
+                        {periode && <span className="text-xs font-semibold text-slate-400">{periode}</span>}
                       </div>
                       <h3 className="mt-2.5 text-sm font-extrabold leading-snug text-white">{item.judul}</h3>
-                      <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-slate-300">{item.isi}</p>
+                      <p className="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-slate-300">{item.isi}</p>
                     </li>
                   );
                 })}
@@ -370,24 +370,24 @@ export const SapaWarga: React.FC<SapaWargaProps> = ({ config, onOpenLogin }) => 
           <section className="mt-12 grid gap-3 border-t border-white/10 pt-8 text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
-              <div><p className="text-xs font-bold text-white">Sekretariat</p><p className="mt-1 text-[11px] leading-relaxed">{alamat}</p></div>
+              <div><p className="text-xs font-bold text-white">Sekretariat</p><p className="mt-1 text-xs leading-relaxed">{alamat}</p></div>
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
-              <div><p className="text-xs font-bold text-white">Waktu Pelayanan</p><p className="mt-1 whitespace-pre-line text-[11px] leading-relaxed">{jamPelayanan || 'Hubungi pengurus untuk konfirmasi jadwal pelayanan.'}</p></div>
+              <div><p className="text-xs font-bold text-white">Waktu Pelayanan</p><p className="mt-1 whitespace-pre-line text-xs leading-relaxed">{jamPelayanan || 'Hubungi pengurus untuk konfirmasi jadwal pelayanan.'}</p></div>
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Phone className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-              <div><p className="text-xs font-bold text-white">Kontak Resmi</p><p className="mt-1 text-[11px] leading-relaxed">{kontak || 'Belum tersedia'}</p></div>
+              <div><p className="text-xs font-bold text-white">Kontak Resmi</p><p className="mt-1 text-xs leading-relaxed">{kontak || 'Belum tersedia'}</p></div>
             </div>
             <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Mail className="mt-0.5 h-5 w-5 shrink-0 text-violet-300" />
-              <div><p className="text-xs font-bold text-white">Email</p><p className="mt-1 break-all text-[11px] leading-relaxed">{email || 'Belum tersedia'}</p></div>
+              <div><p className="text-xs font-bold text-white">Email</p><p className="mt-1 break-all text-xs leading-relaxed">{email || 'Belum tersedia'}</p></div>
             </div>
           </section>
         </main>
 
-        <footer className="relative z-10 border-t border-white/10 px-4 py-5 text-center text-[11px] text-slate-500">
+        <footer className="relative z-10 border-t border-white/10 px-4 py-5 text-center text-xs text-slate-500">
           © {new Date().getFullYear()} RT {rt} RW {rw} Kelurahan {kelurahan}. Portal publik tidak menampilkan data pribadi warga.
         </footer>
         {isSubmissionOpen && <PublicSuratForm onClose={() => setIsSubmissionOpen(false)} />}

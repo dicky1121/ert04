@@ -326,14 +326,14 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setIsConfirmClearDummyOpen(true)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Kosongkan Dummy
             </button>
             <button
               onClick={() => setIsImportOpen(true)}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-2xs transition cursor-pointer flex items-center gap-1"
             >
               <ClipboardPaste className="w-3.5 h-3.5" />
               Salin & Tempel Data Asli
@@ -359,7 +359,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{cat.label}</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 isActive ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {cat.count}
@@ -377,7 +377,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
           placeholder="Cari berdasarkan Nama Lengkap, NIK 16 digit, Nomor KK, Pekerjaan..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs transition-all"
+          className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs transition-all"
         />
       </div>
 
@@ -398,10 +398,10 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredWarga.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={6} className="text-center py-10 text-slate-500">
                     <User className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                     <p className="font-semibold text-slate-600">Tidak ada data warga ditemukan</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Coba ubah filter atau kata kunci pencarian.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Coba ubah filter atau kata kunci pencarian.</p>
                   </td>
                 </tr>
               ) : (
@@ -413,7 +413,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                     <tr key={w.id} className="hover:bg-slate-50/80 transition">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[11px] shrink-0 ${
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                             w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
                           }`}>
                             {w.jenisKelamin}
@@ -422,7 +422,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                             <div className="font-bold text-slate-900 text-sm hover:text-emerald-700 cursor-pointer" onClick={() => handleOpenDetail(w)}>
                               {w.nama}
                             </div>
-                            <div className="font-mono text-slate-500 font-medium text-[11px]">
+                            <div className="font-mono text-slate-500 font-medium text-xs">
                               NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}
                             </div>
                           </div>
@@ -431,14 +431,14 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                       <td className="px-4 py-3.5">
                         <div className="font-semibold text-slate-800">{w.statusHubunganKK}</div>
-                        <div className="font-mono text-emerald-700 text-[11px]">
+                        <div className="font-mono text-emerald-700 text-xs">
                           KK: {isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}
                         </div>
                       </td>
 
                       <td className="px-4 py-3.5">
                         <div className="font-medium text-slate-900 font-mono text-xs">{formatDateDDMMYYYY(w.tanggalLahir)}</div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-xs text-slate-500">
                           {demo.usia} Tahun &bull; {w.tempatLahir && w.tempatLahir !== 'Bekasi' ? `${w.tempatLahir}, ` : ''}{w.pekerjaan || 'Wiraswasta'}
                         </div>
                       </td>
@@ -446,33 +446,33 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                       <td className="px-4 py-3.5 text-center">
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           {isLansia && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">
+                            <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">
                               Lansia ≥60
                             </span>
                           )}
                           {isBalita && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">
+                            <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">
                               Balita ≤5
                             </span>
                           )}
                           {w.isYatim && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">
+                            <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">
                               Yatim
                             </span>
                           )}
                           {w.statusBansos !== 'TIDAK_ADA' && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">
+                            <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">
                               {w.statusBansos}
                             </span>
                           )}
                           {!isLansia && !isBalita && !w.isYatim && w.statusBansos === 'TIDAK_ADA' && (
-                            <span className="text-[10px] text-slate-400">-</span>
+                            <span className="text-xs text-slate-500">-</span>
                           )}
                         </div>
                       </td>
 
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
                           w.statusTinggal === 'TETAP'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             : 'bg-blue-50 text-blue-800 border border-blue-200'
@@ -485,7 +485,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => onCreateSurat(w)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
+                            className="flex items-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
                             title="Buat Surat Pengantar"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -493,21 +493,21 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                           </button>
                           <button
                             onClick={() => handleOpenDetail(w)}
-                            className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
                             title="Detail Warga"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenEdit(w)}
-                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                            className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
                             title="Edit Data"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteWarga(w)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                             title="Hapus Data"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -591,27 +591,27 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
               <div className="bg-emerald-50/60 border border-emerald-200 p-3.5 rounded-xl">
                 <div className="font-bold text-emerald-950 text-xs mb-1.5">Klasifikasi Bantuan Sosial & Prioritas:</div>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-0.5 bg-white text-emerald-800 rounded border border-emerald-200 font-semibold text-[11px]">
+                  <span className="px-2 py-0.5 bg-white text-emerald-800 rounded border border-emerald-200 font-semibold text-xs">
                     Bansos: {currentWarga.statusBansos}
                   </span>
                   {currentWarga.isLansia && (
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-semibold text-[11px]">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-semibold text-xs">
                       Kategori Lansia
                     </span>
                   )}
                   {currentWarga.isBalita && (
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-900 rounded font-semibold text-[11px]">
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-900 rounded font-semibold text-xs">
                       Kategori Balita
                     </span>
                   )}
                   {currentWarga.isYatim && (
-                    <span className="px-2 py-0.5 bg-teal-100 text-teal-900 rounded font-semibold text-[11px]">
+                    <span className="px-2 py-0.5 bg-teal-100 text-teal-900 rounded font-semibold text-xs">
                       Anak Yatim / Piatu
                     </span>
                   )}
                 </div>
                 {currentWarga.keteranganBansos && (
-                  <p className="text-[11px] text-emerald-800 mt-2">
+                  <p className="text-xs text-emerald-800 mt-2">
                     Keterangan: {currentWarga.keteranganBansos}
                   </p>
                 )}
@@ -688,7 +688,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                       formErrors.nik ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nik && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.nik}</p>}
+                  {formErrors.nik && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nik}</p>}
                 </div>
 
                 {/* Nomor KK */}
@@ -706,7 +706,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                       formErrors.nomorKK ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nomorKK && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
+                  {formErrors.nomorKK && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
                 </div>
 
                 {/* Nama Lengkap */}
@@ -723,7 +723,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                       formErrors.nama ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nama && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.nama}</p>}
+                  {formErrors.nama && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nama}</p>}
                 </div>
 
                 {/* Jenis Kelamin */}
@@ -910,7 +910,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                     <span className="text-slate-700">Penyandang Disabilitas</span>
                   </label>
                 </div>
-                <p className="text-[10px] text-slate-500 italic">
+                <p className="text-xs text-slate-500 italic">
                   *Catatan: Kategori Lansia (≥60 tahun) dan Balita (≤5 tahun) dihitung secara otomatis oleh sistem dari tanggal lahir.
                 </p>
               </div>
@@ -978,7 +978,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
               <p>
                 Tindakan ini akan menghapus seluruh data contoh (dummy) warga dan kartu keluarga agar database RT 004 bersih dan siap diisi dengan data asli dari berkas Excel Anda.
               </p>
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800">
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
                 Setelah dibersihkan, Anda dapat mengunggah berkas spreadsheet warga RT 004 melalui tombol <strong>Impor Excel / CSV</strong>.
               </div>
             </div>

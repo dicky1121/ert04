@@ -140,7 +140,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'ALL_BANSOS' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">Total Penerima</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">Total Penerima</div>
           <div className="text-xl font-extrabold mt-1">{stats.totalBansos} <span className="text-xs font-normal">Jiwa</span></div>
         </div>
 
@@ -150,7 +150,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'PKH' ? 'bg-emerald-800 text-white border-emerald-800' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">Program PKH</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">Program PKH</div>
           <div className="text-xl font-extrabold mt-1 text-emerald-600">{stats.pkh} <span className="text-xs font-normal">KK</span></div>
         </div>
 
@@ -160,7 +160,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'BPNT' ? 'bg-blue-800 text-white border-blue-800' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">BPNT / Sembako</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">BPNT / Sembako</div>
           <div className="text-xl font-extrabold mt-1 text-blue-600">{stats.bpnt} <span className="text-xs font-normal">Jiwa</span></div>
         </div>
 
@@ -170,7 +170,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'LANSIA' ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">👵 Lansia (60+)</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">👵 Lansia (60+)</div>
           <div className="text-xl font-extrabold mt-1 text-amber-600">{stats.lansia} <span className="text-xs font-normal">Jiwa</span></div>
         </div>
 
@@ -180,7 +180,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'BALITA' ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">👶 Balita (0-5)</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">👶 Balita (0-5)</div>
           <div className="text-xl font-extrabold mt-1 text-purple-600">{stats.balita} <span className="text-xs font-normal">Anak</span></div>
         </div>
 
@@ -190,7 +190,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             selectedTab === 'YATIM' ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="text-[11px] font-semibold opacity-80 uppercase">🤲 Anak Yatim</div>
+          <div className="text-xs font-semibold opacity-80 uppercase">🤲 Anak Yatim</div>
           <div className="text-xl font-extrabold mt-1 text-teal-600">{stats.yatim} <span className="text-xs font-normal">Anak</span></div>
         </div>
       </div>
@@ -224,10 +224,10 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={6} className="text-center py-10 text-slate-500">
                     <HeartHandshake className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                     <p className="font-semibold text-slate-600">Tidak ada data warga di kategori ini</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Pilih tab lain atau periksa data warga.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Pilih tab lain atau periksa data warga.</p>
                   </td>
                 </tr>
               ) : (
@@ -237,27 +237,27 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
                     <tr key={w.id} className="hover:bg-slate-50/80 transition">
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-slate-900 text-sm">{w.nama}</div>
-                        <div className="font-mono text-slate-500 text-[11px]">
+                        <div className="font-mono text-slate-500 text-xs">
                           NIK: {w.nik}
                         </div>
                       </td>
 
                       <td className="px-4 py-3.5">
                         <div className="font-mono text-emerald-800 font-semibold">{w.nomorKK}</div>
-                        <div className="text-[11px] text-slate-500">{w.statusHubunganKK}</div>
+                        <div className="text-xs text-slate-500">{w.statusHubunganKK}</div>
                       </td>
 
                       <td className="px-4 py-3.5">
                         <div className="font-semibold text-slate-800">{demo.usia} Tahun ({w.jenisKelamin === 'L' ? 'L' : 'P'})</div>
                         <div className="flex items-center gap-1 mt-0.5">
-                          {(demo.isLansia || Boolean(w.isLansia)) && <span className="text-[10px] px-1.5 bg-amber-100 text-amber-800 rounded font-semibold">Lansia ≥60</span>}
-                          {(demo.isBalita || Boolean(w.isBalita)) && <span className="text-[10px] px-1.5 bg-purple-100 text-purple-800 rounded font-semibold">Balita ≤5</span>}
-                          {w.isYatim && <span className="text-[10px] px-1.5 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
+                          {(demo.isLansia || Boolean(w.isLansia)) && <span className="text-xs px-1.5 bg-amber-100 text-amber-800 rounded font-semibold">Lansia ≥60</span>}
+                          {(demo.isBalita || Boolean(w.isBalita)) && <span className="text-xs px-1.5 bg-purple-100 text-purple-800 rounded font-semibold">Balita ≤5</span>}
+                          {w.isYatim && <span className="text-xs px-1.5 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
                         </div>
                       </td>
 
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
                           w.statusBansos === 'PKH'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : w.statusBansos === 'BPNT'
@@ -277,7 +277,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
                       <td className="px-4 py-3.5 text-right">
                         <button
                           onClick={() => handleOpenEdit(w)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
+                          className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
                         >
                           Ubah Status Bansos
                         </button>

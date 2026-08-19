@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="font-bold text-xs text-emerald-800 mt-1 leading-none">
                 RT {config.namaRT || '004'} / RW {config.namaRW || '007'}
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 truncate leading-tight">
+              <p className="text-xs text-slate-500 mt-0.5 truncate leading-tight">
                 Kelurahan {config.kelurahan || 'Jatimulya'}
               </p>
             </div>
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+              className="lg:hidden p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
               aria-label="Tutup Sidebar"
             >
               <X className="w-4 h-4" />
@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="truncate">EWS Darurat</span>
               </div>
               {ewsBaruCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold text-[10px] shrink-0 animate-pulse">
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold text-xs shrink-0 animate-pulse">
                   {ewsBaruCount}
                 </span>
               )}
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-1">
             <button
               onClick={() => setIsDataWargaOpen(!isDataWargaOpen)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider transition cursor-pointer select-none"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider transition cursor-pointer select-none"
             >
               <span className="flex items-center gap-1.5">
                 <span>DATA WARGA</span>
@@ -246,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-1">
             <button
               onClick={() => setIsSettingOpen(!isSettingOpen)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider transition cursor-pointer select-none"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider transition cursor-pointer select-none"
             >
               <span>SETTING</span>
               {isSettingOpen ? (
@@ -271,7 +271,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="truncate">Template Surat Pengantar</span>
                   </div>
                   {pendingSuratCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] shrink-0">
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-xs shrink-0">
                       {pendingSuratCount}
                     </span>
                   )}
@@ -317,17 +317,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Bottom Database Status Block */}
         <div className="p-3 border-t border-slate-100 bg-slate-50/80">
           <div className="bg-white p-2.5 rounded-lg border border-slate-200 text-xs shadow-2xs space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
               <span className="flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-slate-500" />
                 Status Database
               </span>
-              <span className={`flex items-center gap-1 text-[10px] font-bold ${hasCloudSession ? 'text-emerald-700' : 'text-slate-500'}`}>
+              <span className={`flex items-center gap-1 text-xs font-bold ${hasCloudSession ? 'text-emerald-700' : 'text-slate-500'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${hasCloudSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
                 {hasCloudSession ? 'Terhubung' : 'Lokal'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-xs text-slate-500 truncate">
               {hasCloudSession ? 'Supabase Cloud Database' : 'Penyimpanan Lokal Browser'}
             </p>
           </div>

@@ -247,7 +247,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                 <h3 className="font-bold text-slate-900 text-base">
                   Impor & Sinkronisasi Data Kependudukan RT 004
                 </h3>
-                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-900 text-[11px] font-bold rounded-md border border-blue-200">
+                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-900 text-xs font-bold rounded-md border border-blue-200">
                   RT 004 / RW 007
                 </span>
               </div>
@@ -295,7 +295,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                 >
                   <ClipboardPaste className="w-4 h-4" />
                   <span>Salin & Tempel Pengontrak (Format 5 Kolom)</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                     activeImportTab === 'PENGONTRAK' ? 'bg-amber-800 text-amber-100' : 'bg-amber-100 text-amber-900'
                   }`}>
                     Khusus Kontrak
@@ -316,7 +316,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                 >
                   <UserCheck className="w-4 h-4" />
                   <span>Warga Tetap (Unggah Excel / Salin Tempel Biasa)</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                     activeImportTab === 'TETAP' ? 'bg-emerald-900 text-emerald-100' : 'bg-emerald-100 text-emerald-900'
                   }`}>
                     Warga Tetap
@@ -342,9 +342,9 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       </button>
                     </div>
                     <p className="text-xs text-slate-700 leading-relaxed">
-                      Salin baris data dari Excel, Google Sheets, WhatsApp, atau catatan pengontrak Anda, lalu tempelkan (<kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[11px]">Ctrl + V</kbd>) ke kotak di bawah.
+                      Salin baris data dari Excel, Google Sheets, WhatsApp, atau catatan pengontrak Anda, lalu tempelkan (<kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-xs">Ctrl + V</kbd>) ke kotak di bawah.
                     </p>
-                    <div className="p-3 bg-white rounded-xl border border-amber-300 font-mono text-[11px] text-amber-950 font-bold overflow-x-auto flex items-center gap-2">
+                    <div className="p-3 bg-white rounded-xl border border-amber-300 font-mono text-xs text-amber-950 font-bold overflow-x-auto flex items-center gap-2">
                       <span className="px-2.5 py-1 bg-amber-100 rounded-md text-amber-900 whitespace-nowrap">1. NO</span>
                       <span className="text-slate-400">&rarr;</span>
                       <span className="px-2.5 py-1 bg-amber-100 rounded-md text-amber-900 whitespace-nowrap">2. NAMA LENGKAP</span>
@@ -360,7 +360,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   <div className="space-y-2">
                     <label className="font-bold text-xs text-slate-800 flex items-center justify-between">
                       <span>Tempelkan Data Salinan Pengontrak:</span>
-                      <span className="text-[11px] font-normal text-slate-500">Pemisah tab/koma/titik-koma otomatis terdeteksi</span>
+                      <span className="text-xs font-normal text-slate-500">Pemisah tab/koma/titik-koma otomatis terdeteksi</span>
                     </label>
                     <textarea
                       value={pastedPengontrakText}
@@ -372,7 +372,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       *Toleran terhadap warga tanpa NIK (otomatis dibuatkan ID warga sementara & KK Kontrak RT 004).
                     </p>
                     <button
@@ -411,7 +411,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       <div className="font-bold text-slate-800 text-xs mb-1">
                         Unggah Berkas Excel (.xlsx / .xls / .csv)
                       </div>
-                      <p className="text-[11px] text-slate-500 max-w-xs">
+                      <p className="text-xs text-slate-500 max-w-xs">
                         Klik untuk memilih berkas data warga dari komputer Anda. Mendukung multi-sheet otomatis.
                       </p>
                     </div>
@@ -423,7 +423,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                           Template Master Excel Resmi RT 004
                         </div>
-                        <p className="text-[11px] text-emerald-800 leading-relaxed">
+                        <p className="text-xs text-emerald-800 leading-relaxed">
                           Gunakan format spreadsheet terstruktur lengkap dengan 3 Sheet terpisah: <strong>Data Warga Tetap</strong>, <strong>Data Pengontrak</strong>, dan <strong>Data Lansia RT 004</strong>.
                         </p>
                       </div>
@@ -461,7 +461,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       className="w-full p-4 font-mono text-xs border border-slate-300 rounded-2xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition leading-relaxed shadow-inner"
                     />
                     <div className="flex items-center justify-between pt-1">
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Format kolom standar: NO KELUARGA, NO KK, NIK, NAMA, JK, TGL LAHIR, NO HP, NO RM, ALAMAT
                       </p>
                       <button
@@ -546,10 +546,10 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           }`}
                         >
                           <span>{s.name}</span>
-                          <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md border ${roleBadge}`}>
+                          <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md border ${roleBadge}`}>
                             {s.inferredRole === 'TETAP' ? 'Warga Tetap' : s.inferredRole === 'KONTRAK' ? 'Pengontrak' : s.inferredRole === 'LANSIA' ? 'Lansia' : 'Diabaikan'}
                           </span>
-                          <span className="text-[11px] text-slate-400 font-mono">
+                          <span className="text-xs text-slate-500 font-mono">
                             ({s.parsedRowCount} baris)
                           </span>
                         </button>
@@ -565,7 +565,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           <div className="font-bold text-slate-900">
                             Konfigurasi Sheet: <span className="text-blue-700">"{currentSheetInfo.name}"</span>
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs text-slate-500">
                             Total {currentSheetInfo.totalRawRows} baris mentah di sheet ini.
                           </div>
                         </div>
@@ -733,53 +733,53 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
               {/* Statistics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-7 gap-2.5 text-xs">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <div className="text-slate-500 text-[11px]">Total Warga</div>
+                  <div className="text-slate-500 text-xs">Total Warga</div>
                   <div className="text-lg font-bold text-slate-900">{analysis.totalRows}</div>
-                  <div className="text-[10px] text-slate-400">Semua Kategori</div>
+                  <div className="text-xs text-slate-500">Semua Kategori</div>
                 </div>
 
                 <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
-                  <div className="text-emerald-700 text-[11px] font-semibold flex items-center gap-1">
+                  <div className="text-emerald-700 text-xs font-semibold flex items-center gap-1">
                     <UserCheck className="w-3 h-3" /> Warga Tetap
                   </div>
                   <div className="text-lg font-bold text-emerald-800">{analysis.wargaTetapCount}</div>
-                  <div className="text-[10px] text-emerald-600">KK & Domisili Tetap</div>
+                  <div className="text-xs text-emerald-600">KK & Domisili Tetap</div>
                 </div>
 
                 <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
-                  <div className="text-amber-700 text-[11px] font-semibold flex items-center gap-1">
+                  <div className="text-amber-700 text-xs font-semibold flex items-center gap-1">
                     <Building2 className="w-3 h-3" /> Pengontrak / Kost
                   </div>
                   <div className="text-lg font-bold text-amber-800">{analysis.pengontrakCount}</div>
-                  <div className="text-[10px] text-amber-600">Warga Tidak Tetap</div>
+                  <div className="text-xs text-amber-600">Warga Tidak Tetap</div>
                 </div>
 
                 <div className="bg-purple-50 p-3 rounded-xl border border-purple-200">
-                  <div className="text-purple-700 text-[11px] font-semibold flex items-center gap-1">
+                  <div className="text-purple-700 text-xs font-semibold flex items-center gap-1">
                     <HeartPulse className="w-3 h-3" /> Lansia (≥60 Thn)
                   </div>
                   <div className="text-lg font-bold text-purple-800">{analysis.lansiaCount}</div>
-                  <div className="text-[10px] text-purple-600">Sinkron Usia ≥ 60</div>
+                  <div className="text-xs text-purple-600">Sinkron Usia ≥ 60</div>
                 </div>
 
                 <div className="bg-pink-50 p-3 rounded-xl border border-pink-200">
-                  <div className="text-pink-700 text-[11px] font-semibold flex items-center gap-1">
+                  <div className="text-pink-700 text-xs font-semibold flex items-center gap-1">
                     <HeartPulse className="w-3 h-3 text-pink-500" /> Balita (≤5 Thn)
                   </div>
                   <div className="text-lg font-bold text-pink-800">{analysis.balitaCount || 0}</div>
-                  <div className="text-[10px] text-pink-600">Sinkron Usia ≤ 5</div>
+                  <div className="text-xs text-pink-600">Sinkron Usia ≤ 5</div>
                 </div>
 
                 <div className="bg-blue-50 p-3 rounded-xl border border-blue-200">
-                  <div className="text-blue-700 text-[11px] font-semibold">Tanpa NIK/KTP</div>
+                  <div className="text-blue-700 text-xs font-semibold">Tanpa NIK/KTP</div>
                   <div className="text-lg font-bold text-blue-800">{analysis.tanpaNikCount}</div>
-                  <div className="text-[10px] text-blue-600">Diterima (NIK Sem.)</div>
+                  <div className="text-xs text-blue-600">Diterima (NIK Sem.)</div>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <div className="text-slate-600 text-[11px] font-semibold">Sudah di DB</div>
+                  <div className="text-slate-600 text-xs font-semibold">Sudah di DB</div>
                   <div className="text-lg font-bold text-slate-800">{analysis.existingInDbCount}</div>
-                  <div className="text-[10px] text-slate-500">NIK Terdaftar</div>
+                  <div className="text-xs text-slate-500">NIK Terdaftar</div>
                 </div>
               </div>
 
@@ -828,7 +828,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                 <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
                   <button
                     onClick={() => setFilterMode('ALL')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -836,7 +836,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('TETAP')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'TETAP' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     }`}
                   >
@@ -844,7 +844,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('KONTRAK')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'KONTRAK' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                     }`}
                   >
@@ -852,7 +852,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('LANSIA')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'LANSIA' ? 'bg-purple-700 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                     }`}
                   >
@@ -860,7 +860,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('BALITA')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'BALITA' ? 'bg-pink-600 text-white' : 'bg-pink-50 text-pink-700 hover:bg-pink-100'
                     }`}
                   >
@@ -868,7 +868,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('NO_NIK')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'NO_NIK' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                     }`}
                   >
@@ -876,14 +876,14 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   </button>
                   <button
                     onClick={() => setFilterMode('EXISTING')}
-                    className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer ${
                       filterMode === 'EXISTING' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     Sudah di DB ({analysis.existingInDbCount})
                   </button>
                 </div>
-                <span className="text-[11px] text-slate-400 shrink-0">
+                <span className="text-xs text-slate-500 shrink-0">
                   Menampilkan {filteredRows.length} baris
                 </span>
               </div>
@@ -910,9 +910,9 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   <tbody className="divide-y divide-slate-100">
                     {filteredRows.map((row) => (
                       <tr key={row.rowNumber} className="hover:bg-slate-50/80">
-                        <td className="p-2.5 text-center text-slate-400 font-mono text-[11px]">{row.rowNumber}</td>
+                        <td className="p-2.5 text-center text-slate-500 font-mono text-xs">{row.rowNumber}</td>
                         <td className="p-2.5">
-                          <span className={`px-2 py-0.5 font-medium rounded text-[10px] ${
+                          <span className={`px-2 py-0.5 font-medium rounded text-xs ${
                             row.sheetOrigin === 'Data Warga Tetap' || row.statusTinggal === 'TETAP'
                               ? 'bg-emerald-50 text-emerald-800' 
                               : row.sheetOrigin === 'Data Pengontrak' || row.statusTinggal === 'KONTRAK'
@@ -924,72 +924,72 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                         </td>
                         <td className="p-2.5">
                           {row.tanpaNikKtp ? (
-                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded-full text-[10px] border border-blue-200 inline-flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded-full text-xs border border-blue-200 inline-flex items-center gap-1">
                               <Check className="w-3 h-3" /> NIK Sementara
                             </span>
                           ) : row.isExistingInDb ? (
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold rounded-full text-[10px] border border-amber-200 inline-flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold rounded-full text-xs border border-amber-200 inline-flex items-center gap-1">
                               Sudah di DB
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full text-[10px] border border-emerald-200 inline-flex items-center gap-1">
+                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full text-xs border border-emerald-200 inline-flex items-center gap-1">
                               <Check className="w-3 h-3" /> Valid
                             </span>
                           )}
                         </td>
-                        <td className="p-2.5 font-mono font-semibold text-slate-900 text-[11px]">
+                        <td className="p-2.5 font-mono font-semibold text-slate-900 text-xs">
                           {row.nik}
                         </td>
-                        <td className="p-2.5 font-mono font-semibold text-blue-900 text-[11px]">
+                        <td className="p-2.5 font-mono font-semibold text-blue-900 text-xs">
                           {row.nomorKK}
                         </td>
                         <td className="p-2.5 font-bold text-slate-900">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{row.nama}</span>
                             {row.isLansia && (
-                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded text-[10px] border border-purple-200">
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded text-xs border border-purple-200">
                                 Lansia ≥60
                               </span>
                             )}
                             {row.isBalita && (
-                              <span className="px-1.5 py-0.5 bg-pink-100 text-pink-800 font-bold rounded text-[10px] border border-pink-200">
+                              <span className="px-1.5 py-0.5 bg-pink-100 text-pink-800 font-bold rounded text-xs border border-pink-200">
                                 Balita ≤5
                               </span>
                             )}
                           </div>
                           {row.noKeluarga && (
-                            <div className="text-[10px] text-slate-400 font-normal font-mono">
+                            <div className="text-xs text-slate-500 font-normal font-mono">
                               Kel #{row.noKeluarga}
                             </div>
                           )}
                         </td>
                         <td className="p-2.5 font-semibold text-center">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                             row.jenisKelamin === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
                           }`}>
                             {row.jenisKelamin}
                           </span>
                         </td>
-                        <td className="p-2.5 text-slate-700 font-mono text-[11px]">
+                        <td className="p-2.5 text-slate-700 font-mono text-xs">
                           <div>{formatDateDDMMYYYY(row.tanggalLahir)}</div>
                           {row.tempatLahir && row.tempatLahir !== 'Bekasi' && (
-                            <div className="text-[10px] text-slate-400 font-sans">{row.tempatLahir}</div>
+                            <div className="text-xs text-slate-500 font-sans">{row.tempatLahir}</div>
                           )}
                         </td>
-                        <td className="p-2.5 text-slate-700 font-mono text-[11px]">
+                        <td className="p-2.5 text-slate-700 font-mono text-xs">
                           {row.nomorHp || '-'}
                         </td>
-                        <td className="p-2.5 text-slate-700 font-mono text-[11px]">
+                        <td className="p-2.5 text-slate-700 font-mono text-xs">
                           {row.noRumah || '-'}
                         </td>
                         <td className="p-2.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             row.statusTinggal === 'KONTRAK' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                           }`}>
                             {row.statusTinggal}
                           </span>
                         </td>
-                        <td className="p-2.5 text-slate-600 text-[11px] max-w-xs truncate" title={row.keteranganKhusus || row.alamat}>
+                        <td className="p-2.5 text-slate-600 text-xs max-w-xs truncate" title={row.keteranganKhusus || row.alamat}>
                           {row.keteranganKhusus || row.alamat}
                         </td>
                       </tr>

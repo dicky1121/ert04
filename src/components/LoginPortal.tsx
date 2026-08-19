@@ -212,7 +212,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               <BekasiLogo className="w-12 h-14" />
             </div>
             <div>
-              <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">Pemerintah Kabupaten Bekasi</div>
+              <div className="text-xs font-extrabold tracking-widest text-emerald-400 uppercase">Pemerintah Kabupaten Bekasi</div>
               <h1 className="text-base font-bold text-white tracking-tight">Kecamatan Tambun Selatan</h1>
               <p className="text-xs text-slate-300 font-medium">Kelurahan Jatimulya</p>
             </div>
@@ -248,7 +248,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
             </div>
             <div className="border-t border-white/10 pt-2 space-y-1">
               <span className="text-slate-400 font-medium block">Alamat Sekretariat :</span>
-              <span className="font-medium text-slate-200 text-[11px] block leading-relaxed" title={alamatDisplay}>
+              <span className="font-medium text-slate-200 text-xs block leading-relaxed" title={alamatDisplay}>
                 {alamatDisplay}
               </span>
             </div>
@@ -256,7 +256,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
         </div>
 
         {/* Footer security note */}
-        <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
           <span className="flex items-center gap-1">
             <Lock className="w-3.5 h-3.5 text-emerald-400" /> Akses Khusus Pengurus RT
           </span>
@@ -282,7 +282,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 onClick={onClose}
                 type="button"
                 aria-label="Kembali ke Sapa Warga"
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer text-xs font-semibold flex items-center gap-1"
+                className="p-2.5 text-slate-500 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer text-xs font-semibold flex items-center gap-1"
               >
                 <span>← Kembali</span>
               </button>
@@ -291,7 +291,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
           {/* Info mode login */}
           {cloudAuthAvailable ? (
-            <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-start gap-2">
+            <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
               <span>
                 Login terverifikasi server (Supabase Auth). Peran/jabatan Anda diambil otomatis dari data
@@ -299,7 +299,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               </span>
             </div>
           ) : (
-            <div className="mb-5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2">
+            <div className="mb-5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
               <span>
                 Mode offline/demo: data hanya tersimpan di perangkat ini dan PIN diverifikasi secara lokal.
@@ -337,7 +337,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                     }`}>
                       <IconComp className="w-3.5 h-3.5" />
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full truncate max-w-[100px] ${
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full truncate max-w-[100px] ${
                       isSelected ? styles.badge : 'bg-slate-100 text-slate-600'
                     }`}>
                       {acc.roleLabel || acc.role}
@@ -346,7 +346,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
                   <div>
                     <div className="font-bold text-xs text-slate-900 truncate">{acc.namaLengkap}</div>
-                    <p className="text-[10px] font-mono text-slate-500 truncate">@{acc.username}</p>
+                    <p className="text-xs font-mono text-slate-500 truncate">@{acc.username}</p>
                   </div>
                 </button>
               );
@@ -394,7 +394,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                   >
                     Lupa password?
                   </button>
@@ -433,7 +433,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 />
                 <span>Ingat sesi di perangkat ini</span>
               </label>
-              {!cloudAuthAvailable && <span className="text-slate-400 text-[11px]">Gunakan PIN lokal yang sudah Anda atur</span>}
+              {!cloudAuthAvailable && <span className="text-slate-500 text-xs">Gunakan PIN lokal yang sudah Anda atur</span>}
             </div>
 
             {infoMessage && (
@@ -479,7 +479,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           </form>
         </div>
 
-        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <span>Sistem Kependudukan RT 004 RW 007</span>
           <span>Kelurahan Jatimulya</span>
         </div>

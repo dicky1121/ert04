@@ -33,7 +33,7 @@ export const LambangBekasiLogo: React.FC<LogoProps> = ({
       />
 
       {showText && (
-        <div className="text-center font-extrabold text-slate-900 text-[11px] leading-tight uppercase mt-1">
+        <div className="text-center font-extrabold text-slate-900 text-xs leading-tight uppercase mt-1">
           KABUPATEN BEKASI
         </div>
       )}

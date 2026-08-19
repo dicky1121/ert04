@@ -80,10 +80,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
               <div>
                 <h3 className="font-extrabold text-sm text-white">Ganti Akses Pengurus RT</h3>
-                <p className="text-[11px] text-emerald-300">RT 004 RW 007 Kelurahan Jatimulya</p>
+                <p className="text-xs text-emerald-300">RT 004 RW 007 Kelurahan Jatimulya</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer">
+            <button onClick={onClose} className="text-slate-400 hover:text-white p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -115,9 +115,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div>
                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
                       <span>Ketua RT 004</span>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Admin Utama</span>
+                      <span className="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Admin Utama</span>
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Persetujuan surat pengantar, tanda tangan digital &amp; otorisasi sistem</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Persetujuan surat pengantar, tanda tangan digital &amp; otorisasi sistem</div>
                   </div>
                 </div>
                 {selectedRole === 'ADMIN_KETUA_RT' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
@@ -142,9 +142,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div>
                     <div className="font-bold text-slate-900 flex items-center gap-1.5">
                       <span>Sekretaris RT 004</span>
-                      <span className="text-[10px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">Sekretariat</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">Sekretariat</span>
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Pengelolaan data KK, pendaftaran warga, draf surat &amp; mutasi</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Pengelolaan data KK, pendaftaran warga, draf surat &amp; mutasi</div>
                   </div>
                 </div>
                 {selectedRole === 'ADMIN_SEKRETARIS' && <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" />}
@@ -167,7 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Peran akun ditentukan otomatis dari profil pengurus di server.
               </p>
             </div>

@@ -103,12 +103,12 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
           </p>
 
           <div className="mt-5 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">Nomor Tiket</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">Nomor Tiket</p>
             <p className="mt-1 break-all text-lg font-black tracking-tight text-emerald-900">{tiket}</p>
             <button
               type="button"
               onClick={handleCopy}
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             >
               <Copy className="h-3.5 w-3.5" />
               {isCopied ? 'Tersalin!' : 'Salin nomor tiket'}
@@ -116,7 +116,7 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
           </div>
 
           {error && (
-            <p role="alert" className="mt-3 text-[11px] font-semibold text-amber-700">
+            <p role="alert" className="mt-3 text-xs font-semibold text-amber-700">
               {error}
             </p>
           )}
@@ -147,7 +147,7 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
             <h2 id="pengaduan-title" className="mt-1 text-xl font-black tracking-tight text-slate-900">
               Lapor &amp; Pengaduan
             </h2>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
               Sampaikan keluhan atau kejadian di lingkungan. Data Anda hanya dibaca oleh pengurus.
             </p>
           </div>
@@ -240,13 +240,13 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
           </div>
 
           {error && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2.5 text-[11px] font-semibold text-rose-800">
+            <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-800">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </p>
           )}
 
-          <p className="flex items-start gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600">
+          <p className="flex items-start gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
             <MegaphoneOff className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
             Untuk keadaan darurat yang mengancam nyawa, hubungi langsung 112 atau pengurus lewat telepon.
           </p>

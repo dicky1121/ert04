@@ -226,10 +226,10 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredMutasi.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={6} className="text-center py-10 text-slate-500">
                     <History className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                     <p className="font-semibold text-slate-600">Belum ada riwayat mutasi penduduk</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Catat setiap perpindahan warga untuk laporan kelurahan yang akurat.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Catat setiap perpindahan warga untuk laporan kelurahan yang akurat.</p>
                   </td>
                 </tr>
               ) : (
@@ -241,7 +241,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                           {getIcon(item.jenisMutasi)}
                         </div>
                         <div>
-                          <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${getBadgeStyle(item.jenisMutasi)}`}>
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold border ${getBadgeStyle(item.jenisMutasi)}`}>
                             {item.jenisMutasi.replace('_', ' ')}
                           </span>
                         </div>
@@ -250,30 +250,30 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
 
                     <td className="px-4 py-3.5">
                       <div className="font-bold text-slate-900 text-sm">{item.namaWarga}</div>
-                      <div className="font-mono text-slate-500 text-[11px]">
+                      <div className="font-mono text-slate-500 text-xs">
                         NIK: {item.nikWarga}
                       </div>
-                      <div className="text-[10px] text-emerald-700 font-mono">
+                      <div className="text-xs text-emerald-700 font-mono">
                         KK: {item.nomorKK}
                       </div>
                     </td>
 
                     <td className="px-4 py-3.5 max-w-xs">
                       <div className="text-slate-800 font-medium">
-                        <span className="text-slate-400 text-[10px] block">Asal:</span>
+                        <span className="text-slate-500 text-xs block">Asal:</span>
                         {item.alamatAsal}
                       </div>
                       <div className="text-slate-800 font-medium mt-1">
-                        <span className="text-slate-400 text-[10px] block">Tujuan:</span>
+                        <span className="text-slate-500 text-xs block">Tujuan:</span>
                         {item.alamatTujuan}
                       </div>
                     </td>
 
                     <td className="px-4 py-3.5">
                       <div className="font-semibold text-slate-800">Peristiwa: {item.tanggalPeristiwa}</div>
-                      <div className="text-[11px] text-slate-500">Lapor: {item.tanggalLapor}</div>
+                      <div className="text-xs text-slate-500">Lapor: {item.tanggalLapor}</div>
                       {item.nomorSuratPindah && (
-                        <div className="font-mono text-[10px] text-emerald-800 mt-0.5">
+                        <div className="font-mono text-xs text-emerald-800 mt-0.5">
                           {item.nomorSuratPindah}
                         </div>
                       )}
@@ -282,7 +282,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                     <td className="px-4 py-3.5">
                       <div className="font-medium text-slate-800">{item.alasanMutasi}</div>
                       {item.keterangan && (
-                        <div className="text-[11px] text-slate-500 italic mt-0.5">
+                        <div className="text-xs text-slate-500 italic mt-0.5">
                           {item.keterangan}
                         </div>
                       )}
@@ -292,7 +292,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                       <button
                         onClick={() => handleDeleteMutasi(item)}
 
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                         title="Hapus Log"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -350,7 +350,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                       }`}
                     >
                       <m.icon className="w-4 h-4" />
-                      <span className="text-[11px]">{m.label}</span>
+                      <span className="text-xs">{m.label}</span>
                     </button>
                   ))}
                 </div>

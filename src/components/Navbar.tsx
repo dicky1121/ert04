@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-30">
       {/* Top Official Micro Bar */}
-      <div className="bg-slate-950 text-slate-300 px-4 sm:px-6 py-1.5 text-[11px] font-medium border-b border-slate-800">
+      <div className="bg-slate-950 text-slate-300 px-4 sm:px-6 py-1.5 text-xs font-medium border-b border-slate-800">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {pendingSuratCount > 0 && onSelectTab && (
               <button
                 onClick={() => onSelectTab('surat')}
-                className="flex items-center gap-1 text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer"
+                className="flex items-center gap-1 text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded text-xs font-medium transition cursor-pointer"
                 title="Ada surat pengantar menunggu verifikasi"
               >
                 <ShieldAlert className="w-3 h-3 text-amber-400" />
@@ -99,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
             
             {/* Auto-Sync Live Status indicator in micro bar */}
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300 font-mono text-[10px]">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300 font-mono text-xs">
               <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
               {isAutoSync ? 'Auto-Sync Cloud: Aktif' : hasCloudSession ? 'Cloud: Manual' : 'Penyimpanan Lokal'}
               {config.terakhirSinkron && (
@@ -117,11 +117,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-bold text-[11px] text-emerald-300 flex items-center gap-1">
+            <div className="font-bold text-xs text-emerald-300 flex items-center gap-1">
               <span>{syncToast.title}</span>
             </div>
             {syncToast.detail && (
-              <div className="text-[10px] text-slate-300 font-mono">{syncToast.detail}</div>
+              <div className="text-xs text-slate-300 font-mono">{syncToast.detail}</div>
             )}
           </div>
         </div>
@@ -135,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Hamburger Button for Mobile / Tablet */}
             <button
               onClick={onToggleMobileSidebar}
-              className="lg:hidden p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="lg:hidden p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
               aria-label="Buka Menu Navigasi"
             >
               <Menu className="w-5 h-5" />
@@ -162,10 +162,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="text"
                 readOnly
                 placeholder="Cari NIK, Nama Warga, No. KK, atau Surat... (Ctrl+K)"
-                className="w-full pl-9 pr-11 py-1.5 border border-slate-200 rounded-xl bg-slate-50 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-all hover:bg-white hover:border-slate-300 shadow-2xs"
+                className="w-full pl-9 pr-11 py-1.5 border border-slate-200 rounded-xl bg-slate-50 text-xs text-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-all hover:bg-white hover:border-slate-300 shadow-2xs"
               />
               <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                <kbd className="bg-white text-slate-400 px-1 py-0.5 rounded text-[10px] font-mono border border-slate-200 shadow-2xs">
+                <kbd className="bg-white text-slate-400 px-1 py-0.5 rounded text-xs font-mono border border-slate-200 shadow-2xs">
                   ⌘K
                 </kbd>
               </div>
@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile Search Button */}
             <button
               onClick={onOpenSearch}
-              className="md:hidden p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="md:hidden p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
               title="Cari Data"
             >
               <Search className="w-4 h-4" />
@@ -186,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Database status pill on desktop */}
             <div 
               onClick={() => onSelectTab && onSelectTab('integrasi')}
-              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] text-slate-600 cursor-pointer transition"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-600 cursor-pointer transition"
               title={isAutoSync ? 'Auto-Sync Supabase Cloud Aktif (Klik untuk Pengaturan)' : 'Sync Manual (Klik untuk Pengaturan)'}
             >
               <Database className="w-3 h-3 text-slate-400" />
@@ -197,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Notification Bell */}
             <button
               onClick={handleNotifClick}
-              className="relative p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
               title="Notifikasi"
             >
               <Bell className="w-4 h-4" />
@@ -212,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition cursor-pointer"
               title="Beralih Akun / Ganti Pengurus"
             >
-              <div className={`w-6 h-6 rounded-md text-white flex items-center justify-center text-[10px] font-bold ${
+              <div className={`w-6 h-6 rounded-md text-white flex items-center justify-center text-xs font-bold ${
                 currentUser.role === 'ADMIN_KETUA_RT'
                   ? 'bg-emerald-700'
                   : currentUser.role === 'ADMIN_SISTEM'
@@ -226,10 +226,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'SK'}
               </div>
               <div className="text-left hidden sm:block">
-                <p className="text-[11px] font-bold text-slate-800 leading-tight truncate max-w-[120px]">
+                <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">
                   {currentUser.nama.split(' ')[0]} {currentUser.nama.split(' ')[1] || ''}
                 </p>
-                <p className="text-[10px] font-medium text-slate-500 leading-tight">
+                <p className="text-xs font-medium text-slate-500 leading-tight">
                   {currentUser.role === 'ADMIN_KETUA_RT'
                     ? 'Ketua RT'
                     : currentUser.role === 'ADMIN_SISTEM'
@@ -243,11 +243,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-xs font-medium transition cursor-pointer"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-xs font-medium transition cursor-pointer"
                 title="Keluar dari Portal Kependudukan"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-[11px]">Keluar</span>
+                <span className="hidden sm:inline text-xs">Keluar</span>
               </button>
             )}
           </div>

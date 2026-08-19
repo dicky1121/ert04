@@ -375,7 +375,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
             placeholder="Cari Nomor Surat, Nama Pemohon, NIK, atau Keperluan..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
           />
         </div>
 
@@ -384,7 +384,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
                 filterStatus === status
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
@@ -392,7 +392,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
             >
               <span>{status === 'ALL' ? 'Semua Surat' : status === 'PENDING' ? 'Menunggu' : status === 'DISETUJUI' ? 'Disetujui' : 'Ditolak'}</span>
               {status === 'PENDING' && pendingCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px]">
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-xs">
                   {pendingCount}
                 </span>
               )}
@@ -405,7 +405,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-3">Nomor &amp; Judul Surat</th>
                 <th className="px-4 py-3">Nama &amp; NIK Pemohon</th>
@@ -421,7 +421,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   <td colSpan={6} className="text-center py-12 text-slate-400">
                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                     <p className="font-semibold text-slate-600">Tidak ada data surat pengantar</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Klik &quot;Buat Surat Pengantar Baru&quot; untuk mencetak surat format resmi.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Klik &quot;Buat Surat Pengantar Baru&quot; untuk mencetak surat format resmi.</p>
                   </td>
                 </tr>
               ) : (
@@ -429,25 +429,25 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   <tr key={surat.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-bold text-slate-900 text-xs">SURAT PENGANTAR</div>
-                      <div className="font-mono text-emerald-800 font-semibold text-[11px] mt-0.5">
+                      <div className="font-mono text-emerald-800 font-semibold text-xs mt-0.5">
                         NO : {surat.nomorSurat}
                       </div>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {surat.jenisSurat}
                       </span>
                     </td>
 
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-800">{surat.namaPemohon}</div>
-                      <div className="font-mono text-slate-500 text-[11px]">
+                      <div className="font-mono text-slate-500 text-xs">
                         NIK: {surat.nikPemohon}
                       </div>
                       {surat.teleponPemohon && (
-                        <div className="text-[10px] font-semibold text-emerald-700">
+                        <div className="text-xs font-semibold text-emerald-700">
                           WA: {surat.teleponPemohon}
                         </div>
                       )}
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-xs text-slate-500">
                         {surat.pekerjaanPemohon} &bull; {surat.statusKawinPemohon}
                       </div>
                     </td>
@@ -455,24 +455,24 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                     <td className="px-4 py-3 max-w-xs">
                       <div className="font-medium text-slate-900 line-clamp-1">{surat.keperluan}</div>
                       {surat.keteranganLain && (
-                        <div className="text-[11px] text-slate-500 font-medium">
+                        <div className="text-xs text-slate-500 font-medium">
                           {surat.keteranganLain}
                         </div>
                       )}
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                      <div className="text-xs text-slate-500 truncate mt-0.5">
                         {surat.alamatPemohon}
                       </div>
                     </td>
 
                     <td className="px-4 py-3 text-slate-600">
                       <div>Tgl: {surat.tanggalPengajuan ? formatDateDDMMYYYY(surat.tanggalPengajuan) : '-'}</div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-xs text-slate-500">
                         TTD: {surat.namaKetuaRT || config.namaKetuaRT || 'Yanto'}
                       </div>
                     </td>
 
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${
                         surat.status === 'DISETUJUI'
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           : surat.status === 'PENDING'
@@ -625,7 +625,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   <FileText className="w-4 h-4 text-blue-600 shrink-0" />
                   <span className="font-semibold">Format Tunggal Resmi: SURAT PENGANTAR RT 004 RW 007 (Kop &amp; Isian Sesuai Berkas Acuan)</span>
                 </div>
-                <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full border border-blue-300">
+                <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full border border-blue-300">
                   Standar Kelurahan Jatimulya
                 </span>
               </div>
@@ -636,7 +636,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   <label className="block font-bold text-slate-800 text-xs">
                     Pilih Data Warga untuk Auto-Fill Isian:
                   </label>
-                  <span className="text-[11px] text-emerald-700 font-medium">Auto-Isi Otomatis</span>
+                  <span className="text-xs text-emerald-700 font-medium">Auto-Isi Otomatis</span>
                 </div>
                 <select
                   value={selectedNik}
@@ -656,14 +656,14 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
               <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                 <h4 className="font-bold text-slate-900 text-xs border-b pb-2 flex items-center justify-between">
                   <span>Isian Data Surat Pengantar:</span>
-                  <span className="text-slate-500 font-normal font-mono text-[11px]">Format Word RT 004 RW 007</span>
+                  <span className="text-slate-500 font-normal font-mono text-xs">Format Word RT 004 RW 007</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Nomor Surat */}
                   <div className="sm:col-span-2">
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Nomor Surat <span className="text-slate-400 font-normal">(Contoh: 184 / RT 004 RW 007 / SP / 2026)</span>
+                      Nomor Surat <span className="text-slate-500 font-normal">(Contoh: 184 / RT 004 RW 007 / SP / 2026)</span>
                     </label>
                     <input
                       type="text"
@@ -691,7 +691,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   {/* Tempat Tgl Lahir */}
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Tempat Tgl Lahir <span className="text-slate-400 font-normal">(Contoh: Solo, 04-05-1962)</span>
+                      Tempat Tgl Lahir <span className="text-slate-500 font-normal">(Contoh: Solo, 04-05-1962)</span>
                     </label>
                     <input
                       type="text"
@@ -718,7 +718,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   {/* Status Perkawinan */}
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Status Perkawinan <span className="text-slate-400 font-normal">(Cerai Mati / Kawin / Belum Kawin / Cerai Hidup)</span>
+                      Status Perkawinan <span className="text-slate-500 font-normal">(Cerai Mati / Kawin / Belum Kawin / Cerai Hidup)</span>
                     </label>
                     <input
                       type="text"
@@ -771,7 +771,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   {/* Telepon / Hp */}
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Telepon / Hp <span className="text-slate-400 font-normal">(Default: -)</span>
+                      Telepon / Hp <span className="text-slate-500 font-normal">(Default: -)</span>
                     </label>
                     <input
                       type="text"
@@ -792,7 +792,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                     <button
                       type="button"
                       onClick={handleResetAlamat}
-                      className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold underline cursor-pointer"
+                      className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold underline cursor-pointer"
                     >
                       Reset ke Default RT
                     </button>
@@ -800,7 +800,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-medium">Baris 1:</span>
+                      <span className="text-xs text-slate-500 font-medium">Baris 1:</span>
                       <input
                         type="text"
                         value={alamatBaris1}
@@ -809,7 +809,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 font-medium">Baris 2:</span>
+                      <span className="text-xs text-slate-500 font-medium">Baris 2:</span>
                       <input
                         type="text"
                         value={alamatBaris2}
@@ -828,7 +828,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-medium">Keperluan Baris 1 (Pokok):</span>
+                      <span className="text-xs text-slate-500 font-medium">Keperluan Baris 1 (Pokok):</span>
                       <input
                         type="text"
                         placeholder="Contoh: Membuat Akta Kematian"
@@ -839,7 +839,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 font-medium">Keperluan Baris 2 (Tanggal / Rincian Tambahan):</span>
+                      <span className="text-xs text-slate-500 font-medium">Keperluan Baris 2 (Tanggal / Rincian Tambahan):</span>
                       <input
                         type="text"
                         placeholder="Contoh: 04 Nopember 2017"

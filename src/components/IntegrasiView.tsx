@@ -299,10 +299,10 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Supabase Database Cloud</h3>
-                <p className="text-[11px] text-slate-500">Penyimpanan kependudukan real-time & backup cloud</p>
+                <p className="text-xs text-slate-500">Penyimpanan kependudukan real-time & backup cloud</p>
               </div>
             </div>
-            <span className={`text-[10px] px-2.5 py-1 font-bold rounded-full border ${
+            <span className={`text-xs px-2.5 py-1 font-bold rounded-full border ${
               hasCloudSession
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-amber-50 text-amber-800 border-amber-200'
@@ -315,7 +315,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
             {/* Project Indicator Banner */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <div className="text-[11px] text-slate-500 font-medium">Supabase Project Ref:</div>
+                <div className="text-xs text-slate-500 font-medium">Supabase Project Ref:</div>
                 <div className="font-mono font-bold text-slate-800 text-xs flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full inline-block ${currentProjectRef ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
                   {currentProjectRef || 'Belum dikonfigurasi'}
@@ -326,7 +326,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   href={apiSettingsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-200 text-[11px] shadow-2xs transition"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-200 text-xs shadow-2xs transition"
                 >
                   <ExternalLink className="w-3 h-3 text-emerald-600" />
                   Ambil Anon API Key
@@ -335,7 +335,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   href={sqlEditorUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-200 text-[11px] shadow-2xs transition"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-200 text-xs shadow-2xs transition"
                 >
                   <ExternalLink className="w-3 h-3 text-emerald-600" />
                   Buka SQL Editor
@@ -354,7 +354,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 onChange={(e) => handleUrlChange(e.target.value)}
                 className="w-full p-2.5 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 *Dapat berupa URL HTTPS (contoh: <code>https://{currentProjectRef || '<project-ref>'}.supabase.co</code>) atau URI PostgreSQL pooler.
               </p>
             </div>
@@ -366,7 +366,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   href={apiSettingsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold underline flex items-center gap-0.5"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold underline flex items-center gap-0.5"
                 >
                   Cari di Project Settings &gt; API
                   <ExternalLink className="w-2.5 h-2.5" />
@@ -394,16 +394,16 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     Otomatis Sinkron (Auto-Sync Cloud)
                     {autoSyncEnabled ? (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
                         Aktif
                       </span>
                     ) : (
-                      <span className="text-[10px] bg-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-full">
                         Non-Aktif
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-slate-600 mt-0.5">
+                  <div className="text-xs text-slate-600 mt-0.5">
                     Setiap penambahan atau update data warga & KK baru akan langsung otomatis tersinkron ke database Supabase Cloud.
                   </div>
                 </div>
@@ -469,7 +469,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 <div>
                   <div className="font-bold">{pullResult.message}</div>
                   {pullResult.counts && (
-                    <div className="text-[11px] text-blue-800 mt-1 flex flex-wrap gap-2">
+                    <div className="text-xs text-blue-800 mt-1 flex flex-wrap gap-2">
                       <span className="bg-white/80 px-2 py-0.5 rounded border border-blue-200">Warga: {pullResult.counts.warga}</span>
                       <span className="bg-white/80 px-2 py-0.5 rounded border border-blue-200">KK: {pullResult.counts.kk}</span>
                       <span className="bg-white/80 px-2 py-0.5 rounded border border-blue-200">Surat: {pullResult.counts.surat}</span>
@@ -531,7 +531,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   </div>
                 </div>
 
-                <pre className="text-[10px] font-mono overflow-x-auto max-h-56 p-3 bg-slate-950 rounded-lg border border-slate-800 text-slate-300 whitespace-pre">
+                <pre className="text-xs font-mono overflow-x-auto max-h-56 p-3 bg-slate-950 rounded-lg border border-slate-800 text-slate-300 whitespace-pre">
                   {sqlTab === 'data' 
                     ? supabaseService.generateDataInsertSQL(wargaList, kkList)
                     : supabaseService.generateSQLSchema()
@@ -561,7 +561,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                       <span>Unduh CSV KK (kartu_keluarga_rt004.csv)</span>
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-xs text-slate-400">
                     *Tarik dan lepas (drag &amp; drop) berkas CSV di atas ke menu <strong>Table Editor &gt; warga_rt004</strong> di Supabase Anda untuk memasukkan data secara instan.
                   </p>
                 </div>
@@ -579,10 +579,10 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Spreadsheet & Drive Backup</h3>
-                <p className="text-[11px] text-slate-500">Ekspor/impor Excel multi-sheet (.xlsx) dan Google Drive</p>
+                <p className="text-xs text-slate-500">Ekspor/impor Excel multi-sheet (.xlsx) dan Google Drive</p>
               </div>
             </div>
-            <span className="text-[10px] px-2.5 py-1 bg-teal-50 text-teal-700 font-bold rounded-full border border-teal-200">
+            <span className="text-xs px-2.5 py-1 bg-teal-50 text-teal-700 font-bold rounded-full border border-teal-200">
               Excel / Sheets Ready
             </span>
           </div>
@@ -597,7 +597,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 <FileDown className="w-4 h-4 text-teal-700" />
                 Ekspor Master Data ke Spreadsheet:
               </div>
-              <p className="text-[11px] text-teal-800">
+              <p className="text-xs text-teal-800">
                 Unduh seluruh data kependudukan RT 004 RW 007 dalam 1 berkas Excel lengkap untuk arsip kelurahan atau dibuka di Google Sheets / Google Drive.
               </p>
               <button
@@ -614,7 +614,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 <FileUp className="w-4 h-4 text-slate-600" />
                 Impor Data dari Spreadsheet:
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Unggah file Excel hasil sensus atau formulir warga untuk memasukkan data secara massal ke dalam sistem.
               </p>
               <input
@@ -648,10 +648,10 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">{cloudAuthEnabled ? 'Ganti Password Cloud' : 'Ganti Cepat PIN Pengurus'}</h3>
-                  <p className="text-[11px] text-slate-500">{cloudAuthEnabled ? 'Perbarui password akun Supabase yang sedang login' : 'Perbarui PIN keamanan login pengurus aktif'}</p>
+                  <p className="text-xs text-slate-500">{cloudAuthEnabled ? 'Perbarui password akun Supabase yang sedang login' : 'Perbarui PIN keamanan login pengurus aktif'}</p>
                 </div>
               </div>
-              <span className="text-[10px] px-2.5 py-1 bg-amber-50 text-amber-800 font-bold rounded-full border border-amber-200">
+              <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-800 font-bold rounded-full border border-amber-200">
                 Auth Guard
               </span>
             </div>
@@ -752,7 +752,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">Privasi Data (UU PDP No. 27/2022)</h3>
-                    <p className="text-[11px] text-slate-500">Sensor otomatis digit NIK &amp; Nomor KK</p>
+                    <p className="text-xs text-slate-500">Sensor otomatis digit NIK &amp; Nomor KK</p>
                   </div>
                 </div>
                 <button
@@ -781,7 +781,7 @@ export const IntegrasiView: React.FC<IntegrasiViewProps> = ({
                   <Trash2 className="w-5 h-5 text-rose-600" />
                   <h3 className="font-bold text-rose-950 text-sm">Bersihkan Data Demo (Database Bersih)</h3>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 bg-rose-100 text-rose-800 font-bold rounded-full">
+                <span className="text-xs px-2 py-0.5 bg-rose-100 text-rose-800 font-bold rounded-full">
                   Maintenance
                 </span>
               </div>

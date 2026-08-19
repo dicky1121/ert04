@@ -71,7 +71,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                   Lokasi komponen
                 </p>
-                <pre className="text-[11px] bg-slate-100 text-slate-600 rounded-xl p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
+                <pre className="text-xs bg-slate-100 text-slate-600 rounded-xl p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
                   {info.trim()}
                 </pre>
               </div>

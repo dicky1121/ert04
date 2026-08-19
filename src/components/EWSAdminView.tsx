@@ -350,7 +350,7 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
                     <span className="text-xl leading-none" aria-hidden>{jenis.emoji}</span>
                     <div className="min-w-0">
                       <span className="text-sm font-bold text-slate-900 truncate block">{jenis.label}</span>
-                      <span className="text-[11px] text-slate-400 font-mono truncate block">{laporan.id}</span>
+                      <span className="text-xs text-slate-500 font-mono truncate block">{laporan.id}</span>
                     </div>
                   </div>
                   <span className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${meta.badgeClass}`}>
@@ -407,7 +407,7 @@ export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {
                           key={s}
                           disabled={isActive || isUpdating}
                           onClick={() => handleUpdateStatus(laporan.id, s)}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold transition ${
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold transition ${
                             isActive
                               ? sm.badgeClass + ' cursor-default'
                               : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40'

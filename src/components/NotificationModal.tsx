@@ -55,14 +55,14 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-900">Notifikasi Kependudukan RT</h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 {unreadList.length > 0 ? `${unreadList.length} notifikasi baru perlu ditinjau` : 'Semua notifikasi sudah dibaca'}
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/60 transition"
+            className="p-1 text-slate-500 hover:text-slate-600 rounded-lg hover:bg-slate-200/60 transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -94,7 +94,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             <div className="text-center py-12 text-slate-400 text-xs">
               <Bell className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
               <p className="font-semibold text-slate-600">Belum ada notifikasi</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Pemberitahuan permohonan surat & mutasi akan tampil di sini.
               </p>
             </div>
@@ -128,10 +128,10 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                       <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                     {notif.pesan}
                   </p>
-                  <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between">
+                  <div className="text-xs text-slate-500 mt-1.5 flex items-center justify-between">
                     <span>{notif.timestamp}</span>
                     <span className="text-emerald-700 font-medium hover:underline">Buka & Periksa &rarr;</span>
                   </div>

@@ -75,7 +75,7 @@ export const LayananSuratView: React.FC<LayananSuratViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] shrink-0">
+            <div className="flex items-center gap-2 text-xs shrink-0">
               <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-semibold">
                 {suratList.length} Dokumen
               </span>
@@ -117,12 +117,12 @@ export const LayananSuratView: React.FC<LayananSuratViewProps> = ({
                           {item.label}
                         </span>
                         {item.badge ? (
-                          <span className="px-1.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold shrink-0">
+                          <span className="px-1.5 rounded-full bg-amber-400 text-slate-950 text-xs font-bold shrink-0">
                             {item.badge}
                           </span>
                         ) : null}
                       </span>
-                      <span className="block text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      <span className="block text-xs text-slate-500 mt-0.5 leading-snug">
                         {item.desc}
                       </span>
                     </span>

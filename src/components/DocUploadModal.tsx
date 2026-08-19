@@ -273,7 +273,7 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
             <div className="font-bold text-sm text-slate-800">
               {isLoading ? 'Sedang mengekstrak isi berkas...' : 'Klik atau Tarik File Word (.docx / .doc) ke Sini'}
             </div>
-            <p className="text-[11px] text-slate-500 max-w-md">
+            <p className="text-xs text-slate-500 max-w-md">
               Sistem akan mengekstrak struktur kop surat, teks pembuka, urutan kolom titik dua pemohon, dan bagian tanda tangan sebagai acuan otomatis.
             </p>
           </div>
@@ -307,26 +307,26 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
                 <button
                   type="button"
                   onClick={handleResetToStandard}
-                  className="text-[10px] text-slate-500 hover:text-rose-600 font-semibold underline cursor-pointer"
+                  className="text-xs text-slate-500 hover:text-rose-600 font-semibold underline cursor-pointer"
                 >
                   Hapus &amp; Reset ke Standar
                 </button>
               </div>
 
               {/* Grid of detected elements */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                  <span className="font-bold text-slate-700 block text-[10px] uppercase text-slate-400">
+                  <span className="font-bold text-slate-700 block text-xs uppercase">
                     Kop Surat Terdeteksi
                   </span>
                   <div className="font-bold text-slate-900">{extractedResult.detectedHeaders.rtRw}</div>
                   <div className="text-slate-600">{extractedResult.detectedHeaders.kelurahan}</div>
                   <div className="text-slate-600">{extractedResult.detectedHeaders.kecamatan}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{extractedResult.detectedHeaders.sekretariat}</div>
+                  <div className="text-xs text-slate-500 truncate">{extractedResult.detectedHeaders.sekretariat}</div>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
-                  <span className="font-bold text-slate-700 block text-[10px] uppercase text-slate-400">
+                  <span className="font-bold text-slate-700 block text-xs uppercase">
                     Tanda Tangan Pengesahan
                   </span>
                   <div className="font-semibold text-slate-800">
@@ -340,14 +340,14 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
 
               {/* Detected Fields Chips */}
               <div>
-                <span className="font-bold text-slate-700 block text-[10px] uppercase text-slate-400 mb-1.5">
+                <span className="font-bold text-slate-700 block text-xs uppercase mb-1.5">
                   Kolom Isian Pemohon yang Dikenali ({extractedResult.detectedFields.length}):
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {extractedResult.detectedFields.map((field, idx) => (
                     <span 
                       key={idx}
-                      className="px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-[10px] font-semibold flex items-center gap-1"
+                      className="px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1"
                     >
                       <CheckCircle2 className="w-2.5 h-2.5 text-blue-600" />
                       {field}
@@ -359,11 +359,11 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
           )}
 
           {/* Format Explanation Info Box */}
-          <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-200/60 flex items-start gap-2.5 text-[11px] text-blue-950">
+          <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-200/60 flex items-start gap-2.5 text-xs text-blue-950">
             <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Format Acuan Otomatis Aktif:</p>
-              <p className="text-slate-600 text-[10px] mt-0.5">
+              <p className="text-slate-600 text-xs mt-0.5">
                 Setiap surat pengantar baru yang dibuat dan dicetak akan secara otomatis mengikuti urutan isian data, teks kop, dan perataan titik dua sesuai dengan dokumen acuan Anda.
               </p>
             </div>

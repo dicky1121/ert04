@@ -87,7 +87,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
             <h2 id="lacak-pengajuan-title" className="mt-1 text-xl font-black tracking-tight text-slate-900">
               Lacak Status Pengajuan
             </h2>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
               Masukkan nomor referensi dari tanda terima pengajuan beserta NIK pemohon.
             </p>
           </div>
@@ -135,7 +135,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
           </div>
 
           {error && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2.5 text-[11px] font-semibold text-rose-800">
+            <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-800">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </p>
@@ -153,7 +153,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
 
         <div aria-live="polite">
           {hasil && !hasil.ditemukan && (
-            <p className="mt-5 rounded-xl bg-slate-100 px-3.5 py-3 text-[11px] font-semibold leading-relaxed text-slate-700">
+            <p className="mt-5 rounded-xl bg-slate-100 px-3.5 py-3 text-xs font-semibold leading-relaxed text-slate-700">
               {hasil.pesan || 'Pengajuan tidak ditemukan. Periksa kembali nomor referensi dan NIK yang Anda masukkan.'}
             </p>
           )}
@@ -165,7 +165,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
                 {meta.label}
               </div>
 
-              <dl className="space-y-2 text-[11px] leading-relaxed">
+              <dl className="space-y-2 text-xs leading-relaxed">
                 <div className="flex justify-between gap-3">
                   <dt className="font-semibold text-slate-500">Nomor Referensi</dt>
                   <dd className="text-right font-bold text-slate-900">{hasil.referensi || '-'}</dd>

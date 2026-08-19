@@ -112,31 +112,31 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="text-slate-500 text-[11px]">Total Aktivitas Tercatat</div>
+          <div className="text-slate-500 text-xs">Total Aktivitas Tercatat</div>
           <div className="text-xl font-bold text-slate-900 mt-1">{logs.length}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Seluruh sesi admin</div>
+          <div className="text-xs text-slate-500 mt-0.5">Seluruh sesi admin</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="text-emerald-700 text-[11px] font-semibold">Operasi Sukses</div>
+          <div className="text-emerald-700 text-xs font-semibold">Operasi Sukses</div>
           <div className="text-xl font-bold text-emerald-800 mt-1">
             {logs.filter(l => l.status === 'SUKSES').length}
           </div>
-          <div className="text-[10px] text-emerald-600 mt-0.5">Tervalidasi sempurna</div>
+          <div className="text-xs text-emerald-600 mt-0.5">Tervalidasi sempurna</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="text-amber-700 text-[11px] font-semibold">Peringatan / Warning</div>
+          <div className="text-amber-700 text-xs font-semibold">Peringatan / Warning</div>
           <div className="text-xl font-bold text-amber-800 mt-1">
             {logs.filter(l => l.status === 'PERINGATAN').length}
           </div>
-          <div className="text-[10px] text-amber-600 mt-0.5">Perlu perhatian</div>
+          <div className="text-xs text-amber-600 mt-0.5">Perlu perhatian</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="text-blue-700 text-[11px] font-semibold">Admin Aktif Saat Ini</div>
+          <div className="text-blue-700 text-xs font-semibold">Admin Aktif Saat Ini</div>
           <div className="text-sm font-bold text-slate-900 mt-1 truncate">{currentUser.nama}</div>
-          <div className="text-[10px] text-blue-600 mt-0.5">{currentUser.role}</div>
+          <div className="text-xs text-blue-600 mt-0.5">{currentUser.role}</div>
         </div>
       </div>
 
@@ -149,14 +149,14 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
             placeholder="Cari berdasarkan aktivitas, nama admin, target NIK/Nomor Surat..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
           />
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
           <button
             onClick={() => setSelectedStatus('ALL')}
-            className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
+            className={`px-3.5 py-2 rounded-full font-semibold transition ${
               selectedStatus === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -164,7 +164,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
           </button>
           <button
             onClick={() => setSelectedStatus('SUKSES')}
-            className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
+            className={`px-3.5 py-2 rounded-full font-semibold transition ${
               selectedStatus === 'SUKSES' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
             }`}
           >
@@ -172,7 +172,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
           </button>
           <button
             onClick={() => setSelectedStatus('PERINGATAN')}
-            className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
+            className={`px-3.5 py-2 rounded-full font-semibold transition ${
               selectedStatus === 'PERINGATAN' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
             }`}
           >
@@ -180,7 +180,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
           </button>
           <button
             onClick={() => setSelectedStatus('GAGAL')}
-            className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
+            className={`px-3.5 py-2 rounded-full font-semibold transition ${
               selectedStatus === 'GAGAL' ? 'bg-rose-700 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
             }`}
           >
@@ -208,7 +208,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
               {filteredLogs.length > 0 ? (
                 filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50 transition">
-                    <td className="p-3.5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                    <td className="p-3.5 text-slate-500 font-mono text-xs whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>{log.timestamp}</span>
@@ -216,14 +216,14 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
                     </td>
                     <td className="p-3.5">
                       <div className="font-semibold text-slate-900">{log.adminNama}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{log.adminRole}</div>
+                      <div className="text-xs text-slate-500 font-mono">{log.adminRole}</div>
                     </td>
                     <td className="p-3.5">
-                      <span className="font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                      <span className="font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs">
                         {log.aktivitas}
                       </span>
                     </td>
-                    <td className="p-3.5 font-mono text-slate-700 text-[11px]">
+                    <td className="p-3.5 font-mono text-slate-700 text-xs">
                       {log.target}
                     </td>
                     <td className="p-3.5 text-slate-600 leading-relaxed">
@@ -231,17 +231,17 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
                     </td>
                     <td className="p-3.5 text-center">
                       {log.status === 'SUKSES' && (
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full text-[10px] border border-emerald-200 inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full text-xs border border-emerald-200 inline-flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> Berhasil
                         </span>
                       )}
                       {log.status === 'PERINGATAN' && (
-                        <span className="px-2.5 py-1 bg-amber-50 text-amber-700 font-bold rounded-full text-[10px] border border-amber-200 inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-amber-50 text-amber-700 font-bold rounded-full text-xs border border-amber-200 inline-flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> Warning
                         </span>
                       )}
                       {log.status === 'GAGAL' && (
-                        <span className="px-2.5 py-1 bg-rose-50 text-rose-700 font-bold rounded-full text-[10px] border border-rose-200 inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-rose-50 text-rose-700 font-bold rounded-full text-xs border border-rose-200 inline-flex items-center gap-1">
                           <XCircle className="w-3 h-3" /> Gagal
                         </span>
                       )}
@@ -250,7 +250,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="p-8 text-center text-slate-500 text-xs">
                     Tidak ada catatan aktivitas yang sesuai dengan filter pencarian.
                   </td>
                 </tr>

@@ -711,7 +711,7 @@ export default function App() {
           <div>
             &copy; {new Date().getFullYear()} <strong>RT {rtConfig.namaRT} RW {rtConfig.namaRW}</strong> Kelurahan {rtConfig.kelurahan}, Kecamatan {rtConfig.kecamatan}.
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+          <div className="flex items-center gap-3 text-xs text-slate-500">
             <span>Supabase Cloud Ready</span>
             <span>&bull;</span>
             <span>Excel / Spreadsheet Export</span>

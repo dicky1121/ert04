@@ -144,14 +144,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Warga</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Warga</p>
             <Users className="w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-baseline space-x-1.5 mt-2">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{stats.totalJiwa}</h2>
             <span className="text-xs text-slate-500 font-medium">Jiwa</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between text-xs text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
             <span>♂ {stats.totalLaki} Laki-laki</span>
             <span>♀ {stats.totalPerempuan} Perempuan</span>
           </div>
@@ -163,14 +163,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Kartu Keluarga (KK)</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kartu Keluarga (KK)</p>
             <Home className="w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-baseline space-x-1.5 mt-2">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{stats.totalKK}</h2>
             <span className="text-xs text-slate-500 font-medium">KK Aktif</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between text-xs text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
             <span>{stats.wargaTetap} Warga Tetap</span>
             <span>{stats.wargaKontrak} Kontrak</span>
           </div>
@@ -182,7 +182,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Lansia &amp; Balita</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lansia &amp; Balita</p>
             <Baby className="w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-baseline space-x-1.5 mt-2">
@@ -191,7 +191,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </h2>
             <span className="text-xs text-slate-500 font-medium">Jiwa</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between text-xs text-slate-500 mt-2.5 pt-2 border-t border-slate-100">
             <span>Lansia: {stats.lansiaCount}</span>
             <span>Balita: {stats.balitaCount}</span>
           </div>
@@ -203,14 +203,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Surat Pengantar</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Surat Pengantar</p>
             <FileText className="w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-baseline space-x-1.5 mt-2">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{suratList.length}</h2>
             <span className="text-xs text-slate-500 font-medium">Dokumen</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] mt-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between text-xs mt-2.5 pt-2 border-t border-slate-100">
             <span className={stats.pendingSurat.length > 0 ? 'text-amber-700 font-semibold' : 'text-slate-500'}>
               {stats.pendingSurat.length} Menunggu
             </span>
@@ -223,7 +223,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Akses Cepat Administrasi</h3>
-          <span className="text-[11px] text-slate-500">Pintasan Layanan RT</span>
+          <span className="text-xs text-slate-500">Pintasan Layanan RT</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <button
@@ -235,7 +235,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="font-bold text-xs text-slate-800">Tambah Warga</div>
-              <div className="text-[10px] text-slate-500">Input data identitas & NIK</div>
+              <div className="text-xs text-slate-500">Input data identitas & NIK</div>
             </div>
           </button>
 
@@ -248,7 +248,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="font-bold text-xs text-slate-800">Surat Pengantar</div>
-              <div className="text-[10px] text-slate-500">Buat & cetak format A4</div>
+              <div className="text-xs text-slate-500">Buat & cetak format A4</div>
             </div>
           </button>
 
@@ -261,7 +261,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="font-bold text-xs text-slate-800">Data Kartu Keluarga</div>
-              <div className="text-[10px] text-slate-500">Input No. KK & Kepala Keluarga</div>
+              <div className="text-xs text-slate-500">Input No. KK & Kepala Keluarga</div>
             </div>
           </button>
 
@@ -274,7 +274,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="font-bold text-xs text-slate-800">Cetak Surat</div>
-              <div className="text-[10px] text-slate-500">Daftar arsip siap cetak</div>
+              <div className="text-xs text-slate-500">Daftar arsip siap cetak</div>
             </div>
           </button>
         </div>
@@ -287,7 +287,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-4 sm:p-4.5 border-b border-slate-100 flex justify-between items-center">
             <div>
               <h3 className="font-bold text-slate-900 text-xs sm:text-sm">Antrean Surat Pengantar RT</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Daftar permohonan surat pengantar dari warga</p>
+              <p className="text-xs text-slate-500 mt-0.5">Daftar permohonan surat pengantar dari warga</p>
             </div>
             <button 
               onClick={() => onNavigateTab('surat')}
@@ -300,12 +300,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="flex-1 p-2 sm:p-3 overflow-x-auto">
             {suratList.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400">
+              <div className="py-12 text-center text-xs text-slate-500">
                 Belum ada permohonan surat pengantar.
               </div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="text-[10px] text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                <thead className="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-100">
                   <tr className="h-8">
                     <th className="px-3 font-semibold">Nama Pemohon</th>
                     <th className="px-3 font-semibold">Keperluan</th>
@@ -319,25 +319,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <tr key={surat.id} className="h-11 hover:bg-slate-50 transition-colors">
                       <td className="px-3 font-medium text-slate-800">
                         <div>{surat.namaPemohon}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">NIK: {surat.nikPemohon}</div>
+              <div className="text-xs text-slate-500 font-mono">NIK: {surat.nikPemohon}</div>
                       </td>
                       <td className="px-3 text-slate-600 max-w-[180px] truncate">
                         {surat.keperluan || surat.judulSurat}
                       </td>
-                      <td className="px-3 text-slate-500 whitespace-nowrap text-[11px]">
+                      <td className="px-3 text-slate-500 whitespace-nowrap text-xs">
                         {surat.tanggalPengajuan}
                       </td>
                       <td className="px-3">
                         {surat.status === 'PENDING' ? (
-                          <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[10px] font-semibold inline-block">
+                          <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-xs font-semibold inline-block">
                             Menunggu
                           </span>
                         ) : surat.status === 'DISETUJUI' ? (
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[10px] font-semibold inline-block">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-xs font-semibold inline-block">
                             Disetujui
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 bg-rose-50 text-rose-800 border border-rose-200 rounded text-[10px] font-semibold inline-block">
+                          <span className="px-2 py-0.5 bg-rose-50 text-rose-800 border border-rose-200 rounded text-xs font-semibold inline-block">
                             Ditolak
                           </span>
                         )}
@@ -347,14 +347,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           {surat.status === 'PENDING' && (
                             <button
                               onClick={() => onApproveSurat(surat.id)}
-                              className="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] px-2.5 py-1 rounded font-medium transition cursor-pointer"
+                              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer"
                             >
                               Setujui
                             </button>
                           )}
                           <button
                             onClick={() => onNavigateTab('surat', surat.id)}
-                            className="bg-slate-900 hover:bg-slate-800 text-white text-[10px] px-2.5 py-1 rounded font-medium transition cursor-pointer"
+                            className="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded font-medium transition cursor-pointer"
                           >
                             Cetak
                           </button>
@@ -372,7 +372,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col">
           <div className="p-4 sm:p-4.5 border-b border-slate-100">
             <h3 className="font-bold text-slate-900 text-xs sm:text-sm">Riwayat &amp; Notifikasi RT</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Pembaruan data kependudukan terkini</p>
+            <p className="text-xs text-slate-500 mt-0.5">Pembaruan data kependudukan terkini</p>
           </div>
 
           <div className="flex-1 p-4 space-y-3.5">
@@ -381,12 +381,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-1 bg-slate-400 rounded-full shrink-0"></div>
               <div>
                 <p className="text-xs font-semibold text-slate-800">Pembaruan KK RT 004</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Tercatat {stats.totalKK} Kartu Keluarga aktif di lingkungan RT 004 RW 007 Jatimulya.
                 </p>
                 <button 
                   onClick={() => onNavigateTab('kk')}
-                  className="text-[10px] text-slate-700 hover:text-slate-900 font-semibold mt-1 block cursor-pointer"
+                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold mt-1 block cursor-pointer"
                 >
                   Buka Data KK &rarr;
                 </button>
@@ -398,12 +398,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-1 bg-amber-500 rounded-full shrink-0"></div>
               <div>
                 <p className="text-xs font-semibold text-slate-800">Laporan Mutasi Penduduk</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   {mutasiList.length > 0 ? `${mutasiList[0].namaWarga} - ${mutasiList[0].jenisMutasi.replace('_', ' ')}` : 'Belum ada mutasi baru bulan ini.'}
                 </p>
                 <button 
                   onClick={() => onNavigateTab('mutasi')}
-                  className="text-[10px] text-slate-700 hover:text-slate-900 font-semibold mt-1 block cursor-pointer"
+                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold mt-1 block cursor-pointer"
                 >
                   Riwayat Pindah &rarr;
                 </button>
@@ -417,7 +417,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-700 mx-auto mb-1" />
               <p className="text-xs text-slate-700 font-semibold">Unduh Spreadsheet Data Warga</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Format Excel lengkap multi-sheet (.xlsx)</p>
+              <p className="text-xs text-slate-500 mt-0.5">Format Excel lengkap multi-sheet (.xlsx)</p>
             </div>
           </div>
         </div>

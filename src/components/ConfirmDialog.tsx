@@ -85,7 +85,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             onClick={() => onResolve(false)}
             aria-label="Tutup dialog"
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
+            className="p-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

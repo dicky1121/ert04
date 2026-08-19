@@ -311,10 +311,10 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredKK.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={6} className="text-center py-10 text-slate-500">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
                     <p className="font-semibold text-slate-600">Tidak ada data Kartu Keluarga</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian Anda.</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Coba sesuaikan kata kunci pencarian Anda.</p>
                   </td>
                 </tr>
               ) : (
@@ -328,7 +328,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                     <tr key={kk.id} className="hover:bg-slate-50/80 transition">
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-slate-900 text-sm">{kk.kepalaKeluargaNama}</div>
-                        <div className="font-mono text-emerald-700 font-semibold text-[11px] mt-0.5">
+                        <div className="font-mono text-emerald-700 font-semibold text-xs mt-0.5">
                           No. KK: {isPrivacyMasked ? maskKK(kk.nomorKK) : kk.nomorKK}
                         </div>
                       </td>
@@ -337,12 +337,12 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="font-medium text-slate-800">{kk.alamat}</div>
-                        <div className="text-[11px] text-slate-500 font-semibold">
+                        <div className="text-xs text-slate-500 font-semibold">
                           {kk.blokRumah || 'RT 004 RW 007'} &bull; Pos: {kk.kodePos}
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
                           kk.statusDomisili === 'TETAP'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : kk.statusDomisili === 'KONTRAK'
@@ -357,23 +357,23 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                           <span>{memberCount} Jiwa</span>
                         </div>
                         <div className="flex items-center justify-center gap-1 mt-1">
-                          {hasLansia && <span className="text-[10px] px-1 bg-amber-100 text-amber-800 rounded font-semibold">Lansia</span>}
-                          {hasBalita && <span className="text-[10px] px-1 bg-purple-100 text-purple-800 rounded font-semibold">Balita</span>}
-                          {hasYatim && <span className="text-[10px] px-1 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
+                          {hasLansia && <span className="text-xs px-1 bg-amber-100 text-amber-800 rounded font-semibold">Lansia</span>}
+                          {hasBalita && <span className="text-xs px-1 bg-purple-100 text-purple-800 rounded font-semibold">Balita</span>}
+                          {hasYatim && <span className="text-xs px-1 bg-teal-100 text-teal-800 rounded font-semibold">Yatim</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenDetail(kk)}
-                            className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
                             title="Lihat Anggota Keluarga"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenEdit(kk)}
-                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                            className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
                             title="Edit KK"
                           >
                             <Edit className="w-4 h-4" />
@@ -381,7 +381,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                           <button
                             onClick={() => handleDeleteKK(kk)}
 
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                             title="Hapus KK"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -450,7 +450,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
               <div className="space-y-2">
                 {currentKK.anggota?.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Belum ada anggota keluarga yang tercatat.</p>
+                  <p className="text-xs text-slate-500 italic">Belum ada anggota keluarga yang tercatat.</p>
                 ) : (
                   currentKK.anggota?.map((member, idx) => {
                     const demo = calculateDemographics(member.tanggalLahir);
@@ -468,31 +468,31 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-slate-900 text-sm">{member.nama}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
+                              <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
                                 {member.statusHubunganKK}
                               </span>
                               {(demo.isLansia || Boolean(member.isLansia)) && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold">
+                                <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold">
                                   Lansia ≥60 ({demo.usia} thn)
                                 </span>
                               )}
                               {(demo.isBalita || Boolean(member.isBalita)) && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded font-semibold">
+                                <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded font-semibold">
                                   Balita ≤5 ({demo.usia} thn)
                                 </span>
                               )}
                               {member.isYatim && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded font-semibold">
+                                <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded font-semibold">
                                   Yatim
                                 </span>
                               )}
                               {member.statusBansos !== 'TIDAK_ADA' && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">
+                                <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">
                                   Bansos: {member.statusBansos}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-1">
+                            <div className="text-xs text-slate-500 mt-1">
                               NIK: <span className="font-mono text-slate-800 font-semibold">{member.nik}</span> &bull; Tanggal Lahir: <span className="font-mono font-semibold text-slate-700">{formatDateDDMMYYYY(member.tanggalLahir)}</span> ({demo.usia} Tahun) {member.tempatLahir && member.tempatLahir !== 'Bekasi' ? `&bull; Tempat: ${member.tempatLahir} ` : ''}&bull; Pekerjaan: {member.pekerjaan || '-'}
                             </div>
                           </div>
@@ -504,7 +504,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                               setIsDetailOpen(false);
                               onCreateSuratForWarga(member);
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition cursor-pointer border border-emerald-200"
+                            className="flex items-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition cursor-pointer border border-emerald-200"
                           >
                             <FileText className="w-3.5 h-3.5" />
                             Buat Surat
@@ -519,7 +519,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
             {/* Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-              <span className="text-[11px] text-slate-500">
+              <span className="text-xs text-slate-500">
                 Pembaruan Terakhir: {currentKK.tanggalUpdate || currentKK.tanggalTerbit}
               </span>
               <button
@@ -576,7 +576,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                       formErrors.nomorKK ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nomorKK && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
+                  {formErrors.nomorKK && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
                 </div>
 
                 {/* Status Domisili */}
@@ -609,7 +609,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                       formErrors.kepalaKeluargaNama ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.kepalaKeluargaNama && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNama}</p>}
+                  {formErrors.kepalaKeluargaNama && <p className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNama}</p>}
                 </div>
 
                 {/* NIK Kepala Keluarga */}
@@ -627,7 +627,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                       formErrors.kepalaKeluargaNik ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.kepalaKeluargaNik && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNik}</p>}
+                  {formErrors.kepalaKeluargaNik && <p className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNik}</p>}
                 </div>
               </div>
 

@@ -615,7 +615,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   <Sparkles className="w-4 h-4 text-emerald-600" />
                   <h3 className="font-bold text-slate-900 text-sm">Ambil Data Warga Otomatis</h3>
                 </div>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
                   {wargaList.length} Warga Terdaftar
                 </span>
               </div>
@@ -649,7 +649,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     >
                       <div>
                         <div className="font-semibold text-slate-900">{w.nama}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">
+                        <div className="text-xs text-slate-500 font-mono">
                           NIK: {w.nik} &bull; {w.statusHubunganKK || 'Warga'} &bull; {w.jenisKelamin === 'P' ? 'Perempuan' : 'Laki-Laki'}
                         </div>
                       </div>
@@ -659,7 +659,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     </button>
                   ))}
                   {filteredWarga.length === 0 && (
-                    <div className="p-3 text-center text-xs text-slate-400">
+                    <div className="p-3 text-center text-xs text-slate-500">
                       Warga tidak ditemukan.
                     </div>
                   )}
@@ -681,7 +681,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                         setKeperluan2(item.line2);
                         showToast(`Keperluan diubah ke: ${item.label}`);
                       }}
-                      className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-700 transition cursor-pointer"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition cursor-pointer"
                     >
                       {item.label}
                     </button>
@@ -691,13 +691,13 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
               {/* Editable Citizen Form fields */}
               <div className="space-y-2.5 pt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
-                <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <div className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <span>Isian Data Pemohon (Bisa Diedit Langsung)</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Nama Pemohon:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Nama Pemohon:</label>
                     <input
                       type="text"
                       value={namaPemohon}
@@ -707,7 +707,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Tempat Tgl Lahir:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Tempat Tgl Lahir:</label>
                     <input
                       type="text"
                       value={tempatTglLahir}
@@ -717,7 +717,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Jenis Kelamin:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Jenis Kelamin:</label>
                     <input
                       type="text"
                       value={jenisKelamin}
@@ -727,7 +727,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Status Perkawinan:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Status Perkawinan:</label>
                     <input
                       type="text"
                       value={statusKawin}
@@ -737,7 +737,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Agama:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Agama:</label>
                     <input
                       type="text"
                       value={agama}
@@ -747,7 +747,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">No Ktp / No Nik:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">No Ktp / No Nik:</label>
                     <input
                       type="text"
                       value={nikPemohon}
@@ -757,7 +757,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Pekerjaan:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Pekerjaan:</label>
                     <input
                       type="text"
                       value={pekerjaan}
@@ -767,7 +767,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Telepon / HP:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Telepon / HP:</label>
                     <input
                       type="text"
                       value={telepon}
@@ -777,7 +777,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Alamat Lengkap (Baris 1):</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Alamat Lengkap (Baris 1):</label>
                     <input
                       type="text"
                       value={alamatBaris1}
@@ -787,7 +787,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Alamat Lengkap (Baris 2):</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Alamat Lengkap (Baris 2):</label>
                     <input
                       type="text"
                       value={alamatBaris2}
@@ -797,7 +797,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Keperluan (Baris 1):</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Keperluan (Baris 1):</label>
                     <input
                       type="text"
                       value={keperluan1}
@@ -807,7 +807,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Keperluan (Baris 2 / Tambahan):</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-0.5">Keperluan (Baris 2 / Tambahan):</label>
                     <input
                       type="text"
                       value={keperluan2}
@@ -865,7 +865,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     </div>
                     <div>
                       <div className="font-bold text-xs text-slate-900">Resmi Bekasi</div>
-                      <div className="text-[10px] text-slate-500">Lambang Daerah</div>
+                      <div className="text-xs text-slate-500">Lambang Daerah</div>
                     </div>
                   </button>
 
@@ -888,7 +888,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     </div>
                     <div>
                       <div className="font-bold text-xs text-slate-900">Unggah Logo</div>
-                      <div className="text-[10px] text-slate-500">PNG, JPG, SVG</div>
+                      <div className="text-xs text-slate-500">PNG, JPG, SVG</div>
                     </div>
                   </button>
                 </div>
@@ -912,7 +912,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                       Pilih Berkas Gambar Baru...
                     </button>
                     {logoName && (
-                      <span className="text-[11px] text-slate-500 font-mono truncate">
+                      <span className="text-xs text-slate-500 font-mono truncate">
                         {logoName}
                       </span>
                     )}
@@ -976,7 +976,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </label>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Baris 1 (Instansi / Kabupaten):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Baris 1 (Instansi / Kabupaten):</label>
                   <input
                     type="text"
                     value={kopInstansiAtas}
@@ -986,7 +986,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Baris 2 (RT & RW):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Baris 2 (RT & RW):</label>
                   <input
                     type="text"
                     value={kopTeksRT}
@@ -996,7 +996,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Baris 3 (Kelurahan):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Baris 3 (Kelurahan):</label>
                   <input
                     type="text"
                     value={kopKelurahan}
@@ -1006,7 +1006,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Baris 4 (Kecamatan):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Baris 4 (Kecamatan):</label>
                   <input
                     type="text"
                     value={kopKecamatan}
@@ -1016,7 +1016,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Baris 5 (Sekretariat & Kontak):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Baris 5 (Sekretariat & Kontak):</label>
                   <input
                     type="text"
                     value={kopSekretariatText}
@@ -1040,7 +1040,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
               <div className="space-y-2.5 text-xs">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Judul Surat (Tengah):</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Judul Surat (Tengah):</label>
                   <input
                     type="text"
                     value={judulSurat}
@@ -1050,7 +1050,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Format Nomor Surat:</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Format Nomor Surat:</label>
                   <input
                     type="text"
                     value={nomorSurat}
@@ -1060,7 +1060,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Kalimat Pembuka:</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Kalimat Pembuka:</label>
                   <textarea
                     rows={2}
                     value={kalimatPembuka}
@@ -1070,7 +1070,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Kalimat Penutup:</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-0.5">Kalimat Penutup:</label>
                   <textarea
                     rows={2}
                     value={kalimatPenutup}
@@ -1086,7 +1086,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                   
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Lokasi Tanggal:</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-0.5">Lokasi Tanggal:</label>
                       <input
                         type="text"
                         value={lokasiSurat}
@@ -1095,7 +1095,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Tanggal Dokumen:</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-0.5">Tanggal Dokumen:</label>
                       <input
                         type="text"
                         value={tanggalSurat}
@@ -1105,7 +1105,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Ketua RT (Kiri):</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-0.5">Ketua RT (Kiri):</label>
                       <input
                         type="text"
                         value={namaKetuaRT}
@@ -1115,7 +1115,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Mengetahui RW (Kanan):</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-0.5">Mengetahui RW (Kanan):</label>
                       <input
                         type="text"
                         value={namaKetuaRW}
@@ -1138,7 +1138,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Jenis Font</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jenis Font</label>
                   <select
                     value={fontFamily}
                     onChange={(e) => setFontFamily(e.target.value as NonNullable<RTConfig['suratFontFamily']>)}
@@ -1212,7 +1212,7 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-sans text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+              <span className="text-xs font-sans text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                 {fontFamily} &bull; {bodyFontSizePt} pt &bull; {lineHeight}x
               </span>
               <button
