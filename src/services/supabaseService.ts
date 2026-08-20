@@ -20,7 +20,13 @@ import {
   StatusEWS,
   StatusPendaftaranWarga,
   StatusPengajuanPublik,
+  StatusUmkm,
   SuratPengantar,
+  UmkmToko,
+  UmkmProduk,
+  UmkmVarian,
+  UmkmTokoInput,
+  UmkmProdukInput,
   Warga
 } from '../types';
 
@@ -207,6 +213,52 @@ const fromKegiatanRow = (r: CloudRow): Kegiatan => ({
   dipublikasikan: r.dipublikasikan !== false,
   createdAt: r.created_at || ''
 });
+
+// ── UMKM mini-marketplace: pemetaan baris DB → tipe aplikasi ──────────────────
+const fromVarianRow = (r: CloudRow): UmkmVarian => ({
+  id: String(r.id || ''),
+  produkId: String(r.produk_id || ''),
+  namaVarian: r.nama_varian || '',
+  harga: Number(r.harga) || 0,
+  tersedia: r.tersedia !== false,
+  urutan: Number(r.urutan) || 0
+});
+
+const fromProdukRow = (r: CloudRow): UmkmProduk => {
+  const varianRaw = Array.isArray(r.umkm_varian_rt004) ? r.umkm_varian_rt004 : [];
+  return {
+    id: String(r.id || ''),
+    umkmId: String(r.umkm_id || ''),
+    namaProduk: r.nama_produk || '',
+    deskripsi: r.deskripsi || '',
+    harga: Number(r.harga) || 0,
+    fotoUrl: r.foto_url || null,
+    tersedia: r.tersedia !== false,
+    urutan: Number(r.urutan) || 0,
+    varian: varianRaw.map(fromVarianRow).sort((a, b) => a.urutan - b.urutan)
+  };
+};
+
+const fromTokoRow = (r: CloudRow, currentUid?: string | null): UmkmToko => {
+  const produkRaw = Array.isArray(r.umkm_produk_rt004) ? r.umkm_produk_rt004 : [];
+  const ownerUid = String(r.owner_uid || '');
+  return {
+    id: String(r.id || ''),
+    ownerUid,
+    namaUsaha: r.nama_usaha || '',
+    kategori: r.kategori || 'Lainnya',
+    deskripsi: r.deskripsi || '',
+    fotoUrl: r.foto_url || null,
+    kontakWa: r.kontak_wa || '',
+    alamat: r.alamat || '',
+    status: (['PENDING', 'VERIFIED', 'DITOLAK'].includes(r.status) ? r.status : 'PENDING') as StatusUmkm,
+    catatanAdmin: r.catatan_admin || null,
+    reviewedAt: r.reviewed_at || null,
+    createdAt: r.created_at || '',
+    produk: produkRaw.map(fromProdukRow).sort((a, b) => a.urutan - b.urutan),
+    milikSaya: currentUid ? ownerUid === currentUid : false
+  };
+};
 
 const toKKRow = (k: KartuKeluarga): CloudRow => ({
   id: k.id,
@@ -2455,6 +2507,280 @@ ON CONFLICT (id) DO NOTHING;
       .subscribe();
 
     return () => { void client.removeChannel(channel); };
+  }
+
+  // ===================================================================
+  // UMKM WARGA — mini-marketplace (etalase bersama + kelola milik sendiri)
+  // ===================================================================
+
+  private readonly UMKM_SELECT = '*, umkm_produk_rt004(*, umkm_varian_rt004(*))';
+
+  /**
+   * Etalase bersama: semua lapak berstatus VERIFIED beserta produk & varian.
+   * Terlihat oleh semua warga login (RLS). `milikSaya` ditandai untuk lapak
+   * milik pengguna aktif.
+   */
+  public async fetchUmkmEtalase(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const uid = authState.getUserId();
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .eq('status', 'VERIFIED')
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat etalase UMKM: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Lapak milik pengguna aktif (semua status) untuk panel "Toko Saya". */
+  public async fetchUmkmSaya(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    const uid = authState.getUserId();
+    if (!uid) return { data: [], error: 'Sesi login tidak ditemukan.' };
+
+    try {
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .eq('owner_uid', uid)
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat lapak Anda: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Semua lapak (semua status) untuk panel admin — RLS membuka akses admin. */
+  public async fetchUmkmAdmin(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const uid = authState.getUserId();
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data UMKM: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan lapak (tambah bila `input.id` kosong, ubah bila terisi). Foto
+   * diunggah ke bucket `umkm-foto`. Status verifikasi TIDAK dikirim dari sini
+   * — dikunci trigger `umkm_guard` (lapak baru non-admin selalu PENDING).
+   */
+  public async simpanToko(
+    input: UmkmTokoInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const fotoUrl = await this.uploadFotoUmkm(client, input.fotoFile, input.fotoUrl ?? null, 'toko');
+      if (fotoUrl.error) return { success: false, error: fotoUrl.error };
+
+      const payload = {
+        nama_usaha: input.namaUsaha.trim(),
+        kategori: input.kategori || 'Lainnya',
+        deskripsi: (input.deskripsi || '').trim(),
+        kontak_wa: (input.kontakWa || '').trim(),
+        alamat: (input.alamat || '').trim(),
+        foto_url: fotoUrl.url
+      };
+
+      if (input.id) {
+        const { error } = await client.from('umkm_rt004').update(payload).eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .insert({ ...payload, owner_uid: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Lapak tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus lapak (produk & varian ikut terhapus via ON DELETE CASCADE). */
+  public async hapusToko(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('umkm_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Verifikasi / tolak lapak (admin). Hanya admin yang lolos trigger
+   * `umkm_guard` untuk mengubah kolom status.
+   */
+  public async verifikasiToko(
+    id: string,
+    status: 'VERIFIED' | 'DITOLAK',
+    catatan?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client
+        .from('umkm_rt004')
+        .update({
+          status,
+          catatan_admin: catatan?.trim() || null,
+          reviewed_by: authState.getUserId(),
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Simpan produk beserta variannya sekaligus. Varian di-*replace* penuh
+   * (hapus semua varian lama produk → sisipkan daftar terbaru) agar sinkron
+   * dengan form tanpa perlu diffing.
+   */
+  public async simpanProduk(
+    input: UmkmProdukInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const fotoUrl = await this.uploadFotoUmkm(client, input.fotoFile, input.fotoUrl ?? null, 'produk');
+      if (fotoUrl.error) return { success: false, error: fotoUrl.error };
+
+      const payload = {
+        umkm_id: input.umkmId,
+        nama_produk: input.namaProduk.trim(),
+        deskripsi: (input.deskripsi || '').trim(),
+        harga: Number(input.harga) || 0,
+        foto_url: fotoUrl.url,
+        tersedia: input.tersedia,
+        urutan: input.urutan ?? 0
+      };
+
+      let produkId = input.id;
+      if (produkId) {
+        const { error } = await client.from('umkm_produk_rt004').update(payload).eq('id', produkId);
+        if (error) return { success: false, error: error.message };
+      } else {
+        const { data, error } = await client
+          .from('umkm_produk_rt004')
+          .insert(payload)
+          .select('id')
+          .single();
+        if (error) return { success: false, error: error.message };
+        produkId = data?.id ? String(data.id) : undefined;
+      }
+      if (!produkId) return { success: false, error: 'ID produk tidak diperoleh.' };
+
+      // Replace penuh daftar varian.
+      const { error: delErr } = await client.from('umkm_varian_rt004').delete().eq('produk_id', produkId);
+      if (delErr) return { success: false, error: `Gagal memperbarui varian: ${delErr.message}` };
+
+      const varianBersih = (input.varian || []).filter((v) => v.namaVarian.trim());
+      if (varianBersih.length > 0) {
+        const rows = varianBersih.map((v, i) => ({
+          produk_id: produkId,
+          nama_varian: v.namaVarian.trim(),
+          harga: Number(v.harga) || 0,
+          tersedia: v.tersedia,
+          urutan: i
+        }));
+        const { error: insErr } = await client.from('umkm_varian_rt004').insert(rows);
+        if (insErr) return { success: false, error: `Gagal menyimpan varian: ${insErr.message}` };
+      }
+      return { success: true, id: produkId };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Produk tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus produk (varian ikut terhapus via ON DELETE CASCADE). */
+  public async hapusProduk(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('umkm_produk_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Subscribe realtime lapak UMKM — antrean verifikasi admin auto-refresh. */
+  public subscribeUmkmRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('umkm-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'umkm_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  /** Unggah satu foto ke bucket `umkm-foto`; kembalikan URL publik atau error. */
+  private async uploadFotoUmkm(
+    client: SupabaseClient,
+    file: File | null | undefined,
+    fallbackUrl: string | null,
+    prefix: 'toko' | 'produk'
+  ): Promise<{ url: string | null; error?: string }> {
+    if (!file) return { url: fallbackUrl };
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { data, error } = await client.storage
+      .from('umkm-foto')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+    if (error) return { url: fallbackUrl, error: `Gagal mengunggah foto: ${error.message}` };
+    if (data) {
+      const { data: urlData } = client.storage.from('umkm-foto').getPublicUrl(data.path);
+      return { url: urlData?.publicUrl || fallbackUrl };
+    }
+    return { url: fallbackUrl };
   }
 
   public initAutoSyncListener() {

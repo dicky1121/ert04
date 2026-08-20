@@ -509,6 +509,112 @@ export interface KegiatanInput {
   fotoUrl?: string | null;  // foto lama dipertahankan saat edit
 }
 
+// =====================================================================
+// UMKM WARGA (mini-marketplace, checkout via WhatsApp) — Portal Warga Terpadu
+// =====================================================================
+
+export type StatusUmkm = 'PENDING' | 'VERIFIED' | 'DITOLAK';
+
+/** Kategori lapak UMKM (label bebas, dipakai untuk filter etalase). */
+export const UMKM_KATEGORI: string[] = [
+  'Makanan & Minuman',
+  'Sembako & Kebutuhan Harian',
+  'Jajanan & Kue',
+  'Fashion & Pakaian',
+  'Jasa & Layanan',
+  'Kesehatan & Kecantikan',
+  'Elektronik & Gadget',
+  'Lainnya',
+];
+
+/** Satu varian/pilihan produk (tabel umkm_varian_rt004), mis. "Es Coklat". */
+export interface UmkmVarian {
+  id: string;
+  produkId: string;
+  namaVarian: string;
+  harga: number;
+  tersedia: boolean;
+  urutan: number;
+}
+
+/** Satu produk pada sebuah lapak (tabel umkm_produk_rt004). */
+export interface UmkmProduk {
+  id: string;
+  umkmId: string;
+  namaProduk: string;
+  deskripsi: string;
+  harga: number;
+  fotoUrl: string | null;
+  tersedia: boolean;
+  urutan: number;
+  varian: UmkmVarian[];
+}
+
+/** Satu lapak/toko UMKM (tabel umkm_rt004) beserta produknya. */
+export interface UmkmToko {
+  id: string;
+  ownerUid: string;
+  namaUsaha: string;
+  kategori: string;
+  deskripsi: string;
+  fotoUrl: string | null;
+  kontakWa: string;
+  alamat: string;
+  status: StatusUmkm;
+  catatanAdmin: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  produk: UmkmProduk[];
+  /** true bila lapak ini milik pengguna yang sedang login (owner_uid = auth.uid()). */
+  milikSaya?: boolean;
+}
+
+/** Payload simpan lapak (tambah / edit) dari panel warga atau admin. */
+export interface UmkmTokoInput {
+  id?: string;
+  namaUsaha: string;
+  kategori: string;
+  deskripsi: string;
+  kontakWa: string;
+  alamat: string;
+  fotoFile?: File | null;
+  fotoUrl?: string | null;
+}
+
+/** Baris varian dalam form produk (id kosong = varian baru). */
+export interface UmkmVarianInput {
+  id?: string;
+  namaVarian: string;
+  harga: number;
+  tersedia: boolean;
+}
+
+/** Payload simpan produk + variannya sekaligus (varian di-replace penuh). */
+export interface UmkmProdukInput {
+  id?: string;
+  umkmId: string;
+  namaProduk: string;
+  deskripsi: string;
+  harga: number;
+  tersedia: boolean;
+  urutan?: number;
+  fotoFile?: File | null;
+  fotoUrl?: string | null;
+  varian: UmkmVarianInput[];
+}
+
+/** Data yang dibutuhkan untuk menyusun pesan WhatsApp checkout. */
+export interface PesananWaInput {
+  toko: UmkmToko;
+  produk: UmkmProduk;
+  varian: UmkmVarian | null;
+  qty: number;
+  namaPemesan: string;
+  alamatPemesan: string;
+  nomorHpPemesan: string;
+  catatan?: string;
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

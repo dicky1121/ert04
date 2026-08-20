@@ -40,6 +40,7 @@ import { PengaduanWargaModal } from '../PengaduanWargaModal';
 import { EWSLaporanModal } from '../EWSLaporanModal';
 import { DaftarWargaModal } from '../DaftarWargaModal';
 import { WargaDashboard, WargaQuickAction } from './WargaDashboard';
+import { UmkmWarga } from './UmkmWarga';
 
 interface WargaLayoutProps {
   currentUser: CurrentUser;
@@ -440,7 +441,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       case 'kegiatan':
         return <KegiatanWargaPanel items={kegiatan} loading={kegiatanLoading} />;
       case 'umkm':
-        return <SegeraHadir icon={Store} judul="UMKM Warga" deskripsi="Etalase produk & jasa warga RT 004. Pesan langsung lewat WhatsApp — segera hadir." />;
+        return <UmkmWarga currentUser={currentUser} />;
       case 'keuangan':
         return <SegeraHadir icon={Wallet} judul="Keuangan RT" deskripsi="Ringkasan kas RT: pemasukan, pengeluaran, dan saldo bulanan secara transparan." />;
       case 'profil':
