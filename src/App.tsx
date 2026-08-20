@@ -29,7 +29,7 @@ import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
 import { LoginPortal } from './components/LoginPortal';
-import { SapaWarga } from './components/SapaWarga';
+import { WargaLayout } from './components/warga/WargaLayout';
 import { authService } from './services/authService';
 import { CloudSyncState, supabaseService } from './services/supabaseService';
 import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
@@ -61,7 +61,6 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser>(storageService.getCurrentUser());
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
-  const [publicGatewayView, setPublicGatewayView] = useState<'welcome' | 'login'>('welcome');
   const [ewsBaruCount, setEwsBaruCount] = useState(0);
   const [pengajuanList, setPengajuanList] = useState<PengajuanWarga[]>([]);
   const [wargaSubTab, setWargaSubTab] = useState<'data' | 'pengajuan'>('data');
@@ -141,9 +140,11 @@ export default function App() {
       authService.initSessionListener((user) => {
         if (user) {
           setCurrentUser(user);
-          // Pull awal dijalankan oleh restoreSession() atau callback LoginPortal.
-          // Listener ini hanya menjaga lifecycle channel saat auth berubah.
-          supabaseService.startRealtimeSync();
+          // Warga TIDAK menarik data admin (RLS memblokir tabel admin); sinkronisasi
+          // realtime hanya untuk pengurus. Data warga dimuat oleh dashboard warga sendiri.
+          if (user.role !== 'WARGA') {
+            supabaseService.startRealtimeSync();
+          }
         } else {
           supabaseService.stopRealtimeSync();
           setCurrentUser(storageService.getCurrentUser());
@@ -151,11 +152,14 @@ export default function App() {
       });
 
       void authService.restoreSession().then(async (user) => {
-        if (user) {
+        if (user && user.role !== 'WARGA') {
           setCurrentUser(user);
           const bootstrap = await supabaseService.bootstrapFromSupabase();
           refreshAllData();
           if (bootstrap.pulled) supabaseService.startRealtimeSync();
+        } else if (user) {
+          // Sesi warga valid: cukup set user, tanpa bootstrap data admin.
+          setCurrentUser(user);
         } else {
           // Tidak ada sesi valid: pastikan aplikasi kembali ke halaman login.
           storageService.logout();
@@ -170,6 +174,8 @@ export default function App() {
 
     const handleOnline = async () => {
       if (!supabaseService.isCloudMode()) return;
+      // Jangan tarik data admin untuk sesi warga.
+      if (authService.getCurrentUserRole() === 'WARGA') return;
       const bootstrap = await supabaseService.bootstrapFromSupabase();
       refreshAllData();
       if (bootstrap.pulled) supabaseService.startRealtimeSync();
@@ -491,8 +497,7 @@ export default function App() {
       storageService.logout();
     }
     setCurrentUser(storageService.getCurrentUser());
-    setPublicGatewayView('welcome');
-    showToast('Sesi administrasi telah ditutup. Silakan login kembali.', 'info');
+    showToast('Anda telah keluar dari portal. Silakan login kembali.', 'info');
   };
 
 
@@ -508,13 +513,10 @@ export default function App() {
     );
   }
 
-  // Public gateway: warga melihat portal layanan, sedangkan pengurus dapat
-  // membuka login. Sesi yang sudah valid tetap langsung menuju dashboard.
+  // Wajib login untuk semua: warga & pengurus masuk lewat satu portal terpadu
+  // (warga: NIK + PIN / daftar akun; pengurus: email + password). Tidak ada lagi
+  // landing publik anonim — peran pengguna menentukan tujuan setelah login.
   if (!currentUser?.isLoggedIn) {
-    if (publicGatewayView === 'welcome') {
-      return <SapaWarga config={rtConfig} onOpenLogin={() => setPublicGatewayView('login')} />;
-    }
-
     return (
       <div className="min-h-screen bg-slate-950 font-sans selection:bg-emerald-500 selection:text-white">
         {/* Toast Alert Banner */}
@@ -534,13 +536,14 @@ export default function App() {
           isFullPage={true}
           currentUser={currentUser}
           config={rtConfig}
-          onClose={() => setPublicGatewayView('welcome')}
           onLogin={(user) => {
             storageService.setCurrentUser(user);
             setCurrentUser(user);
-            showToast(`Selamat Datang, ${user.nama}! Berhasil masuk ke dashboard.`);
+            showToast(`Selamat Datang, ${user.nama}! Berhasil masuk.`);
             setActiveTab('dashboard');
-            if (authService.isCloudAuthAvailable()) {
+            // Warga TIDAK melakukan bootstrap tabel admin — RLS akan menolak
+            // dan memicu error. Data publik warga diambil oleh WargaLayout sendiri.
+            if (user.role !== 'WARGA' && authService.isCloudAuthAvailable()) {
               void supabaseService.bootstrapFromSupabase().then(() => {
                 refreshAllData();
                 supabaseService.startRealtimeSync();
@@ -549,6 +552,26 @@ export default function App() {
           }}
         />
       </div>
+    );
+  }
+
+  // Warga login → shell warga (mobile-first, bottom-nav). Pengurus → shell admin.
+  if (currentUser.role === 'WARGA') {
+    return (
+      <>
+        {toastMessage && (
+          <div className="fixed top-4 inset-x-3 sm:left-auto sm:right-4 sm:max-w-md z-[70] animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className={`px-4 py-3 rounded-full shadow-lg border text-xs font-semibold flex items-center gap-2 ${
+              toastMessage.type === 'success' ? 'bg-slate-900 text-white border-slate-800' :
+              toastMessage.type === 'info' ? 'bg-blue-900 text-blue-100 border-blue-800' :
+              'bg-rose-900 text-rose-100 border-rose-800'
+            }`}>
+              <span>{toastMessage.text}</span>
+            </div>
+          </div>
+        )}
+        <WargaLayout currentUser={currentUser} config={rtConfig} onLogout={handleLogout} />
+      </>
     );
   }
 

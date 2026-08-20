@@ -7,6 +7,7 @@ import {
   ChevronUp,
   Clock,
   Inbox,
+  KeyRound,
   RefreshCw,
   UserCheck,
   UserPlus,
@@ -205,6 +206,14 @@ const PengajuanCard: React.FC<CardProps> = ({ pengajuan: p, lama, onSetujui, onT
             >
               {isPerbarui ? 'Perbarui Data' : 'Warga Baru'}
             </span>
+            {p.akunUserId && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800"
+                title="Pengajuan ini berasal dari pendaftaran akun warga. Menyetujuinya otomatis mengaktifkan login NIK + PIN warga."
+              >
+                <KeyRound className="h-3 w-3" /> Akun Login
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-xs text-slate-500 font-mono">NIK {p.nik || '—'}</p>
           <p className="mt-0.5 text-xs text-slate-400">Diajukan {fmtWaktu(p.submittedAt) || '-'}</p>

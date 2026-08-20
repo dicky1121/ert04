@@ -4,6 +4,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Eye,
+  EyeOff,
+  KeyRound,
   Loader2,
   RefreshCw,
   Search,
@@ -16,9 +19,15 @@ import {
 } from 'lucide-react';
 import { PendaftaranWargaInput, StatusPendaftaranWarga } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { isWeakPin } from '../services/authService';
 
 interface DaftarWargaModalProps {
   onClose: () => void;
+  /**
+   * 'publik' (default): pengajuan/perbaruan data anonim (RPC ajukan_pendaftaran_warga).
+   * 'akun': pendaftaran akun warga (data + PIN) lewat Edge Function daftar-akun-warga.
+   */
+  mode?: 'publik' | 'akun';
 }
 
 type Mode = 'ajukan' | 'status';
@@ -72,7 +81,8 @@ const inputCls =
 const selectCls = inputCls + ' bg-white';
 const labelCls = 'block text-xs font-semibold text-slate-700 mb-1';
 
-export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) => {
+export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mode: entryMode = 'publik' }) => {
+  const isAkun = entryMode === 'akun';
   const [mode, setMode] = useState<Mode>('ajukan');
 
   // ---- Form pengajuan ----
@@ -90,6 +100,11 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successRef, setSuccessRef] = useState<string | null>(null);
   const [pendingRetry, setPendingRetry] = useState(false);
+
+  // ---- PIN akun (mode 'akun' saja; TIDAK pernah disimpan ke draft) ----
+  const [pin, setPin] = useState('');
+  const [pin2, setPin2] = useState('');
+  const [showPin, setShowPin] = useState(false);
 
   // ---- Cek status ----
   const [cekNik, setCekNik] = useState('');
@@ -119,6 +134,11 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
     if (form.nama.trim().length < 2) e.nama = 'Nama lengkap wajib diisi.';
     if (!form.tanggalLahir) e.tanggalLahir = 'Tanggal lahir wajib diisi.';
     if (!isValidPhone(form.nomorHp)) e.nomorHp = 'Nomor HP tidak valid. Contoh: 081298765432.';
+    if (isAkun) {
+      if (!/^[0-9]{6}$/.test(pin)) e.pin = 'PIN harus tepat 6 angka.';
+      else if (isWeakPin(pin)) e.pin = 'PIN terlalu mudah ditebak (hindari 123456, 000000, dst).';
+      else if (pin !== pin2) e.pin2 = 'Konfirmasi PIN tidak sama.';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -126,12 +146,16 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
   const doSubmit = useCallback(async (payload: PendaftaranWargaInput) => {
     setIsSubmitting(true);
     setSubmitError(null);
-    const result = await supabaseService.ajukanPendaftaranWarga(payload);
+    const result = isAkun
+      ? await supabaseService.daftarAkunWarga({ ...payload, pin })
+      : await supabaseService.ajukanPendaftaranWarga(payload);
     setIsSubmitting(false);
 
     if (result.success) {
       setSuccessRef(result.referensi || 'TERKIRIM');
       setPendingRetry(false);
+      setPin('');
+      setPin2('');
       try {
         localStorage.removeItem(DRAFT_KEY);
       } catch {
@@ -142,7 +166,7 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
     // Gagal: pertahankan draft, tawarkan kirim ulang.
     setSubmitError(result.error || 'Pengajuan gagal dikirim.');
     setPendingRetry(true);
-  }, []);
+  }, [isAkun, pin]);
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -220,9 +244,11 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
           </div>
           <div className="flex-1 min-w-0">
             <h2 id="daftar-warga-title" className="text-base font-bold text-white leading-tight">
-              Daftar / Perbarui Data Warga
+              {isAkun ? 'Daftar Akun Warga' : 'Daftar / Perbarui Data Warga'}
             </h2>
-            <p className="text-xs text-emerald-100 mt-0.5">Diperiksa dulu oleh pengurus sebelum disimpan</p>
+            <p className="text-xs text-emerald-100 mt-0.5">
+              {isAkun ? 'Buat akun untuk masuk ke Portal Warga' : 'Diperiksa dulu oleh pengurus sebelum disimpan'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -243,7 +269,7 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
                 mode === 'ajukan' ? 'text-emerald-700 border-b-2 border-emerald-600 bg-white' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <UserPlus className="w-4 h-4" /> Ajukan Data
+              <UserPlus className="w-4 h-4" /> {isAkun ? 'Daftar Akun' : 'Ajukan Data'}
             </button>
             <button
               type="button"
@@ -264,9 +290,11 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
               <CheckCircle2 className="w-9 h-9 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Pengajuan Terkirim!</h3>
+              <h3 className="text-lg font-bold text-slate-900">{isAkun ? 'Pendaftaran Akun Terkirim!' : 'Pengajuan Terkirim!'}</h3>
               <p className="text-sm text-slate-600 mt-1 max-w-xs">
-                Data Anda menunggu persetujuan pengurus RT. Simpan nomor referensi untuk memantau status.
+                {isAkun
+                  ? 'Akun Anda akan aktif setelah disetujui pengurus RT. Setelah aktif, masuk memakai NIK + PIN yang tadi Anda buat.'
+                  : 'Data Anda menunggu persetujuan pengurus RT. Simpan nomor referensi untuk memantau status.'}
               </p>
               <p className="text-xs text-slate-500 mt-3 font-mono bg-slate-100 px-3 py-1.5 rounded-lg break-all">
                 Ref: <span className="text-emerald-700 font-semibold">{successRef}</span>
@@ -291,10 +319,17 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
               {/* Info banner */}
               <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl">
                 <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  Isi sesuai KTP/KK. Jika NIK sudah terdaftar, pengajuan ini akan menjadi <b>perbaruan data</b>. Data
-                  hanya tersimpan setelah <b>disetujui pengurus</b>.
-                </span>
+                {isAkun ? (
+                  <span>
+                    Isi data sesuai KTP/KK dan buat <b>PIN 6 angka</b> untuk masuk. Akun aktif setelah{' '}
+                    <b>disetujui pengurus</b>. Setelah aktif, Anda masuk memakai <b>NIK + PIN</b>.
+                  </span>
+                ) : (
+                  <span>
+                    Isi sesuai KTP/KK. Jika NIK sudah terdaftar, pengajuan ini akan menjadi <b>perbaruan data</b>. Data
+                    hanya tersimpan setelah <b>disetujui pengurus</b>.
+                  </span>
+                )}
               </div>
 
               {submitError && (
@@ -337,6 +372,64 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
                   <p className="text-xs text-slate-400 mt-1">{form.nik.length}/16 digit</p>
                 )}
               </div>
+
+              {/* PIN masuk (mode akun) — dikelompokkan tepat di bawah NIK karena NIK+PIN = kredensial login */}
+              {isAkun && (
+                <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200 space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-800">
+                    <KeyRound className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-semibold">Buat PIN Masuk (6 angka)</span>
+                  </div>
+                  <p className="text-xs text-emerald-700/80 -mt-1">
+                    PIN dipakai bersama NIK untuk masuk ke aplikasi. Jangan pakai angka berurutan/berulang, dan jangan bagikan ke siapa pun.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* PIN */}
+                    <div>
+                      <label className={labelCls}>
+                        PIN <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPin ? 'text' : 'password'}
+                          inputMode="numeric"
+                          autoComplete="new-password"
+                          value={pin}
+                          onChange={(e) => setPin(onlyDigits(e.target.value).slice(0, 6))}
+                          placeholder="••••••"
+                          className={inputCls + ' pr-10 tracking-[0.3em]'}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPin((v) => !v)}
+                          className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+                          aria-label={showPin ? 'Sembunyikan PIN' : 'Tampilkan PIN'}
+                        >
+                          {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    {/* Konfirmasi PIN */}
+                    <div>
+                      <label className={labelCls}>
+                        Ulangi PIN <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type={showPin ? 'text' : 'password'}
+                        inputMode="numeric"
+                        autoComplete="new-password"
+                        value={pin2}
+                        onChange={(e) => setPin2(onlyDigits(e.target.value).slice(0, 6))}
+                        placeholder="••••••"
+                        className={inputCls + ' tracking-[0.3em]'}
+                      />
+                    </div>
+                  </div>
+                  {errors.pin && <p className="text-xs text-rose-600">{errors.pin}</p>}
+                  {errors.pin2 && <p className="text-xs text-rose-600">{errors.pin2}</p>}
+                </div>
+              )}
 
               {/* Nomor KK */}
               <div>
@@ -526,7 +619,8 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose }) =
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" /> Kirim Pengajuan
+                    {isAkun ? <UserPlus className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                    {isAkun ? 'Daftar Akun Warga' : 'Kirim Pengajuan'}
                   </>
                 )}
               </button>

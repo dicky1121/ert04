@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import type { UserRole } from '../types';
+import type { UserRole, WargaProfile } from '../types';
 
 /**
  * Penyimpan status sesi Supabase Auth yang dipakai bersama.
@@ -23,6 +23,7 @@ export interface PengurusProfile {
 
 let currentSession: Session | null = null;
 let currentProfile: PengurusProfile | null = null;
+let currentWargaProfile: WargaProfile | null = null;
 
 export const authState = {
   getSession(): Session | null {
@@ -31,7 +32,10 @@ export const authState = {
 
   setSession(session: Session | null) {
     currentSession = session;
-    if (!session) currentProfile = null;
+    if (!session) {
+      currentProfile = null;
+      currentWargaProfile = null;
+    }
   },
 
   /** True bila ada access token aktif (belum kedaluwarsa). */
@@ -58,8 +62,17 @@ export const authState = {
     currentProfile = profile;
   },
 
+  getWargaProfile(): WargaProfile | null {
+    return currentWargaProfile;
+  },
+
+  setWargaProfile(profile: WargaProfile | null) {
+    currentWargaProfile = profile;
+  },
+
   reset() {
     currentSession = null;
     currentProfile = null;
+    currentWargaProfile = null;
   }
 };

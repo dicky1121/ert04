@@ -8,6 +8,7 @@ import {
   LaporanEWSInput,
   MutasiPenduduk,
   PendaftaranWargaInput,
+  DaftarAkunWargaInput,
   PengaduanInput,
   PengajuanSuratPublik,
   PengajuanWarga,
@@ -187,6 +188,7 @@ const fromSubmissionRow = (r: CloudRow): PengajuanWarga => ({
   jenisPengajuan: r.jenis_pengajuan === 'PERBARUI' ? 'PERBARUI' : 'BARU',
   status: (['PENDING', 'DISETUJUI', 'DITOLAK'].includes(r.status) ? r.status : 'PENDING') as PengajuanWarga['status'],
   matchedWargaId: r.matched_warga_id || null,
+  akunUserId: r.akun_user_id || null,
   catatanAdmin: r.catatan_admin || null,
   submittedAt: r.submitted_at || '',
   reviewedAt: r.reviewed_at || null
@@ -705,6 +707,99 @@ class SupabaseService {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Pengajuan gagal ditolak.' };
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Akun warga (Portal Warga Terpadu) — Edge Functions + RPC login.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Panggil Edge Function dan seragamkan penanganan error.
+   * functions.invoke mengembalikan FunctionsHttpError pada respons non-2xx;
+   * body JSON ({ error }) diambil dari error.context untuk pesan yang jelas.
+   */
+  private async invokeFunction<T = any>(
+    name: string,
+    body: unknown
+  ): Promise<{ data?: T; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { error: 'Layanan online belum dikonfigurasi.' };
+    try {
+      const { data, error } = await client.functions.invoke(name, { body });
+      if (error) {
+        let msg = error.message || 'Permintaan ke server gagal.';
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const payload = await ctx.json();
+            if (payload?.error) msg = payload.error;
+          } catch {
+            /* body bukan JSON */
+          }
+        }
+        return { error: msg };
+      }
+      if (data && typeof data === 'object' && 'success' in data && !(data as any).success) {
+        return { error: (data as any).error || 'Permintaan gagal diproses.' };
+      }
+      return { data: data as T };
+    } catch (e: any) {
+      return { error: e?.message || 'Tidak dapat menghubungi server.' };
+    }
+  }
+
+  /**
+   * Warga mendaftar akun (NIK + PIN 6 angka + data diri). Diproses Edge
+   * Function service-role: membuat auth user + baris PENDING (akun & pengajuan).
+   */
+  public async daftarAkunWarga(
+    input: DaftarAkunWargaInput
+  ): Promise<{ success: boolean; referensi?: string; error?: string }> {
+    const body = {
+      nik: input.nik,
+      pin: input.pin,
+      nomorKK: input.nomorKK,
+      nama: input.nama,
+      jenisKelamin: input.jenisKelamin,
+      tempatLahir: input.tempatLahir,
+      tanggalLahir: input.tanggalLahir || null,
+      agama: input.agama,
+      pekerjaan: input.pekerjaan,
+      statusPerkawinan: input.statusPerkawinan,
+      statusHubunganKK: input.statusHubunganKK,
+      golonganDarah: input.golonganDarah,
+      nomorHp: input.nomorHp,
+      statusTinggal: input.statusTinggal,
+      isYatim: Boolean(input.isYatim),
+      isDisabilitas: Boolean(input.isDisabilitas),
+      statusBansos: input.statusBansos,
+      keteranganBansos: input.keteranganBansos || '',
+      catatan: input.catatan || ''
+    };
+    const res = await this.invokeFunction<{ referensi?: string }>('daftar-akun-warga', body);
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, referensi: res.data?.referensi };
+  }
+
+  /** Pengurus mereset PIN warga (Edge Function pengurus-only). */
+  public async resetPinWarga(
+    nik: string,
+    newPin: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    const res = await this.invokeFunction<{ message?: string }>('reset-pin-warga', { nik, newPin });
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, message: res.data?.message };
+  }
+
+  /** Catat waktu login warga (reset penghitung gagal login). Non-kritis. */
+  public async catatLoginWarga(): Promise<void> {
+    const client = this.getClient();
+    if (!client) return;
+    try {
+      await client.rpc('catat_login_warga');
+    } catch {
+      /* pencatatan login gagal tidak menghalangi akses */
     }
   }
 

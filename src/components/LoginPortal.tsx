@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
-import { 
-  Shield, 
-  Lock, 
-  CheckCircle2, 
-  ArrowRight, 
-  FileText, 
+import {
+  Shield,
+  Lock,
+  CheckCircle2,
+  ArrowRight,
+  FileText,
   AlertCircle,
   ShieldCheck,
   Eye,
   EyeOff,
   User,
+  Users,
+  UserPlus,
+  KeyRound,
+  Fingerprint,
   BadgeCheck
 } from 'lucide-react';
 import { CurrentUser, RTConfig } from '../types';
 import { BekasiLogo } from './BekasiLogo';
 import { storageService } from '../services/storage';
 import { authService } from '../services/authService';
+import { DaftarWargaModal } from './DaftarWargaModal';
 
 
 interface LoginPortalProps {
@@ -51,6 +56,22 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   // (email + password yang di-hash di server). Mode PIN lokal hanya
   // dipakai saat aplikasi berjalan tanpa koneksi cloud (offline/demo).
   const cloudAuthAvailable = authService.isCloudAuthAvailable();
+
+  // Portal terpadu: warga (NIK + PIN) atau pengurus (email + password).
+  // Login warga butuh Supabase; saat offline hanya mode pengurus yang tampil.
+  const [portalMode, setPortalMode] = useState<'warga' | 'pengurus'>('warga');
+  const effectiveMode: 'warga' | 'pengurus' = cloudAuthAvailable ? portalMode : 'pengurus';
+  const [nik, setNik] = useState('');
+  const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [showDaftar, setShowDaftar] = useState(false);
+
+  const switchMode = (mode: 'warga' | 'pengurus') => {
+    setPortalMode(mode);
+    setErrorMessage('');
+    setInfoMessage('');
+    setSuccessMessage('');
+  };
 
 
   // Selected account object
@@ -164,6 +185,33 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
     }
   };
 
+  const handleWargaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setInfoMessage('');
+
+    const cleanNik = nik.trim();
+    const cleanPin = pin.trim();
+    if (!/^[0-9]{16}$/.test(cleanNik)) {
+      setErrorMessage('NIK harus 16 digit angka sesuai KTP.');
+      return;
+    }
+    if (!/^[0-9]{6}$/.test(cleanPin)) {
+      setErrorMessage('PIN harus tepat 6 angka.');
+      return;
+    }
+
+    setIsLoading(true);
+    const res = await authService.signInWarga(cleanNik, cleanPin);
+    if (!res.success || !res.user) {
+      setErrorMessage(res.message);
+      setIsLoading(false);
+      return;
+    }
+    setPin('');
+    finishLogin(res.user, res.message);
+  };
+
   const handleForgotPassword = async () => {
     setErrorMessage('');
     setInfoMessage('');
@@ -222,7 +270,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           <div className="space-y-2 mt-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Portal Resmi Pengurus RT</span>
+              <span>Portal Resmi Warga &amp; Pengurus RT</span>
             </div>
             <h2 className="text-xl font-black text-white tracking-tight leading-snug">
               Sistem Kependudukan RT 004 RW 007 Kelurahan Jatimulya
@@ -258,7 +306,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
         {/* Footer security note */}
         <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
           <span className="flex items-center gap-1">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" /> Akses Khusus Pengurus RT
+            <Lock className="w-3.5 h-3.5 text-emerald-400" /> Akses Warga &amp; Pengurus RT
           </span>
           <span className="font-mono text-emerald-400/80">E-RT 2026</span>
         </div>
@@ -269,16 +317,20 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900">Portal Login Pengurus</h3>
+              <h3 className="text-lg font-extrabold text-slate-900">
+                {effectiveMode === 'warga' ? 'Masuk Portal Warga' : 'Portal Login Pengurus'}
+              </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {cloudAuthAvailable
-                  ? 'Masuk dengan email & password akun pengurus yang terdaftar'
-                  : 'Mode offline: pilih akun/peran pengurus dan masukkan PIN lokal'}
+                {effectiveMode === 'warga'
+                  ? 'Masuk dengan NIK + PIN 6 angka akun warga Anda'
+                  : cloudAuthAvailable
+                    ? 'Masuk dengan email & password akun pengurus yang terdaftar'
+                    : 'Mode offline: pilih akun/peran pengurus dan masukkan PIN lokal'}
               </p>
 
             </div>
             {onClose && (
-              <button 
+              <button
                 onClick={onClose}
                 type="button"
                 aria-label="Kembali ke Sapa Warga"
@@ -289,6 +341,141 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
             )}
           </div>
 
+          {/* Toggle Warga | Pengurus (hanya saat cloud tersedia) */}
+          {cloudAuthAvailable && (
+            <div className="grid grid-cols-2 gap-1.5 p-1 mb-5 bg-slate-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => switchMode('warga')}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  effectiveMode === 'warga'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Users className="w-4 h-4" /> Warga
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('pengurus')}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  effectiveMode === 'pengurus'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Shield className="w-4 h-4" /> Pengurus
+              </button>
+            </div>
+          )}
+
+          {/* ========== FORM WARGA (NIK + PIN 6 angka) ========== */}
+          {effectiveMode === 'warga' && (
+            <>
+              <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                <span>
+                  Masuk dengan <b>NIK</b> + <b>PIN 6 angka</b>. Belum punya akun? Tekan <b>Daftar Akun Warga</b> di
+                  bawah — akun aktif setelah disetujui pengurus.
+                </span>
+              </div>
+
+              <form onSubmit={handleWargaSubmit} className="space-y-3.5">
+                {/* NIK */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Fingerprint className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="username"
+                      placeholder="16 digit sesuai KTP"
+                      value={nik}
+                      onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                      className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono transition"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">{nik.length}/16 digit</p>
+                </div>
+
+                {/* PIN */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <KeyRound className="w-4 h-4" />
+                    </div>
+                    <input
+                      type={showPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      autoComplete="current-password"
+                      placeholder="••••••"
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-[0.3em] transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    >
+                      {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {infoMessage && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-blue-600" />
+                    <span>{infoMessage}</span>
+                  </div>
+                )}
+                {errorMessage && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+                {successMessage && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold animate-in fade-in duration-200">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <BadgeCheck className="w-4 h-4" />
+                    <span>{isLoading ? 'Memverifikasi...' : 'Masuk ke Portal Warga'}</span>
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
+              </form>
+
+              {/* Daftar akun warga */}
+              <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+                <p className="text-xs text-slate-500 mb-2">Belum punya akun warga?</p>
+                <button
+                  type="button"
+                  onClick={() => setShowDaftar(true)}
+                  className="w-full py-2.5 px-4 border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" /> Daftar Akun Warga
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ========== KONTEN PENGURUS (email/PIN) ========== */}
+          {effectiveMode === 'pengurus' && (
+          <>
           {/* Info mode login */}
           {cloudAuthAvailable ? (
             <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
@@ -477,6 +664,8 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               </button>
             </div>
           </form>
+          </>
+          )}
         </div>
 
         <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
@@ -497,6 +686,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
             &copy; {new Date().getFullYear()} Pemerintah Kelurahan Jatimulya &bull; Rukun Tetangga 004 Rukun Warga 007
           </p>
         </div>
+        {showDaftar && <DaftarWargaModal mode="akun" onClose={() => setShowDaftar(false)} />}
       </div>
     );
   }
@@ -507,6 +697,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
       aria-modal="true"
       className="bg-slate-950/70 fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto backdrop-blur-md">
       {cardContent}
+      {showDaftar && <DaftarWargaModal mode="akun" onClose={() => setShowDaftar(false)} />}
     </div>
   );
 };

@@ -240,6 +240,9 @@ export interface PengajuanWarga {
   jenisPengajuan: JenisPengajuanWarga;
   status: StatusPendaftaranWargaKode;
   matchedWargaId: string | null;
+  /** Terisi bila pengajuan berasal dari pendaftaran akun warga (login NIK+PIN).
+   *  Menyetujui pengajuan ini otomatis mengaktifkan akun login-nya. */
+  akunUserId?: string | null;
   catatanAdmin: string | null;
   submittedAt: string;
   reviewedAt: string | null;
@@ -298,16 +301,41 @@ export interface Notifikasi {
 
 export type AppNotification = Notifikasi;
 
-export type UserRole = 
-  | 'ADMIN_KETUA_RT' 
-  | 'ADMIN_SEKRETARIS' 
-  | 'BENDAHARA' 
+export type UserRole =
+  | 'ADMIN_KETUA_RT'
+  | 'ADMIN_SEKRETARIS'
+  | 'BENDAHARA'
   | 'SEKSI_KEAMANAN'
   | 'STAF_PELAYANAN'
   | 'ADMIN_SISTEM'
   | 'ADMIN_CUSTOM'
-
+  | 'WARGA'
   | string;
+
+// ---------------------------------------------------------------------
+// Akun warga (login NIK + PIN 6 angka) — Portal Warga Terpadu
+// ---------------------------------------------------------------------
+
+export type StatusAkunWarga = 'PENDING' | 'AKTIF' | 'DITOLAK' | 'NONAKTIF';
+
+/** Profil akun warga (baris tabel warga_akun) untuk sesi login warga. */
+export interface WargaProfile {
+  id: string; // = auth.users.id
+  nik: string;
+  wargaId: string | null; // id di warga_rt004 (diisi saat di-ACC)
+  nama: string;
+  nomorHp?: string;
+  status: StatusAkunWarga;
+}
+
+/**
+ * Payload pendaftaran akun warga (data diri + PIN 6 angka) yang dikirim ke
+ * Edge Function `daftar-akun-warga`. Memakai field yang sama dengan
+ * PendaftaranWargaInput, ditambah PIN.
+ */
+export interface DaftarAkunWargaInput extends PendaftaranWargaInput {
+  pin: string; // tepat 6 angka
+}
 
 export interface PengurusAccount {
   id: string;
