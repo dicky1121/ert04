@@ -22,6 +22,8 @@ import {
   StatusPengajuanPublik,
   StatusUmkm,
   SuratPengantar,
+  TransaksiKeuangan,
+  TransaksiKeuanganInput,
   UmkmToko,
   UmkmProduk,
   UmkmVarian,
@@ -211,6 +213,17 @@ const fromKegiatanRow = (r: CloudRow): Kegiatan => ({
   lokasi: r.lokasi || '',
   fotoUrl: r.foto_url || null,
   dipublikasikan: r.dipublikasikan !== false,
+  createdAt: r.created_at || ''
+});
+
+const fromKeuanganRow = (r: CloudRow): TransaksiKeuangan => ({
+  id: String(r.id || ''),
+  tanggal: r.tanggal || '',
+  jenis: r.jenis === 'KELUAR' ? 'KELUAR' : 'MASUK',
+  kategori: r.kategori || 'Lainnya',
+  jumlah: Number(r.jumlah) || 0,
+  keterangan: r.keterangan || '',
+  bulanKas: r.bulan_kas || (r.tanggal ? String(r.tanggal).slice(0, 7) : ''),
   createdAt: r.created_at || ''
 });
 
@@ -2502,6 +2515,112 @@ ON CONFLICT (id) DO NOTHING;
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'kegiatan_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // =====================================================================
+  // KEUANGAN RT (Portal Warga Terpadu) — pengurus keuangan kelola, warga baca
+  // =====================================================================
+
+  /**
+   * Ambil seluruh transaksi kas RT (urut tanggal terbaru). RLS mengizinkan
+   * semua pengguna login membaca (transparansi); hanya pengurus keuangan yang
+   * bisa menulis. Dipakai panel admin maupun tab Keuangan dashboard warga.
+   */
+  public async fetchKeuangan(): Promise<{ data: TransaksiKeuangan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('keuangan_rt004')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data keuangan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromKeuanganRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan transaksi kas (tambah bila `input.id` kosong, ubah bila terisi).
+   * Hanya pengurus keuangan yang lolos policy RLS (is_pengurus_keuangan).
+   * Kolom `bulan_kas` di-set otomatis oleh trigger dari `tanggal`.
+   */
+  public async simpanKeuangan(
+    input: TransaksiKeuanganInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        tanggal: input.tanggal,
+        jenis: input.jenis === 'KELUAR' ? 'KELUAR' : 'MASUK',
+        kategori: (input.kategori || 'Lainnya').trim() || 'Lainnya',
+        jumlah: Math.max(0, Math.round(Number(input.jumlah) || 0)),
+        keterangan: (input.keterangan || '').trim()
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('keuangan_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('keuangan_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Transaksi tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu transaksi kas — hanya pengurus keuangan (policy RLS). */
+  public async hapusKeuangan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('keuangan_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel keuangan — panel admin & tab warga ikut
+   * ter-refresh saat ada perubahan. Mengembalikan fungsi unsubscribe.
+   */
+  public subscribeKeuanganRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('keuangan-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'keuangan_rt004' },
         () => onChange()
       )
       .subscribe();

@@ -11,6 +11,7 @@ import {
   Building2,
   CalendarDays,
   Store,
+  Wallet,
   ChevronDown,
   ChevronRight,
   Database,
@@ -199,6 +200,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Store className={`w-4 h-4 shrink-0 ${activeTab === 'umkm' ? 'text-emerald-600' : 'text-slate-500'}`} />
               <span className="truncate">UMKM Warga</span>
+            </button>
+          </div>
+
+          {/* Keuangan RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('keuangan')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'keuangan'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'keuangan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Keuangan RT</span>
             </button>
           </div>
 

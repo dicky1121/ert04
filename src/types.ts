@@ -615,6 +615,70 @@ export interface PesananWaInput {
   catatan?: string;
 }
 
+// =====================================================================
+// KEUANGAN RT (ringkasan kas RT — transparansi warga) — Portal Warga Terpadu
+// =====================================================================
+
+export type JenisKeuangan = 'MASUK' | 'KELUAR';
+
+/** Kategori pemasukan kas RT (label untuk dropdown & filter). */
+export const KEUANGAN_KATEGORI_MASUK: string[] = [
+  'Iuran Warga',
+  'Sumbangan',
+  'Bantuan Pemerintah',
+  'Hasil Kegiatan',
+  'Lainnya',
+];
+
+/** Kategori pengeluaran kas RT. */
+export const KEUANGAN_KATEGORI_KELUAR: string[] = [
+  'Kebersihan',
+  'Keamanan',
+  'Kegiatan',
+  'Perawatan Fasilitas',
+  'Administrasi',
+  'Santunan',
+  'Lainnya',
+];
+
+/** Satu transaksi kas RT (tabel keuangan_rt004). */
+export interface TransaksiKeuangan {
+  id: string;
+  tanggal: string;      // YYYY-MM-DD
+  jenis: JenisKeuangan;
+  kategori: string;
+  jumlah: number;
+  keterangan: string;
+  bulanKas: string;     // 'YYYY-MM' (diisi server dari tanggal via trigger)
+  createdAt: string;
+}
+
+/** Payload simpan transaksi dari panel admin (tambah / edit). */
+export interface TransaksiKeuanganInput {
+  id?: string;          // ada saat edit; kosong saat tambah (id dibuat server)
+  tanggal: string;
+  jenis: JenisKeuangan;
+  kategori: string;
+  jumlah: number;
+  keterangan: string;
+}
+
+/** Ringkasan kas satu bulan (hasil agregasi client-side). */
+export interface RingkasanBulanKas {
+  bulan: string;        // 'YYYY-MM'
+  masuk: number;
+  keluar: number;
+  saldo: number;        // masuk - keluar (bulan itu saja)
+}
+
+/** Ringkasan kas keseluruhan untuk kartu saldo & rekap per bulan. */
+export interface RingkasanKeuangan {
+  totalMasuk: number;
+  totalKeluar: number;
+  saldo: number;                  // totalMasuk - totalKeluar (saldo berjalan)
+  perBulan: RingkasanBulanKas[];  // urut terbaru → terlama
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

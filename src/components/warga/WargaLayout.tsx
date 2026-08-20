@@ -41,6 +41,7 @@ import { EWSLaporanModal } from '../EWSLaporanModal';
 import { DaftarWargaModal } from '../DaftarWargaModal';
 import { WargaDashboard, WargaQuickAction } from './WargaDashboard';
 import { UmkmWarga } from './UmkmWarga';
+import { KeuanganWarga } from './KeuanganWarga';
 
 interface WargaLayoutProps {
   currentUser: CurrentUser;
@@ -69,18 +70,6 @@ const maskNik = (nik?: string): string => {
   if (!nik || nik.length < 10) return nik || '-';
   return `${nik.slice(0, 6)}${'•'.repeat(6)}${nik.slice(-4)}`;
 };
-
-/** Panel sederhana untuk fitur yang belum aktif (diisi pada fase berikutnya). */
-const SegeraHadir: React.FC<{ icon: LucideIcon; judul: string; deskripsi: string }> = ({ icon: Icon, judul, deskripsi }) => (
-  <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-      <Icon className="h-7 w-7" />
-    </span>
-    <h3 className="text-base font-bold text-slate-800">{judul}</h3>
-    <p className="max-w-xs text-sm text-slate-500">{deskripsi}</p>
-    <span className="mt-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Segera Hadir</span>
-  </div>
-);
 
 const formatTanggalKegiatan = (ymd: string): string => {
   if (!ymd) return '-';
@@ -443,7 +432,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       case 'umkm':
         return <UmkmWarga currentUser={currentUser} />;
       case 'keuangan':
-        return <SegeraHadir icon={Wallet} judul="Keuangan RT" deskripsi="Ringkasan kas RT: pemasukan, pengeluaran, dan saldo bulanan secara transparan." />;
+        return <KeuanganWarga />;
       case 'profil':
         return (
           <div className="space-y-4">

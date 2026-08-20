@@ -26,6 +26,7 @@ import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
 import { KegiatanAdminView } from './components/KegiatanAdminView';
 import { UmkmAdminView } from './components/UmkmAdminView';
+import { KeuanganAdminView } from './components/KeuanganAdminView';
 import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
@@ -784,6 +785,12 @@ export default function App() {
 
         {activeTab === 'umkm' && (
           <UmkmAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'keuangan' && (
+          <KeuanganAdminView
             currentUser={currentUser}
           />
         )}
