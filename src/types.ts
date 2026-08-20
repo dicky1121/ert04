@@ -479,6 +479,36 @@ export const EWS_JENIS_KEJADIAN: EWSJenisKejadianMeta[] = [
   { value: 'LAINNYA',    label: 'Lainnya',     emoji: '📢', warna: 'purple' },
 ];
 
+// =====================================================================
+// KEGIATAN RT (jadwal kegiatan & acara lingkungan) — Portal Warga Terpadu
+// =====================================================================
+
+/** Satu baris kegiatan RT (tabel kegiatan_rt004). */
+export interface Kegiatan {
+  id: string;
+  judul: string;
+  deskripsi: string;
+  tanggal: string;        // YYYY-MM-DD
+  waktu: string;          // jam / free text, mis. "08:00 WIB" (boleh kosong)
+  lokasi: string;
+  fotoUrl: string | null;
+  dipublikasikan: boolean;
+  createdAt: string;
+}
+
+/** Payload simpan kegiatan dari panel admin (tambah / edit). */
+export interface KegiatanInput {
+  id?: string;              // ada saat edit; kosong saat tambah (id dibuat server)
+  judul: string;
+  deskripsi: string;
+  tanggal: string;
+  waktu: string;
+  lokasi: string;
+  dipublikasikan: boolean;
+  fotoFile?: File | null;   // foto baru untuk diunggah (opsional)
+  fotoUrl?: string | null;  // foto lama dipertahankan saat edit
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

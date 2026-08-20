@@ -3,6 +3,8 @@ import { storageService } from './storage';
 import { authState } from './authState';
 import {
   KartuKeluarga,
+  Kegiatan,
+  KegiatanInput,
   KonfigurasiPublik,
   LaporanEWS,
   LaporanEWSInput,
@@ -192,6 +194,18 @@ const fromSubmissionRow = (r: CloudRow): PengajuanWarga => ({
   catatanAdmin: r.catatan_admin || null,
   submittedAt: r.submitted_at || '',
   reviewedAt: r.reviewed_at || null
+});
+
+const fromKegiatanRow = (r: CloudRow): Kegiatan => ({
+  id: String(r.id || ''),
+  judul: r.judul || '',
+  deskripsi: r.deskripsi || '',
+  tanggal: r.tanggal || '',
+  waktu: r.waktu || '',
+  lokasi: r.lokasi || '',
+  fotoUrl: r.foto_url || null,
+  dipublikasikan: r.dipublikasikan !== false,
+  createdAt: r.created_at || ''
 });
 
 const toKKRow = (k: KartuKeluarga): CloudRow => ({
@@ -2309,6 +2323,133 @@ ON CONFLICT (id) DO NOTHING;
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'warga_submissions_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // =====================================================================
+  // KEGIATAN RT (Portal Warga Terpadu) — pengurus kelola, warga baca
+  // =====================================================================
+
+  /**
+   * Ambil daftar kegiatan RT. RLS otomatis memfilter: warga hanya menerima
+   * baris `dipublikasikan = true`, pengurus aktif menerima semua. Dipakai
+   * baik oleh panel admin maupun tab Kegiatan dashboard warga.
+   */
+  public async fetchKegiatan(): Promise<{ data: Kegiatan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('kegiatan_rt004')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat kegiatan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromKegiatanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan kegiatan (tambah bila `input.id` kosong, ubah bila terisi).
+   * Bila ada `fotoFile`, unggah dulu ke bucket `kegiatan-foto` lalu simpan
+   * URL publiknya. Hanya pengurus aktif yang lolos policy RLS.
+   */
+  public async simpanKegiatan(
+    input: KegiatanInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      let fotoUrl: string | null = input.fotoUrl ?? null;
+
+      if (input.fotoFile) {
+        const ext = input.fotoFile.name.split('.').pop() || 'jpg';
+        const fileName = `keg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { data: uploadData, error: uploadError } = await client.storage
+          .from('kegiatan-foto')
+          .upload(fileName, input.fotoFile, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          return { success: false, error: `Gagal mengunggah foto: ${uploadError.message}` };
+        }
+        if (uploadData) {
+          const { data: urlData } = client.storage.from('kegiatan-foto').getPublicUrl(uploadData.path);
+          fotoUrl = urlData?.publicUrl || fotoUrl;
+        }
+      }
+
+      const payload = {
+        judul: input.judul.trim(),
+        deskripsi: (input.deskripsi || '').trim(),
+        tanggal: input.tanggal,
+        waktu: (input.waktu || '').trim(),
+        lokasi: (input.lokasi || '').trim(),
+        foto_url: fotoUrl,
+        dipublikasikan: input.dipublikasikan
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('kegiatan_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('kegiatan_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Kegiatan tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu kegiatan — hanya pengurus aktif (policy RLS). */
+  public async hapusKegiatan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('kegiatan_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel kegiatan — dipakai panel admin agar daftar
+   * ikut ter-refresh saat ada perubahan. onChange dipanggil untuk setiap
+   * INSERT/UPDATE/DELETE (pemanggil cukup re-fetch). Mengembalikan unsubscribe.
+   */
+  public subscribeKegiatanRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('kegiatan-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'kegiatan_rt004' },
         () => onChange()
       )
       .subscribe();

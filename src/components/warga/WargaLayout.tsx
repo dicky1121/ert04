@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { CurrentUser, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../../types';
+import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
 import { BekasiLogo } from '../BekasiLogo';
@@ -78,6 +78,76 @@ const SegeraHadir: React.FC<{ icon: LucideIcon; judul: string; deskripsi: string
     <h3 className="text-base font-bold text-slate-800">{judul}</h3>
     <p className="max-w-xs text-sm text-slate-500">{deskripsi}</p>
     <span className="mt-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Segera Hadir</span>
+  </div>
+);
+
+const formatTanggalKegiatan = (ymd: string): string => {
+  if (!ymd) return '-';
+  const d = new Date(`${ymd}T00:00:00`);
+  if (isNaN(d.getTime())) return ymd;
+  return d.toLocaleDateString('id-ID', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+  });
+};
+
+/** Tab Kegiatan (warga) — daftar kegiatan yang dipublikasikan, read-only. */
+const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({ items, loading }) => (
+  <div className="space-y-3">
+    <div className="px-0.5">
+      <h1 className="text-lg font-black tracking-tight text-slate-900">Kegiatan RT</h1>
+      <p className="text-sm text-slate-500">Jadwal kegiatan, kerja bakti, dan acara lingkungan.</p>
+    </div>
+
+    {loading ? (
+      <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="text-sm font-medium">Memuat kegiatan…</span>
+      </div>
+    ) : items.length === 0 ? (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+          <CalendarDays className="h-7 w-7" />
+        </span>
+        <h3 className="text-base font-bold text-slate-800">Belum ada kegiatan</h3>
+        <p className="max-w-xs text-sm text-slate-500">Kegiatan yang dijadwalkan pengurus akan tampil di sini.</p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {items.map(k => (
+          <article key={k.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            {k.fotoUrl && (
+              <div className="h-40 w-full overflow-hidden bg-slate-100">
+                <img src={k.fotoUrl} alt={k.judul} className="h-full w-full object-cover" loading="lazy" />
+              </div>
+            )}
+            <div className="space-y-2.5 px-4 py-3.5">
+              <h3 className="text-base font-bold leading-snug text-slate-900">{k.judul}</h3>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
+                  {formatTanggalKegiatan(k.tanggal)}
+                </span>
+                {k.waktu && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock3 className="h-3.5 w-3.5 text-emerald-500" />
+                    {k.waktu}
+                  </span>
+                )}
+                {k.lokasi && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                    {k.lokasi}
+                  </span>
+                )}
+              </div>
+              {k.deskripsi && (
+                <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">{k.deskripsi}</p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
   </div>
 );
 
@@ -183,6 +253,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [konfig, setKonfig] = useState<KonfigurasiPublik | null>(null);
   const [statistik, setStatistik] = useState<StatistikPublik | null>(null);
   const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
+  const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
+  const [kegiatanLoading, setKegiatanLoading] = useState(true);
 
   // Modal layanan
   const [openSurat, setOpenSurat] = useState(false);
@@ -206,6 +278,21 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       setKonfig(k);
       setStatistik(s);
       setPengumuman(p);
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
+  // Kegiatan RT — warga hanya menerima baris yang dipublikasikan (difilter RLS).
+  useEffect(() => {
+    let aktif = true;
+    void (async () => {
+      setKegiatanLoading(true);
+      const { data } = await supabaseService.fetchKegiatan();
+      if (!aktif) return;
+      setKegiatan(Array.isArray(data) ? data : []);
+      setKegiatanLoading(false);
     })();
     return () => {
       aktif = false;
@@ -351,7 +438,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
           </div>
         );
       case 'kegiatan':
-        return <SegeraHadir icon={CalendarDays} judul="Kegiatan RT" deskripsi="Jadwal kegiatan, kerja bakti, dan acara lingkungan akan tampil di sini." />;
+        return <KegiatanWargaPanel items={kegiatan} loading={kegiatanLoading} />;
       case 'umkm':
         return <SegeraHadir icon={Store} judul="UMKM Warga" deskripsi="Etalase produk & jasa warga RT 004. Pesan langsung lewat WhatsApp — segera hadir." />;
       case 'keuangan':

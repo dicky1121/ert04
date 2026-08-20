@@ -24,6 +24,7 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
+import { KegiatanAdminView } from './components/KegiatanAdminView';
 import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
@@ -770,6 +771,12 @@ export default function App() {
 
         {activeTab === 'ews' && (
           <EWSAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'kegiatan' && (
+          <KegiatanAdminView
             currentUser={currentUser}
           />
         )}
