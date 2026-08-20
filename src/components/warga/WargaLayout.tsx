@@ -1,14 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Building2,
   CalendarDays,
+  Clock3,
   FileText,
   Home,
   KeyRound,
   LayoutGrid,
   Loader2,
   LogOut,
+  Mail,
+  MapPin,
   Megaphone,
   MessageCircle,
+  Phone,
+  RefreshCw,
   Search,
   ShieldCheck,
   Siren,
@@ -32,6 +38,7 @@ import { PublicSuratForm } from '../PublicSuratForm';
 import { LacakPengajuanModal } from '../LacakPengajuanModal';
 import { PengaduanWargaModal } from '../PengaduanWargaModal';
 import { EWSLaporanModal } from '../EWSLaporanModal';
+import { DaftarWargaModal } from '../DaftarWargaModal';
 import { WargaDashboard, WargaQuickAction } from './WargaDashboard';
 
 interface WargaLayoutProps {
@@ -181,6 +188,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [openSurat, setOpenSurat] = useState(false);
   const [openLacak, setOpenLacak] = useState(false);
   const [openPengaduan, setOpenPengaduan] = useState(false);
+  const [openPerbarui, setOpenPerbarui] = useState(false);
   const [openEWS, setOpenEWS] = useState(false);
   const [openGantiPin, setOpenGantiPin] = useState(false);
 
@@ -207,6 +215,10 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const rt = konfig?.namaRT || config.namaRT || '004';
   const rw = konfig?.namaRW || config.namaRW || '007';
   const kontak = konfig?.kontakSekretariat || konfig?.kontakRT || config.kontakSekretariat || config.kontakRT || '';
+  const alamat =
+    konfig?.alamatSekretariat || config.alamatSekretariat || 'Sekretariat RT 004 RW 007, Kelurahan Jatimulya';
+  const email = konfig?.emailRT || config.emailRT || '';
+  const jamPelayanan = konfig?.jamPelayanan || '';
   const whatsappNumber = toWhatsappNumber(kontak);
   const whatsappHref = (msg: string) =>
     whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}` : undefined;
@@ -218,6 +230,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const services: Svc[] = useMemo(() => {
     const list: Svc[] = [
       { key: 'surat', icon: FileText, title: 'Ajukan Surat Pengantar', desc: 'Kirim permohonan surat pengantar ke pengurus.', accent: 'bg-emerald-50 text-emerald-700', onClick: () => setOpenSurat(true) },
+      { key: 'perbarui', icon: RefreshCw, title: 'Perbarui Data Saya', desc: 'Ajukan perubahan data kependudukan Anda — ditinjau pengurus.', accent: 'bg-teal-50 text-teal-700', onClick: () => setOpenPerbarui(true) },
       { key: 'lacak', icon: Search, title: 'Lacak Status Pengajuan', desc: 'Pantau perkembangan surat dengan NIK & nomor referensi.', accent: 'bg-blue-50 text-blue-700', onClick: () => setOpenLacak(true) },
       { key: 'pengaduan', icon: Megaphone, title: 'Lapor & Pengaduan', desc: 'Laporkan keluhan lingkungan: keamanan, kebersihan, fasilitas.', accent: 'bg-rose-50 text-rose-700', onClick: () => setOpenPengaduan(true) },
       { key: 'hubungi', icon: MessageCircle, title: 'Hubungi Pengurus', desc: 'Konsultasi layanan lewat WhatsApp resmi.', accent: 'bg-amber-50 text-amber-700', href: hubungiHref },
@@ -293,6 +306,48 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
                 </div>
               );
             })}
+
+            {/* Kontak & Info Sekretariat (paritas Sapa Warga) */}
+            <section className="mt-2 rounded-3xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                  <Building2 className="h-4 w-4" />
+                </span>
+                <h2 className="text-sm font-bold text-slate-800">Info Sekretariat</h2>
+              </div>
+              <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <div className="flex gap-2.5 rounded-2xl bg-slate-50 p-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <div className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Alamat</dt>
+                    <dd className="mt-0.5 text-xs leading-relaxed text-slate-700">{alamat}</dd>
+                  </div>
+                </div>
+                <div className="flex gap-2.5 rounded-2xl bg-slate-50 p-3">
+                  <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                  <div className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Waktu Pelayanan</dt>
+                    <dd className="mt-0.5 whitespace-pre-line text-xs leading-relaxed text-slate-700">
+                      {jamPelayanan || 'Hubungi pengurus untuk konfirmasi jadwal pelayanan.'}
+                    </dd>
+                  </div>
+                </div>
+                <div className="flex gap-2.5 rounded-2xl bg-slate-50 p-3">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <div className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Kontak Resmi</dt>
+                    <dd className="mt-0.5 text-xs leading-relaxed text-slate-700">{kontak || 'Belum tersedia'}</dd>
+                  </div>
+                </div>
+                <div className="flex gap-2.5 rounded-2xl bg-slate-50 p-3">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+                  <div className="min-w-0">
+                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email</dt>
+                    <dd className="mt-0.5 break-all text-xs leading-relaxed text-slate-700">{email || 'Belum tersedia'}</dd>
+                  </div>
+                </div>
+              </dl>
+            </section>
           </div>
         );
       case 'kegiatan':
@@ -404,6 +459,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       {openSurat && <PublicSuratForm onClose={() => setOpenSurat(false)} />}
       {openLacak && <LacakPengajuanModal onClose={() => setOpenLacak(false)} />}
       {openPengaduan && <PengaduanWargaModal onClose={() => setOpenPengaduan(false)} />}
+      {openPerbarui && <DaftarWargaModal mode="publik" onClose={() => setOpenPerbarui(false)} />}
       {isNativeApp && <EWSLaporanModal isOpen={openEWS} onClose={() => setOpenEWS(false)} />}
       {openGantiPin && <GantiPinModal onClose={() => setOpenGantiPin(false)} />}
     </div>
