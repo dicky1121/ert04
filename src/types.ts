@@ -679,6 +679,45 @@ export interface RingkasanKeuangan {
   perBulan: RingkasanBulanKas[];  // urut terbaru → terlama
 }
 
+// ── Iuran / Tagihan warga (tabel iuran_rt004) ──────────────────────────────
+export type StatusTagihan = 'BELUM_LUNAS' | 'MENUNGGU_VERIFIKASI' | 'LUNAS' | 'DITOLAK';
+
+/** Satu tagihan iuran milik seorang warga. */
+export interface TagihanIuran {
+  id: string;
+  wargaId: string;          // → warga_rt004.id (kunci penugasan)
+  judul: string;
+  periode: string;          // 'YYYY-MM'
+  jumlah: number;
+  status: StatusTagihan;
+  jatuhTempo?: string | null;   // YYYY-MM-DD
+  buktiPath?: string | null;    // path objek di bucket privat 'bukti-bayar'
+  dibayarAt?: string | null;    // saat warga mengirim bukti
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  catatan?: string | null;      // alasan tolak / catatan pengurus
+  dibuatOleh?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload simpan tagihan dari panel admin (tambah / edit satuan). */
+export interface TagihanIuranInput {
+  id?: string;              // ada saat edit; kosong saat tambah
+  wargaId: string;
+  judul: string;
+  periode: string;          // 'YYYY-MM'
+  jumlah: number;
+  jatuhTempo?: string | null;
+}
+
+/** Setelan iuran RT (baris tunggal) — info pembayaran & nilai default. */
+export interface PengaturanIuran {
+  infoPembayaran: string;
+  nominalDefault: number;
+  judulDefault: string;
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

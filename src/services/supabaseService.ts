@@ -22,6 +22,9 @@ import {
   StatusPengajuanPublik,
   StatusUmkm,
   SuratPengantar,
+  TagihanIuran,
+  TagihanIuranInput,
+  PengaturanIuran,
   TransaksiKeuangan,
   TransaksiKeuanganInput,
   UmkmToko,
@@ -225,6 +228,36 @@ const fromKeuanganRow = (r: CloudRow): TransaksiKeuangan => ({
   keterangan: r.keterangan || '',
   bulanKas: r.bulan_kas || (r.tanggal ? String(r.tanggal).slice(0, 7) : ''),
   createdAt: r.created_at || ''
+});
+
+// ── Iuran / Tagihan warga: pemetaan baris DB → tipe aplikasi ──────────────────
+const fromIuranRow = (r: CloudRow): TagihanIuran => {
+  const status = String(r.status || 'BELUM_LUNAS');
+  return {
+    id: String(r.id || ''),
+    wargaId: String(r.warga_id || ''),
+    judul: r.judul || 'Iuran Kas RT',
+    periode: r.periode || '',
+    jumlah: Number(r.jumlah) || 0,
+    status: (['BELUM_LUNAS', 'MENUNGGU_VERIFIKASI', 'LUNAS', 'DITOLAK'].includes(status)
+      ? status
+      : 'BELUM_LUNAS') as TagihanIuran['status'],
+    jatuhTempo: r.jatuh_tempo || null,
+    buktiPath: r.bukti_path || null,
+    dibayarAt: r.dibayar_at || null,
+    verifiedBy: r.verified_by || null,
+    verifiedAt: r.verified_at || null,
+    catatan: r.catatan || null,
+    dibuatOleh: r.dibuat_oleh || null,
+    createdAt: r.created_at || '',
+    updatedAt: r.updated_at || ''
+  };
+};
+
+const fromPengaturanIuranRow = (r: CloudRow): PengaturanIuran => ({
+  infoPembayaran: r.info_pembayaran || '',
+  nominalDefault: Number(r.nominal_default) || 0,
+  judulDefault: r.judul_default || 'Iuran Kas RT'
 });
 
 // ── UMKM mini-marketplace: pemetaan baris DB → tipe aplikasi ──────────────────
@@ -2621,6 +2654,301 @@ ON CONFLICT (id) DO NOTHING;
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'keuangan_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // ===================================================================
+  // IURAN / TAGIHAN WARGA — tagihan per-warga + verifikasi bukti transfer
+  //   Otorisasi ditegakkan RLS: pengurus keuangan menulis/verifikasi,
+  //   warga hanya melihat & melampirkan bukti pada tagihan miliknya.
+  // ===================================================================
+
+  /**
+   * Ambil SEMUA tagihan (sisi pengurus). RLS mengizinkan pengurus keuangan
+   * membaca seluruh baris; warga biasa akan otomatis tersaring ke miliknya.
+   * Diurut periode terbaru lalu waktu buat.
+   */
+  public async fetchIuranAdmin(): Promise<{ data: TagihanIuran[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .select('*')
+        .order('periode', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data tagihan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromIuranRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Ambil tagihan MILIK warga yang sedang login. Tak perlu filter manual —
+   * policy RLS (warga_id = my_warga_id()) sudah menyaring otomatis.
+   */
+  public async fetchIuranSaya(): Promise<{ data: TagihanIuran[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .select('*')
+        .order('periode', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat tagihan Anda: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromIuranRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan satu tagihan (tambah bila `input.id` kosong, ubah bila terisi).
+   * Hanya pengurus keuangan yang lolos policy RLS.
+   */
+  public async simpanTagihan(
+    input: TagihanIuranInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        warga_id: input.wargaId,
+        judul: (input.judul || 'Iuran Kas RT').trim() || 'Iuran Kas RT',
+        periode: (input.periode || '').trim(),
+        jumlah: Math.max(0, Math.round(Number(input.jumlah) || 0)),
+        jatuh_tempo: input.jatuhTempo || null
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('iuran_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Tagihan tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu tagihan — hanya pengurus keuangan (policy RLS). */
+  public async hapusTagihan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('iuran_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Generate tagihan massal untuk banyak warga sekaligus (satu periode & judul).
+   * Idempoten: `UNIQUE(warga_id, periode, judul)` + `ignoreDuplicates` menjaga
+   * klik berulang tidak menggandakan tagihan. Kembalikan perkiraan jumlah dibuat.
+   */
+  public async generateIuranMassal(params: {
+    periode: string;
+    judul: string;
+    jumlah: number;
+    jatuhTempo?: string | null;
+    wargaIds: string[];
+  }): Promise<{ success: boolean; dibuat?: number; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    const ids = Array.from(new Set((params.wargaIds || []).filter(Boolean)));
+    if (ids.length === 0) return { success: false, error: 'Tidak ada warga terpilih.' };
+
+    const periode = (params.periode || '').trim();
+    if (!periode) return { success: false, error: 'Periode wajib diisi.' };
+
+    try {
+      const uid = authState.getUserId();
+      const judul = (params.judul || 'Iuran Kas RT').trim() || 'Iuran Kas RT';
+      const jumlah = Math.max(0, Math.round(Number(params.jumlah) || 0));
+      const rows = ids.map((wargaId) => ({
+        warga_id: wargaId,
+        judul,
+        periode,
+        jumlah,
+        jatuh_tempo: params.jatuhTempo || null,
+        dibuat_oleh: uid
+      }));
+
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .upsert(rows, { onConflict: 'warga_id,periode,judul', ignoreDuplicates: true })
+        .select('id');
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, dibuat: Array.isArray(data) ? data.length : 0 };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Gagal membuat tagihan massal.' };
+    }
+  }
+
+  /**
+   * Unggah bukti transfer (warga) → simpan ke bucket privat `bukti-bayar` lalu
+   * pindahkan status ke MENUNGGU_VERIFIKASI. Trigger DB men-stamp `dibayar_at`.
+   */
+  public async unggahBuktiIuran(
+    id: string,
+    file: File
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    if (!file) return { success: false, error: 'Berkas bukti belum dipilih.' };
+    if (file.size > 2 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran bukti maksimal 2 MB.' };
+    }
+
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const objectPath = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await client.storage
+        .from('bukti-bayar')
+        .upload(objectPath, file, { cacheControl: '3600', upsert: false });
+      if (upErr) return { success: false, error: `Gagal mengunggah bukti: ${upErr.message}` };
+
+      const { error } = await client
+        .from('iuran_rt004')
+        .update({ bukti_path: objectPath, status: 'MENUNGGU_VERIFIKASI' })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Bukti tidak dapat dikirim.' };
+    }
+  }
+
+  /**
+   * Keputusan verifikasi pengurus: LUNAS (setujui) atau DITOLAK (+alasan).
+   * Trigger DB men-stamp `verified_by`/`verified_at`.
+   */
+  public async verifikasiIuran(
+    id: string,
+    keputusan: 'LUNAS' | 'DITOLAK',
+    catatan?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload: Record<string, unknown> = { status: keputusan };
+      if (keputusan === 'DITOLAK') payload.catatan = (catatan || '').trim();
+      const { error } = await client
+        .from('iuran_rt004')
+        .update(payload)
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Verifikasi gagal disimpan.' };
+    }
+  }
+
+  /**
+   * Buat signed URL sementara (1 jam) untuk melihat bukti di bucket privat.
+   * Kembalikan null bila path kosong / gagal.
+   */
+  public async buktiSignedUrl(path?: string | null): Promise<string | null> {
+    const client = this.getClient();
+    if (!client || !path) return null;
+    try {
+      const { data, error } = await client.storage
+        .from('bukti-bayar')
+        .createSignedUrl(path, 3600);
+      if (error) return null;
+      return data?.signedUrl || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Ambil setelan iuran (baris tunggal id=1) — info pembayaran & default. */
+  public async fetchPengaturanIuran(): Promise<{ data: PengaturanIuran | null; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: null, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('pengaturan_iuran_rt004')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) return { data: null, error: `Gagal memuat setelan iuran: ${error.message}` };
+      return { data: data ? fromPengaturanIuranRow(data) : null };
+    } catch (err: any) {
+      return { data: null, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Simpan setelan iuran (upsert baris tunggal id=1) — pengurus keuangan. */
+  public async simpanPengaturanIuran(
+    input: PengaturanIuran
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        id: 1,
+        info_pembayaran: (input.infoPembayaran || '').trim(),
+        nominal_default: Math.max(0, Math.round(Number(input.nominalDefault) || 0)),
+        judul_default: (input.judulDefault || 'Iuran Kas RT').trim() || 'Iuran Kas RT'
+      };
+      const { error } = await client
+        .from('pengaturan_iuran_rt004')
+        .upsert(payload, { onConflict: 'id' });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Setelan tidak dapat disimpan.' };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel iuran — panel admin & tab warga ikut ter-refresh
+   * saat ada perubahan tagihan. Mengembalikan fungsi unsubscribe.
+   */
+  public subscribeIuranRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('iuran-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'iuran_rt004' },
         () => onChange()
       )
       .subscribe();

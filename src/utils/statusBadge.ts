@@ -46,3 +46,19 @@ export const EWS_TONE: Record<'BARU' | 'DITANGANI' | 'SELESAI', StatusTone> = {
   DITANGANI: 'warning',
   SELESAI: 'success',
 };
+
+/** Status tagihan iuran warga. */
+export const IURAN_TONE: Record<'BELUM_LUNAS' | 'MENUNGGU_VERIFIKASI' | 'LUNAS' | 'DITOLAK', StatusTone> = {
+  BELUM_LUNAS: 'warning',
+  MENUNGGU_VERIFIKASI: 'info',
+  LUNAS: 'success',
+  DITOLAK: 'danger',
+};
+
+/** Label ramah-pengguna status tagihan iuran. */
+export const IURAN_LABEL: Record<'BELUM_LUNAS' | 'MENUNGGU_VERIFIKASI' | 'LUNAS' | 'DITOLAK', string> = {
+  BELUM_LUNAS: 'Belum Lunas',
+  MENUNGGU_VERIFIKASI: 'Menunggu Verifikasi',
+  LUNAS: 'Lunas',
+  DITOLAK: 'Ditolak',
+};
