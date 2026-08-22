@@ -3,6 +3,7 @@ import {
   Building2,
   CalendarDays,
   Clock3,
+  Coins,
   FileText,
   Home,
   KeyRound,
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik, TransaksiKeuangan } from '../../types';
+import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik, TagihanIuran, TransaksiKeuangan } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
 import { hitungRingkasan } from '../../utils/keuangan';
@@ -43,6 +44,7 @@ import { DaftarWargaModal } from '../DaftarWargaModal';
 import { WargaDashboard, WargaQuickAction } from './WargaDashboard';
 import { UmkmWarga } from './UmkmWarga';
 import { KeuanganWarga } from './KeuanganWarga';
+import { IuranWarga } from './IuranWarga';
 
 interface WargaLayoutProps {
   currentUser: CurrentUser;
@@ -50,7 +52,7 @@ interface WargaLayoutProps {
   onLogout: () => void;
 }
 
-type WargaTab = 'beranda' | 'layanan' | 'kegiatan' | 'umkm' | 'keuangan' | 'profil';
+type WargaTab = 'beranda' | 'layanan' | 'kegiatan' | 'umkm' | 'keuangan' | 'iuran' | 'profil';
 
 const NAV: { key: WargaTab; label: string; icon: LucideIcon }[] = [
   { key: 'beranda', label: 'Beranda', icon: Home },
@@ -247,6 +249,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [kegiatanLoading, setKegiatanLoading] = useState(true);
   const [keuangan, setKeuangan] = useState<TransaksiKeuangan[]>([]);
   const [keuanganLoading, setKeuanganLoading] = useState(true);
+  const [iuran, setIuran] = useState<TagihanIuran[]>([]);
+  const [iuranLoading, setIuranLoading] = useState(true);
 
   // Modal layanan
   const [openSurat, setOpenSurat] = useState(false);
@@ -306,7 +310,28 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
     };
   }, []);
 
+  // Tagihan iuran milik warga ini (difilter RLS) — dipakai untuk badge Beranda.
+  useEffect(() => {
+    let aktif = true;
+    void (async () => {
+      setIuranLoading(true);
+      const { data } = await supabaseService.fetchIuranSaya();
+      if (!aktif) return;
+      setIuran(Array.isArray(data) ? data : []);
+      setIuranLoading(false);
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
   const ringkasanKas = useMemo(() => hitungRingkasan(keuangan), [keuangan]);
+
+  // Tagihan yang masih menunggu pembayaran warga: belum lunas + bukti ditolak.
+  const tagihanBelumLunas = useMemo(
+    () => iuran.filter(t => t.status === 'BELUM_LUNAS' || t.status === 'DITOLAK').length,
+    [iuran]
+  );
 
   const rt = konfig?.namaRT || config.namaRT || '004';
   const rw = konfig?.namaRW || config.namaRW || '007';
@@ -327,6 +352,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
     const list: Svc[] = [
       { key: 'surat', icon: FileText, title: 'Ajukan Surat Pengantar', desc: 'Kirim permohonan surat pengantar ke pengurus.', accent: 'bg-emerald-50 text-emerald-700', onClick: () => setOpenSurat(true) },
       { key: 'perbarui', icon: RefreshCw, title: 'Perbarui Data Saya', desc: 'Ajukan perubahan data kependudukan Anda — ditinjau pengurus.', accent: 'bg-teal-50 text-teal-700', onClick: () => setOpenPerbarui(true) },
+      { key: 'iuran', icon: Coins, title: 'Iuran Saya', desc: 'Lihat tagihan iuran & unggah bukti bayar.', accent: 'bg-violet-50 text-violet-700', onClick: () => setTab('iuran') },
       { key: 'lacak', icon: Search, title: 'Lacak Status Pengajuan', desc: 'Pantau perkembangan surat dengan NIK & nomor referensi.', accent: 'bg-blue-50 text-blue-700', onClick: () => setOpenLacak(true) },
       { key: 'pengaduan', icon: Megaphone, title: 'Lapor & Pengaduan', desc: 'Laporkan keluhan lingkungan: keamanan, kebersihan, fasilitas.', accent: 'bg-rose-50 text-rose-700', onClick: () => setOpenPengaduan(true) },
       { key: 'hubungi', icon: MessageCircle, title: 'Hubungi Pengurus', desc: 'Konsultasi layanan lewat WhatsApp resmi.', accent: 'bg-amber-50 text-amber-700', href: hubungiHref },
@@ -367,6 +393,9 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             totalKeluar={ringkasanKas.totalKeluar}
             keuanganLoading={keuanganLoading}
             onLihatKeuangan={() => setTab('keuangan')}
+            tagihanBelumLunas={tagihanBelumLunas}
+            iuranLoading={iuranLoading}
+            onLihatIuran={() => setTab('iuran')}
             kegiatan={kegiatan}
             onLihatKegiatan={() => setTab('kegiatan')}
           />
@@ -468,6 +497,19 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
               <ArrowLeft className="h-4 w-4" /> Beranda
             </button>
             <KeuanganWarga />
+          </div>
+        );
+      case 'iuran':
+        return (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setTab('beranda')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" /> Beranda
+            </button>
+            <IuranWarga />
           </div>
         );
       case 'profil':

@@ -24,6 +24,7 @@ import {
 } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { formatRupiah, hitungRingkasan, namaBulan, formatTanggalRingkas } from '../utils/keuangan';
+import { ROLE_PENGURUS_KEUANGAN } from '../utils/roles';
 import { useConfirm } from './ConfirmDialog';
 
 interface KeuanganAdminViewProps {
@@ -31,9 +32,6 @@ interface KeuanganAdminViewProps {
 }
 
 type FilterJenis = 'SEMUA' | 'MASUK' | 'KELUAR';
-
-/** Peran yang berhak mengubah data keuangan (samakan dengan is_pengurus_keuangan di DB). */
-const ROLE_KEUANGAN = ['ADMIN_KETUA_RT', 'ADMIN_SEKRETARIS', 'ADMIN_SISTEM', 'BENDAHARA'];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const hariIni = (): string => new Date().toISOString().slice(0, 10);
@@ -256,7 +254,7 @@ export const KeuanganAdminView: React.FC<KeuanganAdminViewProps> = ({ currentUse
 
   const { confirm: askConfirm, dialog } = useConfirm();
 
-  const canManage = ROLE_KEUANGAN.includes(String(currentUser?.role));
+  const canManage = ROLE_PENGURUS_KEUANGAN.includes(String(currentUser?.role));
 
   const showToast = (msg: string, tone: 'ok' | 'err' = 'ok') => {
     setToast({ msg, tone });

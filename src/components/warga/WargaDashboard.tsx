@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronRight,
   Clock3,
+  Coins,
   FileText,
   MapPin,
   Megaphone,
@@ -40,6 +41,10 @@ interface WargaDashboardProps {
   totalKeluar: number;
   keuanganLoading: boolean;
   onLihatKeuangan: () => void;
+  // Iuran pribadi warga — jumlah tagihan yang masih menunggu pembayaran.
+  tagihanBelumLunas: number;
+  iuranLoading: boolean;
+  onLihatIuran: () => void;
   // Spotlight kegiatan terdekat.
   kegiatan: Kegiatan[];
   onLihatKegiatan: () => void;
@@ -135,6 +140,9 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
   totalKeluar,
   keuanganLoading,
   onLihatKeuangan,
+  tagihanBelumLunas,
+  iuranLoading,
+  onLihatIuran,
   kegiatan,
   onLihatKegiatan,
 }) => {
@@ -254,6 +262,40 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
               </span>
             </div>
           </div>
+        </motion.button>
+      </motion.section>
+
+      {/* ── Iuran Saya ─────────────────────────────────────────────────── */}
+      <motion.section variants={rise}>
+        <motion.button
+          type="button"
+          onClick={onLihatIuran}
+          whileTap={reduce ? undefined : { scale: 0.985 }}
+          className="flex w-full items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-violet-200 hover:shadow-md"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+            <Coins className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-900">Iuran Saya</span>
+              {!iuranLoading && tagihanBelumLunas > 0 && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                  {tagihanBelumLunas} belum bayar
+                </span>
+              )}
+            </span>
+            {iuranLoading ? (
+              <span className="mt-1.5 block h-3 w-40 animate-pulse rounded bg-slate-100" />
+            ) : (
+              <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                {tagihanBelumLunas > 0
+                  ? 'Bayar lalu unggah bukti transfer Anda.'
+                  : 'Semua iuran Anda sudah beres 🎉'}
+              </span>
+            )}
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
         </motion.button>
       </motion.section>
 

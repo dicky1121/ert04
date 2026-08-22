@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Store,
   Wallet,
+  Coins,
   ChevronDown,
   ChevronRight,
   Database,
@@ -215,6 +216,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'keuangan' ? 'text-emerald-600' : 'text-slate-500'}`} />
               <span className="truncate">Keuangan RT</span>
+            </button>
+          </div>
+
+          {/* Iuran RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('iuran')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'iuran'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'iuran' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Iuran RT</span>
             </button>
           </div>
 

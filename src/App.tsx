@@ -27,6 +27,7 @@ import { EWSAdminView } from './components/EWSAdminView';
 import { KegiatanAdminView } from './components/KegiatanAdminView';
 import { UmkmAdminView } from './components/UmkmAdminView';
 import { KeuanganAdminView } from './components/KeuanganAdminView';
+import { IuranAdminView } from './components/IuranAdminView';
 import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
@@ -792,6 +793,13 @@ export default function App() {
         {activeTab === 'keuangan' && (
           <KeuanganAdminView
             currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'iuran' && (
+          <IuranAdminView
+            currentUser={currentUser}
+            wargaList={wargaList}
           />
         )}
 
