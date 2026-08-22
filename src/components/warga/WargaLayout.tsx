@@ -20,8 +20,8 @@ import {
   Siren,
   Store,
   User,
-  Wallet,
   X,
+  ArrowLeft,
   ArrowRight,
   Eye,
   EyeOff,
@@ -30,9 +30,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik } from '../../types';
+import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik, TransaksiKeuangan } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
+import { hitungRingkasan } from '../../utils/keuangan';
 import { BekasiLogo } from '../BekasiLogo';
 import { PublicSuratForm } from '../PublicSuratForm';
 import { LacakPengajuanModal } from '../LacakPengajuanModal';
@@ -56,7 +57,6 @@ const NAV: { key: WargaTab; label: string; icon: LucideIcon }[] = [
   { key: 'layanan', label: 'Layanan', icon: LayoutGrid },
   { key: 'kegiatan', label: 'Kegiatan', icon: CalendarDays },
   { key: 'umkm', label: 'UMKM', icon: Store },
-  { key: 'keuangan', label: 'Keuangan', icon: Wallet },
   { key: 'profil', label: 'Profil', icon: User },
 ];
 
@@ -245,6 +245,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
   const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
   const [kegiatanLoading, setKegiatanLoading] = useState(true);
+  const [keuangan, setKeuangan] = useState<TransaksiKeuangan[]>([]);
+  const [keuanganLoading, setKeuanganLoading] = useState(true);
 
   // Modal layanan
   const [openSurat, setOpenSurat] = useState(false);
@@ -288,6 +290,23 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       aktif = false;
     };
   }, []);
+
+  // Ringkasan kas RT — ditampilkan di Beranda (transparansi, read-only).
+  useEffect(() => {
+    let aktif = true;
+    void (async () => {
+      setKeuanganLoading(true);
+      const { data } = await supabaseService.fetchKeuangan();
+      if (!aktif) return;
+      setKeuangan(Array.isArray(data) ? data : []);
+      setKeuanganLoading(false);
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
+  const ringkasanKas = useMemo(() => hitungRingkasan(keuangan), [keuangan]);
 
   const rt = konfig?.namaRT || config.namaRT || '004';
   const rw = konfig?.namaRW || config.namaRW || '007';
@@ -343,6 +362,13 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             statistik={statistik}
             pengumuman={pengumuman}
             quickActions={quickActions}
+            saldoKas={ringkasanKas.saldo}
+            totalMasuk={ringkasanKas.totalMasuk}
+            totalKeluar={ringkasanKas.totalKeluar}
+            keuanganLoading={keuanganLoading}
+            onLihatKeuangan={() => setTab('keuangan')}
+            kegiatan={kegiatan}
+            onLihatKegiatan={() => setTab('kegiatan')}
           />
         );
       case 'layanan':
@@ -432,7 +458,18 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       case 'umkm':
         return <UmkmWarga currentUser={currentUser} />;
       case 'keuangan':
-        return <KeuanganWarga />;
+        return (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setTab('beranda')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" /> Beranda
+            </button>
+            <KeuanganWarga />
+          </div>
+        );
       case 'profil':
         return (
           <div className="space-y-4">
@@ -512,7 +549,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
 
       {/* Bottom navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg pb-safe">
-        <div className="mx-auto grid max-w-2xl grid-cols-6">
+        <div className="mx-auto grid max-w-2xl grid-cols-5">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = tab === item.key;
