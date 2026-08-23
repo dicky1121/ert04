@@ -5,6 +5,7 @@ import {
   Clock3,
   Coins,
   FileText,
+  History,
   Home,
   KeyRound,
   LayoutGrid,
@@ -21,6 +22,7 @@ import {
   Siren,
   Store,
   User,
+  Wallet,
   X,
   ArrowLeft,
   ArrowRight,
@@ -31,7 +33,17 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { CurrentUser, Kegiatan, KonfigurasiPublik, PengumumanPublik, RTConfig, StatistikPublik, TagihanIuran, TransaksiKeuangan } from '../../types';
+import {
+  CurrentUser,
+  Kegiatan,
+  KonfigurasiPublik,
+  PengumumanPublik,
+  RiwayatPengaduan,
+  RiwayatSurat,
+  RTConfig,
+  TagihanIuran,
+  TransaksiKeuangan,
+} from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
 import { hitungRingkasan } from '../../utils/keuangan';
@@ -45,6 +57,7 @@ import { WargaDashboard, WargaQuickAction } from './WargaDashboard';
 import { UmkmWarga } from './UmkmWarga';
 import { KeuanganWarga } from './KeuanganWarga';
 import { IuranWarga } from './IuranWarga';
+import { RiwayatWarga } from './RiwayatWarga';
 
 interface WargaLayoutProps {
   currentUser: CurrentUser;
@@ -52,12 +65,17 @@ interface WargaLayoutProps {
   onLogout: () => void;
 }
 
-type WargaTab = 'beranda' | 'layanan' | 'kegiatan' | 'umkm' | 'keuangan' | 'iuran' | 'profil';
+type WargaTab = 'beranda' | 'layanan' | 'kegiatan' | 'umkm' | 'keuangan' | 'iuran' | 'riwayat' | 'profil';
 
+/**
+ * Bottom nav tetap 5 kolom: 4 tab + satu tombol tengah menonjol (FAB) untuk
+ * "Ajukan Surat" — aksi yang paling sering dipakai warga. Tab `layanan`,
+ * `kegiatan`, `keuangan`, `riwayat` sengaja tidak di nav; semuanya dijangkau
+ * dari grid LAYANAN / kartu statistik di Beranda.
+ */
 const NAV: { key: WargaTab; label: string; icon: LucideIcon }[] = [
   { key: 'beranda', label: 'Beranda', icon: Home },
-  { key: 'layanan', label: 'Layanan', icon: LayoutGrid },
-  { key: 'kegiatan', label: 'Kegiatan', icon: CalendarDays },
+  { key: 'iuran', label: 'Iuran', icon: Coins },
   { key: 'umkm', label: 'UMKM', icon: Store },
   { key: 'profil', label: 'Profil', icon: User },
 ];
@@ -142,6 +160,26 @@ const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({
     )}
   </div>
 );
+
+/** Satu tab pada bottom nav (dipakai di kiri & kanan tombol FAB tengah). */
+const NavButton: React.FC<{
+  item: { key: WargaTab; label: string; icon: LucideIcon };
+  active: boolean;
+  onSelect: (key: WargaTab) => void;
+}> = ({ item, active, onSelect }) => {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.key)}
+      className={`flex flex-col items-center gap-0.5 py-2.5 transition ${active ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+      aria-current={active ? 'page' : undefined}
+    >
+      <Icon className={`h-5 w-5 ${active ? 'scale-110' : ''} transition-transform`} />
+      <span className="text-[10px] font-bold leading-none">{item.label}</span>
+    </button>
+  );
+};
 
 /** Modal ganti PIN warga (6 angka). */
 const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -237,13 +275,13 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 /**
- * Shell dashboard warga (mobile-first, bottom navigation). Beranda & Layanan
- * memakai ulang modal Sapa Warga; Kegiatan/UMKM/Keuangan menyusul (Fase B/C).
+ * Shell dashboard warga (mobile-first, bottom navigation 4 tab + FAB Surat).
+ * Beranda menampilkan statistik pribadi, grid LAYANAN, kas RT, kegiatan, dan
+ * pengumuman; layar Layanan/Kegiatan/Kas/Riwayat dijangkau dari Beranda.
  */
 export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, onLogout }) => {
   const [tab, setTab] = useState<WargaTab>('beranda');
   const [konfig, setKonfig] = useState<KonfigurasiPublik | null>(null);
-  const [statistik, setStatistik] = useState<StatistikPublik | null>(null);
   const [pengumuman, setPengumuman] = useState<PengumumanPublik[]>([]);
   const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
   const [kegiatanLoading, setKegiatanLoading] = useState(true);
@@ -251,6 +289,10 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [keuanganLoading, setKeuanganLoading] = useState(true);
   const [iuran, setIuran] = useState<TagihanIuran[]>([]);
   const [iuranLoading, setIuranLoading] = useState(true);
+  const [riwayatSurat, setRiwayatSurat] = useState<RiwayatSurat[]>([]);
+  const [riwayatPengaduan, setRiwayatPengaduan] = useState<RiwayatPengaduan[]>([]);
+  const [riwayatLoading, setRiwayatLoading] = useState(true);
+  const [riwayatError, setRiwayatError] = useState<string | null>(null);
 
   // Modal layanan
   const [openSurat, setOpenSurat] = useState(false);
@@ -265,14 +307,12 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   useEffect(() => {
     let aktif = true;
     void (async () => {
-      const [k, s, p] = await Promise.all([
+      const [k, p] = await Promise.all([
         supabaseService.fetchKonfigurasiPublik(),
-        supabaseService.fetchStatistikPublik(),
         supabaseService.fetchPengumumanPublik(),
       ]);
       if (!aktif) return;
       setKonfig(k);
-      setStatistik(s);
       setPengumuman(p);
     })();
     return () => {
@@ -325,6 +365,28 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
     };
   }, []);
 
+  // Riwayat pribadi (surat + pengaduan) — diambil SEKALI di sini lalu
+  // diturunkan sebagai props ke Beranda (angka) dan layar Riwayat (daftar),
+  // supaya tidak dua kali jalan ke server. Butuh scripts/fitur-riwayat-warga.sql.
+  useEffect(() => {
+    let aktif = true;
+    void (async () => {
+      setRiwayatLoading(true);
+      const [surat, pengaduan] = await Promise.all([
+        supabaseService.fetchPengajuanSaya(),
+        supabaseService.fetchPengaduanSaya(),
+      ]);
+      if (!aktif) return;
+      setRiwayatSurat(Array.isArray(surat.data) ? surat.data : []);
+      setRiwayatPengaduan(Array.isArray(pengaduan.data) ? pengaduan.data : []);
+      setRiwayatError(surat.error || pengaduan.error || null);
+      setRiwayatLoading(false);
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
   const ringkasanKas = useMemo(() => hitungRingkasan(keuangan), [keuangan]);
 
   // Tagihan yang masih menunggu pembayaran warga: belum lunas + bukti ditolak.
@@ -353,6 +415,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       { key: 'surat', icon: FileText, title: 'Ajukan Surat Pengantar', desc: 'Kirim permohonan surat pengantar ke pengurus.', accent: 'bg-emerald-50 text-emerald-700', onClick: () => setOpenSurat(true) },
       { key: 'perbarui', icon: RefreshCw, title: 'Perbarui Data Saya', desc: 'Ajukan perubahan data kependudukan Anda — ditinjau pengurus.', accent: 'bg-teal-50 text-teal-700', onClick: () => setOpenPerbarui(true) },
       { key: 'iuran', icon: Coins, title: 'Iuran Saya', desc: 'Lihat tagihan iuran & unggah bukti bayar.', accent: 'bg-violet-50 text-violet-700', onClick: () => setTab('iuran') },
+      { key: 'riwayat', icon: History, title: 'Riwayat Saya', desc: 'Arsip pengajuan surat & pengaduan yang pernah Anda kirim.', accent: 'bg-sky-50 text-sky-700', onClick: () => setTab('riwayat') },
       { key: 'lacak', icon: Search, title: 'Lacak Status Pengajuan', desc: 'Pantau perkembangan surat dengan NIK & nomor referensi.', accent: 'bg-blue-50 text-blue-700', onClick: () => setOpenLacak(true) },
       { key: 'pengaduan', icon: Megaphone, title: 'Lapor & Pengaduan', desc: 'Laporkan keluhan lingkungan: keamanan, kebersihan, fasilitas.', accent: 'bg-rose-50 text-rose-700', onClick: () => setOpenPengaduan(true) },
       { key: 'hubungi', icon: MessageCircle, title: 'Hubungi Pengurus', desc: 'Konsultasi layanan lewat WhatsApp resmi.', accent: 'bg-amber-50 text-amber-700', href: hubungiHref },
@@ -363,18 +426,27 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
     return list;
   }, [hubungiHref, isNativeApp]);
 
-  const quickActions: WargaQuickAction[] = useMemo(() => {
-    const qa: WargaQuickAction[] = [
+  /**
+   * Delapan kotak grid LAYANAN di Beranda (4 kolom × 2 baris). Slot ke-7
+   * berbeda per platform: di APK diisi "Darurat" (EWS), di web diisi
+   * "Perbarui Data" — yang di APK tetap terjangkau lewat "Semua Layanan".
+   */
+  const layananTiles: WargaQuickAction[] = useMemo(() => {
+    const tiles: WargaQuickAction[] = [
+      { key: 'iuran', icon: Coins, title: 'Iuran', accent: 'bg-violet-50 text-violet-700', onClick: () => setTab('iuran') },
       { key: 'surat', icon: FileText, title: 'Surat', accent: 'bg-emerald-50 text-emerald-700', onClick: () => setOpenSurat(true) },
+      { key: 'pengaduan', icon: Megaphone, title: 'Aduan', accent: 'bg-rose-50 text-rose-700', onClick: () => setOpenPengaduan(true) },
+      { key: 'keuangan', icon: Wallet, title: 'Kas RT', accent: 'bg-teal-50 text-teal-700', onClick: () => setTab('keuangan') },
+      { key: 'kegiatan', icon: CalendarDays, title: 'Kegiatan', accent: 'bg-sky-50 text-sky-700', onClick: () => setTab('kegiatan') },
       { key: 'lacak', icon: Search, title: 'Lacak', accent: 'bg-blue-50 text-blue-700', onClick: () => setOpenLacak(true) },
-      { key: 'pengaduan', icon: Megaphone, title: 'Pengaduan', accent: 'bg-rose-50 text-rose-700', onClick: () => setOpenPengaduan(true) },
     ];
-    if (isNativeApp) {
-      qa.push({ key: 'ews', icon: Siren, title: 'Darurat', accent: 'bg-rose-100 text-rose-700', onClick: () => setOpenEWS(true) });
-    } else {
-      qa.push({ key: 'layanan', icon: LayoutGrid, title: 'Layanan', accent: 'bg-slate-100 text-slate-600', onClick: () => setTab('layanan') });
-    }
-    return qa;
+    tiles.push(
+      isNativeApp
+        ? { key: 'ews', icon: Siren, title: 'Darurat', accent: 'bg-rose-100 text-rose-700', onClick: () => setOpenEWS(true) }
+        : { key: 'perbarui', icon: RefreshCw, title: 'Perbarui Data', accent: 'bg-amber-50 text-amber-700', onClick: () => setOpenPerbarui(true) }
+    );
+    tiles.push({ key: 'layanan', icon: LayoutGrid, title: 'Semua Layanan', accent: 'bg-slate-100 text-slate-600', onClick: () => setTab('layanan') });
+    return tiles;
   }, [isNativeApp]);
 
   const renderContent = () => {
@@ -385,9 +457,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             nama={currentUser.nama}
             rt={rt}
             rw={rw}
-            statistik={statistik}
             pengumuman={pengumuman}
-            quickActions={quickActions}
+            layananTiles={layananTiles}
             saldoKas={ringkasanKas.saldo}
             totalMasuk={ringkasanKas.totalMasuk}
             totalKeluar={ringkasanKas.totalKeluar}
@@ -396,6 +467,10 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             tagihanBelumLunas={tagihanBelumLunas}
             iuranLoading={iuranLoading}
             onLihatIuran={() => setTab('iuran')}
+            suratSaya={riwayatSurat.length}
+            pengaduanSaya={riwayatPengaduan.length}
+            riwayatLoading={riwayatLoading}
+            onLihatRiwayat={() => setTab('riwayat')}
             kegiatan={kegiatan}
             onLihatKegiatan={() => setTab('kegiatan')}
           />
@@ -403,6 +478,13 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       case 'layanan':
         return (
           <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setTab('beranda')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" /> Beranda
+            </button>
             <h1 className="text-lg font-black tracking-tight text-slate-900 px-0.5">Layanan Warga</h1>
             {!whatsappNumber && (
               <p className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-medium text-amber-800">
@@ -483,7 +565,18 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
           </div>
         );
       case 'kegiatan':
-        return <KegiatanWargaPanel items={kegiatan} loading={kegiatanLoading} />;
+        return (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setTab('beranda')}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" /> Beranda
+            </button>
+            <KegiatanWargaPanel items={kegiatan} loading={kegiatanLoading} />
+          </div>
+        );
       case 'umkm':
         return <UmkmWarga currentUser={currentUser} />;
       case 'keuangan':
@@ -500,6 +593,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
           </div>
         );
       case 'iuran':
+        return <IuranWarga />;
+      case 'riwayat':
         return (
           <div className="space-y-3">
             <button
@@ -509,7 +604,16 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             >
               <ArrowLeft className="h-4 w-4" /> Beranda
             </button>
-            <IuranWarga />
+            <div className="px-0.5">
+              <h1 className="text-lg font-black tracking-tight text-slate-900">Riwayat Saya</h1>
+              <p className="text-sm text-slate-500">Pengajuan surat & pengaduan yang pernah Anda kirim.</p>
+            </div>
+            <RiwayatWarga
+              surat={riwayatSurat}
+              pengaduan={riwayatPengaduan}
+              loading={riwayatLoading}
+              error={riwayatError}
+            />
           </div>
         );
       case 'profil':
@@ -589,25 +693,30 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       {/* Konten */}
       <main className="mx-auto max-w-2xl px-4 py-5 pb-28">{renderContent()}</main>
 
-      {/* Bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg pb-safe">
-        <div className="mx-auto grid max-w-2xl grid-cols-5">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = tab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setTab(item.key)}
-                className={`flex flex-col items-center gap-0.5 py-2.5 transition ${active ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon className={`h-5 w-5 ${active ? 'scale-110' : ''} transition-transform`} />
-                <span className="text-[10px] font-bold leading-none">{item.label}</span>
-              </button>
-            );
-          })}
+      {/* Bottom navigation — 4 tab + FAB "Surat" di slot tengah (tetap 5 kolom).
+          `overflow-visible` wajib agar tonjolan FAB tidak terpotong. */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 overflow-visible border-t border-slate-200 bg-white/95 backdrop-blur-lg pb-safe">
+        <div className="mx-auto grid max-w-2xl grid-cols-5 items-end">
+          {NAV.slice(0, 2).map((item) => (
+            <NavButton key={item.key} item={item} active={tab === item.key} onSelect={setTab} />
+          ))}
+
+          {/* Slot tengah: tombol menonjol untuk aksi paling sering — ajukan surat */}
+          <div className="flex flex-col items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setOpenSurat(true)}
+              aria-label="Ajukan Surat Pengantar"
+              className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-white transition active:scale-95 hover:bg-emerald-700"
+            >
+              <FileText className="h-6 w-6" />
+            </button>
+            <span className="pb-2.5 pt-1 text-[10px] font-bold leading-none text-slate-500">Surat</span>
+          </div>
+
+          {NAV.slice(2).map((item) => (
+            <NavButton key={item.key} item={item} active={tab === item.key} onSelect={setTab} />
+          ))}
         </div>
       </nav>
 

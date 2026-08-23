@@ -40,6 +40,34 @@ export const SURAT_TONE: Record<'PENDING' | 'DISETUJUI' | 'DITOLAK', StatusTone>
   DITOLAK: 'danger',
 };
 
+/** Label ramah-pengguna status pengajuan surat. */
+export const SURAT_LABEL: Record<'PENDING' | 'DISETUJUI' | 'DITOLAK', string> = {
+  PENDING: 'Menunggu Proses',
+  DISETUJUI: 'Disetujui',
+  DITOLAK: 'Ditolak',
+};
+
+/**
+ * Status pengaduan warga. Kolom status di server TIDAK punya CHECK constraint,
+ * jadi pembacanya wajib menyiapkan fallback 'neutral' / label apa adanya.
+ */
+export const PENGADUAN_TONE: Record<string, StatusTone> = {
+  BARU: 'info',
+  DIPROSES: 'warning',
+  DITANGANI: 'warning',
+  SELESAI: 'success',
+  DITOLAK: 'danger',
+};
+
+/** Label ramah-pengguna status pengaduan (fallback: tampilkan kode apa adanya). */
+export const PENGADUAN_LABEL: Record<string, string> = {
+  BARU: 'Laporan Masuk',
+  DIPROSES: 'Diproses',
+  DITANGANI: 'Ditangani',
+  SELESAI: 'Selesai',
+  DITOLAK: 'Ditolak',
+};
+
 /** Status laporan EWS darurat. */
 export const EWS_TONE: Record<'BARU' | 'DITANGANI' | 'SELESAI', StatusTone> = {
   BARU: 'danger',

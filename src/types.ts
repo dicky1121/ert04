@@ -187,6 +187,38 @@ export interface PengaduanInput {
 }
 
 // ---------------------------------------------------------------------
+// Riwayat pribadi warga (RPC pengajuan_saya / pengaduan_saya)
+// ---------------------------------------------------------------------
+
+export type StatusSurat = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+
+/** Satu baris riwayat pengajuan surat milik warga yang sedang login. */
+export interface RiwayatSurat {
+  nomorSurat: string;
+  jenisSurat: string;
+  judulSurat: string;
+  keperluan: string;
+  status: StatusSurat | string;
+  tanggalPengajuan: string | null;
+  tanggalDisetujui: string | null;
+  alasanPenolakan: string | null;
+}
+
+/**
+ * Satu baris riwayat pengaduan milik warga yang sedang login.
+ * `status` sengaja longgar: kolomnya di server tanpa CHECK constraint.
+ */
+export interface RiwayatPengaduan {
+  nomorTiket: string;
+  kategori: KategoriPengaduan | string;
+  alamatKejadian: string;
+  isiLaporan: string;
+  status: string;
+  tanggapan: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------
 // Fitur: Daftar / Perbarui Data Warga (pengajuan warga self-service)
 // ---------------------------------------------------------------------
 

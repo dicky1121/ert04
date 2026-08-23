@@ -15,6 +15,8 @@ import {
   PengajuanSuratPublik,
   PengajuanWarga,
   PengumumanPublik,
+  RiwayatPengaduan,
+  RiwayatSurat,
   RTConfig,
   StatistikPublik,
   StatusEWS,
@@ -693,6 +695,70 @@ class SupabaseService {
       return { success: true, tiket: typeof data === 'string' ? data : String(data || '') };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Laporan tidak dapat dikirim.' };
+    }
+  }
+
+  // ===================================================================
+  // Riwayat pribadi warga — RPC SECURITY DEFINER yang sudah di-scope ke
+  // pemanggil (tabel surat & pengaduan tetap tertutup untuk warga).
+  // Butuh scripts/fitur-riwayat-warga.sql.
+  // ===================================================================
+
+  /**
+   * Riwayat pengajuan surat MILIK warga yang sedang login. Server mencocokkan
+   * lewat NIK sesi; hasil kosong bila pemanggil bukan warga aktif.
+   */
+  public async fetchPengajuanSaya(): Promise<{ data: RiwayatSurat[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client.rpc('pengajuan_saya');
+      if (error) return { data: [], error: `Gagal memuat riwayat surat: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return {
+        data: data.map((row: any) => ({
+          nomorSurat: String(row.nomor_surat || ''),
+          jenisSurat: String(row.jenis_surat || ''),
+          judulSurat: String(row.judul_surat || ''),
+          keperluan: String(row.keperluan || ''),
+          status: String(row.status || 'PENDING'),
+          tanggalPengajuan: row.tanggal_pengajuan || null,
+          tanggalDisetujui: row.tanggal_disetujui || null,
+          alasanPenolakan: row.alasan_penolakan || null
+        }))
+      };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Riwayat pengaduan MILIK warga yang sedang login. Hanya laporan yang
+   * terstempel `warga_id` yang ikut — laporan sebelum fitur ini tidak punya
+   * pemilik sehingga memang tidak muncul.
+   */
+  public async fetchPengaduanSaya(): Promise<{ data: RiwayatPengaduan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client.rpc('pengaduan_saya');
+      if (error) return { data: [], error: `Gagal memuat riwayat pengaduan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return {
+        data: data.map((row: any) => ({
+          nomorTiket: String(row.nomor_tiket || ''),
+          kategori: String(row.kategori || 'LAINNYA'),
+          alamatKejadian: String(row.alamat_kejadian || ''),
+          isiLaporan: String(row.isi_laporan || ''),
+          status: String(row.status || 'BARU'),
+          tanggapan: row.tanggapan || null,
+          createdAt: String(row.created_at || '')
+        }))
+      };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
     }
   }
 

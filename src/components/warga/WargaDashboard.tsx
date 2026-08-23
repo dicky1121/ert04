@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   FileText,
   MapPin,
   Megaphone,
+  MessageSquareWarning,
   Moon,
   Sun,
   Sunrise,
@@ -17,7 +19,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { motion, useReducedMotion, animate, type Variants } from 'motion/react';
-import { Kegiatan, PengumumanPublik, StatistikPublik } from '../../types';
+import { Kegiatan, PengumumanPublik } from '../../types';
 import { formatRupiah } from '../../utils/keuangan';
 
 export interface WargaQuickAction {
@@ -32,9 +34,9 @@ interface WargaDashboardProps {
   nama: string;
   rt: string;
   rw: string;
-  statistik: StatistikPublik | null;
   pengumuman: PengumumanPublik[];
-  quickActions: WargaQuickAction[];
+  /** 8 kotak grid LAYANAN (4 kolom × 2 baris). */
+  layananTiles: WargaQuickAction[];
   // Ringkasan kas RT — dipindah ke Beranda (tak lagi jadi menu tersendiri).
   saldoKas: number;
   totalMasuk: number;
@@ -45,6 +47,11 @@ interface WargaDashboardProps {
   tagihanBelumLunas: number;
   iuranLoading: boolean;
   onLihatIuran: () => void;
+  // Riwayat pribadi warga — dipakai kartu statistik 3 kolom.
+  suratSaya: number;
+  pengaduanSaya: number;
+  riwayatLoading: boolean;
+  onLihatRiwayat: () => void;
   // Spotlight kegiatan terdekat.
   kegiatan: Kegiatan[];
   onLihatKegiatan: () => void;
@@ -127,14 +134,13 @@ const SectionHeader: React.FC<{
   </div>
 );
 
-/** Beranda dashboard warga — hero, saldo kas, akses cepat, kegiatan, pengumuman. */
+/** Beranda dashboard warga — hero, statistik pribadi, layanan, kas, kegiatan. */
 export const WargaDashboard: React.FC<WargaDashboardProps> = ({
   nama,
   rt,
   rw,
-  statistik,
   pengumuman,
-  quickActions,
+  layananTiles,
   saldoKas,
   totalMasuk,
   totalKeluar,
@@ -143,6 +149,10 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
   tagihanBelumLunas,
   iuranLoading,
   onLihatIuran,
+  suratSaya,
+  pengaduanSaya,
+  riwayatLoading,
+  onLihatRiwayat,
   kegiatan,
   onLihatKegiatan,
 }) => {
@@ -167,13 +177,39 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
 
   const saldoView = useCountUp(saldoKas, !reduce && !keuanganLoading);
 
-  const statistikCards = statistik
-    ? [
-        { label: 'Selesai bulan ini', value: statistik.suratSelesaiBulanIni },
-        { label: 'Sedang diproses', value: statistik.suratDiproses },
-        { label: 'Terbit tahun ini', value: statistik.suratTahunIni },
-      ]
-    : [];
+  // Tiga angka pribadi pada kartu statistik yang menimpa hero.
+  const statPribadi = [
+    {
+      key: 'tagihan',
+      icon: Coins,
+      label: 'Tagihan',
+      value: tagihanBelumLunas,
+      loading: iuranLoading,
+      tone: 'text-amber-600',
+      bg: 'bg-amber-50',
+      onClick: onLihatIuran,
+    },
+    {
+      key: 'surat',
+      icon: FileText,
+      label: 'Surat',
+      value: suratSaya,
+      loading: riwayatLoading,
+      tone: 'text-sky-600',
+      bg: 'bg-sky-50',
+      onClick: onLihatRiwayat,
+    },
+    {
+      key: 'pengaduan',
+      icon: MessageSquareWarning,
+      label: 'Pengaduan',
+      value: pengaduanSaya,
+      loading: riwayatLoading,
+      tone: 'text-violet-600',
+      bg: 'bg-violet-50',
+      onClick: onLihatRiwayat,
+    },
+  ];
 
   const kegiatanTampil = useMemo(() => {
     const todayYMD = new Date().toISOString().slice(0, 10);
@@ -191,9 +227,9 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
       animate="show"
       className="space-y-6 pb-2"
     >
-      {/* ── Hero + Saldo Kas (mengambang menimpa hero) ─────────────────── */}
+      {/* ── Hero + kartu statistik pribadi (mengambang menimpa hero) ───── */}
       <motion.section variants={rise} className="relative">
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 px-5 pt-5 pb-20 text-white shadow-xl shadow-emerald-900/25">
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 px-5 pt-5 pb-24 text-white shadow-xl shadow-emerald-900/25">
           {/* Dekorasi kedalaman */}
           <div aria-hidden className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
           <div aria-hidden className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-teal-300/25 blur-2xl" />
@@ -206,24 +242,117 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
                 <GreetIcon className="h-3.5 w-3.5" /> {sapaanTeks}
               </div>
               <h1 className="mt-1.5 truncate text-[26px] font-black leading-tight tracking-tight">{namaDepan} 👋</h1>
-              <p className="mt-0.5 text-xs text-emerald-50/75">{tanggalPanjang}</p>
+              <p className="mt-0.5 text-xs text-emerald-50/75">Portal Warga — semua layanan dalam satu genggaman.</p>
             </div>
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-black ring-1 ring-white/25 backdrop-blur">
               {inisial}
             </div>
           </div>
 
-          <p className="relative mt-3 max-w-[80%] text-[13px] leading-relaxed text-emerald-50/85">
-            Portal Warga RT {rt} RW {rw} — semua layanan lingkungan dalam satu genggaman.
+          <p className="relative mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-semibold text-emerald-50/90">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 ring-1 ring-white/20">
+              <MapPin className="h-3.5 w-3.5" /> RT {rt} / RW {rw}
+            </span>
+            <span className="text-emerald-50/70">{tanggalPanjang}</span>
           </p>
         </div>
 
-        {/* Kartu Saldo Kas — overlap fintech-style */}
+        {/* Kartu 3 statistik pribadi — menimpa hero, tiap angka bisa ditekan */}
+        <motion.div
+          variants={rise}
+          className="relative z-10 -mt-12 grid grid-cols-3 divide-x divide-slate-100 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl shadow-emerald-900/10"
+        >
+          {statPribadi.map((s) => {
+            const Icon = s.icon;
+            return (
+              <motion.button
+                key={s.key}
+                type="button"
+                onClick={s.onClick}
+                whileTap={reduce ? undefined : { scale: 0.95 }}
+                className="flex flex-col items-center gap-1.5 px-2 py-3.5 transition hover:bg-slate-50"
+              >
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${s.bg} ${s.tone}`}>
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                {s.loading ? (
+                  <span className="mt-0.5 block h-6 w-7 animate-pulse rounded bg-slate-100" />
+                ) : (
+                  <span className="text-[22px] font-black leading-none tracking-tight text-slate-900 tabular-nums">
+                    {s.value}
+                  </span>
+                )}
+                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{s.label}</span>
+              </motion.button>
+            );
+          })}
+        </motion.div>
+      </motion.section>
+
+      {/* ── Peringatan tagihan belum lunas ─────────────────────────────── */}
+      {!iuranLoading && tagihanBelumLunas > 0 && (
+        <motion.section variants={rise}>
+          <div className="flex items-center gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-3.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-amber-900">
+                {tagihanBelumLunas} tagihan belum lunas
+              </span>
+              <span className="block text-xs text-amber-700/80">Segera lakukan pembayaran iuran Anda.</span>
+            </span>
+            <motion.button
+              type="button"
+              onClick={onLihatIuran}
+              whileTap={reduce ? undefined : { scale: 0.95 }}
+              className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white shadow-sm shadow-amber-500/30 transition hover:bg-amber-600"
+            >
+              Bayar
+            </motion.button>
+          </div>
+        </motion.section>
+      )}
+
+      {/* ── LAYANAN — grid ikon 4 × 2 ──────────────────────────────────── */}
+      <motion.section variants={rise}>
+        <h2 className="mb-2.5 px-0.5 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+          Layanan
+        </h2>
+        <motion.div
+          variants={container}
+          className="grid grid-cols-4 gap-y-4 rounded-3xl bg-white px-2 py-4 shadow-sm ring-1 ring-slate-100"
+        >
+          {layananTiles.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <motion.button
+                key={tile.key}
+                type="button"
+                variants={rise}
+                whileTap={reduce ? undefined : { scale: 0.92 }}
+                onClick={tile.onClick}
+                className="group flex flex-col items-center gap-1.5 px-1"
+              >
+                <span className={`flex h-12 w-12 items-center justify-center rounded-2xl transition group-hover:scale-105 ${tile.accent}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="text-center text-[10.5px] font-semibold leading-tight text-slate-600">
+                  {tile.title}
+                </span>
+              </motion.button>
+            );
+          })}
+        </motion.div>
+      </motion.section>
+
+      {/* ── Saldo Kas RT (transparansi kas — ringkas) ──────────────────── */}
+      <motion.section variants={rise}>
         <motion.button
           type="button"
           onClick={onLihatKeuangan}
           whileTap={reduce ? undefined : { scale: 0.985 }}
-          className="relative z-10 -mt-12 flex w-full flex-col rounded-3xl border border-slate-100 bg-white p-4 text-left shadow-xl shadow-emerald-900/10 transition hover:shadow-2xl"
+          className="flex w-full flex-col rounded-3xl border border-slate-100 bg-white p-4 text-left shadow-sm transition hover:shadow-md"
         >
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
@@ -235,9 +364,9 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
           </div>
 
           {keuanganLoading ? (
-            <div className="mt-2 h-8 w-44 animate-pulse rounded-lg bg-slate-100" />
+            <div className="mt-2 h-7 w-40 animate-pulse rounded-lg bg-slate-100" />
           ) : (
-            <p className="mt-1 text-[28px] font-black leading-none tracking-tight text-slate-900 tabular-nums">
+            <p className="mt-1 text-[24px] font-black leading-none tracking-tight text-slate-900 tabular-nums">
               {formatRupiah(Math.round(saldoView))}
             </p>
           )}
@@ -263,65 +392,6 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
             </div>
           </div>
         </motion.button>
-      </motion.section>
-
-      {/* ── Iuran Saya ─────────────────────────────────────────────────── */}
-      <motion.section variants={rise}>
-        <motion.button
-          type="button"
-          onClick={onLihatIuran}
-          whileTap={reduce ? undefined : { scale: 0.985 }}
-          className="flex w-full items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-violet-200 hover:shadow-md"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
-            <Coins className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900">Iuran Saya</span>
-              {!iuranLoading && tagihanBelumLunas > 0 && (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
-                  {tagihanBelumLunas} belum bayar
-                </span>
-              )}
-            </span>
-            {iuranLoading ? (
-              <span className="mt-1.5 block h-3 w-40 animate-pulse rounded bg-slate-100" />
-            ) : (
-              <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-                {tagihanBelumLunas > 0
-                  ? 'Bayar lalu unggah bukti transfer Anda.'
-                  : 'Semua iuran Anda sudah beres 🎉'}
-              </span>
-            )}
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-        </motion.button>
-      </motion.section>
-
-      {/* ── Akses Cepat ────────────────────────────────────────────────── */}
-      <motion.section variants={rise}>
-        <SectionHeader title="Akses Cepat" />
-        <motion.div variants={container} className="grid grid-cols-4 gap-2.5">
-          {quickActions.map((qa) => {
-            const Icon = qa.icon;
-            return (
-              <motion.button
-                key={qa.key}
-                type="button"
-                variants={rise}
-                whileTap={reduce ? undefined : { scale: 0.93 }}
-                onClick={qa.onClick}
-                className="group flex flex-col items-center gap-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-100 transition hover:ring-emerald-200"
-              >
-                <span className={`flex h-12 w-12 items-center justify-center rounded-2xl transition group-hover:scale-105 ${qa.accent}`}>
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="text-[11px] font-semibold leading-tight text-slate-700">{qa.title}</span>
-              </motion.button>
-            );
-          })}
-        </motion.div>
       </motion.section>
 
       {/* ── Kegiatan Terdekat (spotlight) ──────────────────────────────── */}
@@ -374,21 +444,6 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
                 </motion.button>
               );
             })}
-          </div>
-        </motion.section>
-      )}
-
-      {/* ── Aktivitas Surat (statistik ringkas) ────────────────────────── */}
-      {statistikCards.length > 0 && (
-        <motion.section variants={rise}>
-          <SectionHeader title="Aktivitas Surat" icon={FileText} />
-          <div className="grid grid-cols-3 divide-x divide-slate-100 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
-            {statistikCards.map((s) => (
-              <div key={s.label} className="px-3 py-4 text-center">
-                <p className="text-2xl font-black tracking-tight text-slate-900 tabular-nums">{s.value}</p>
-                <p className="mt-1 text-[10px] font-semibold leading-tight text-slate-500">{s.label}</p>
-              </div>
-            ))}
           </div>
         </motion.section>
       )}
