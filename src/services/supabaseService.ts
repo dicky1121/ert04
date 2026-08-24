@@ -504,12 +504,25 @@ class SupabaseService {
     const config = storageService.getConfig();
     const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
     const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
-    const rawUrl = config.supabaseUrl || envUrl;
-    const parsed = parseSupabaseInput(rawUrl || '');
 
+    // Utamakan konfigurasi yang disimpan pengurus di tab Integrasi, TAPI hanya bila
+    // URL-nya benar-benar terparse jadi project Supabase (atau setidaknya sebuah URL
+    // https). Kalau nilai simpanan kosong/whitespace/rusak, jatuh ke environment
+    // variable — supaya sisa config lama yang tak valid tidak menutupi
+    // VITE_SUPABASE_URL yang sudah benar dan melumpuhkan seluruh koneksi.
+    const parsedConfig = parseSupabaseInput(config.supabaseUrl || '');
+    const configUsable =
+      !!parsedConfig.projectRef ||
+      (/^https:\/\/.+/i.test(parsedConfig.projectUrl || '') && !!config.supabaseAnonKey);
+    const parsed = configUsable ? parsedConfig : parseSupabaseInput(envUrl);
+
+    // URL dan kunci WAJIB berasal dari sumber yang sama. Kalau URL simpanan
+    // ditolak lalu kita pakai env, memakai kunci simpanan yang tertinggal akan
+    // memasangkan project env dengan kunci project lain — hasilnya token ditolak
+    // dengan pesan yang menyesatkan.
     return {
       url: parsed.projectUrl || '',
-      anonKey: config.supabaseAnonKey || envKey,
+      anonKey: configUsable ? config.supabaseAnonKey || envKey : envKey,
       projectRef: parsed.projectRef
     };
   }
