@@ -186,6 +186,42 @@ export interface PengaduanInput {
   isiLaporan: string;
 }
 
+/**
+ * Status penanganan pengaduan. Kolomnya di server VARCHAR(20) tanpa CHECK
+ * constraint, jadi tipe ini adalah kesepakatan sisi klien — selalu sediakan
+ * fallback saat membaca nilai dari server.
+ */
+export type StatusPengaduan = 'BARU' | 'DIPROSES' | 'SELESAI' | 'DITOLAK';
+
+/**
+ * Urutan tindak lanjut yang boleh dipilih pengurus di layar Pengaduan.
+ * Sengaja tanpa 'DITANGANI' (nilai lama yang bermakna sama dengan 'DIPROSES')
+ * — nilai itu masih bisa dibaca lewat PENGADUAN_LABEL dan tetap ditawarkan
+ * di modal bila baris yang dibuka memang berstatus demikian.
+ */
+export const STATUS_PENGADUAN_OPSI: StatusPengaduan[] = ['BARU', 'DIPROSES', 'SELESAI', 'DITOLAK'];
+
+/**
+ * Satu baris pengaduan sebagaimana dilihat PENGURUS — termasuk identitas
+ * pelapor (nama & kontak) yang sengaja TIDAK dikembalikan ke layar warga.
+ * Dibaca lewat tabel langsung; policy RLS "Pengurus aktif boleh baca
+ * pengaduan" yang menyaring, bukan kode ini.
+ */
+export interface PengaduanAdmin {
+  id: string;
+  nomorTiket: string;
+  kategori: KategoriPengaduan | string;
+  namaPelapor: string;
+  kontakPelapor: string;
+  alamatKejadian: string;
+  isiLaporan: string;
+  status: StatusPengaduan | string;
+  tanggapan: string | null;
+  wargaId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ---------------------------------------------------------------------
 // Riwayat pribadi warga (RPC pengajuan_saya / pengaduan_saya)
 // ---------------------------------------------------------------------

@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
+  MessageSquareWarning,
   Siren,
   X
 } from 'lucide-react';
@@ -171,6 +172,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {ewsBaruCount}
                 </span>
               )}
+            </button>
+          </div>
+
+          {/* Pengaduan Warga */}
+          <div>
+            <button
+              onClick={() => handleNavClick('pengaduan')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'pengaduan'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <MessageSquareWarning className={`w-4 h-4 shrink-0 ${activeTab === 'pengaduan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Pengaduan Warga</span>
             </button>
           </div>
 

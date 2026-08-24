@@ -11,6 +11,7 @@ import {
   MutasiPenduduk,
   PendaftaranWargaInput,
   DaftarAkunWargaInput,
+  PengaduanAdmin,
   PengaduanInput,
   PengajuanSuratPublik,
   PengajuanWarga,
@@ -219,6 +220,26 @@ const fromKegiatanRow = (r: CloudRow): Kegiatan => ({
   fotoUrl: r.foto_url || null,
   dipublikasikan: r.dipublikasikan !== false,
   createdAt: r.created_at || ''
+});
+
+/**
+ * Baris `pengaduan_rt004` → tipe sisi pengurus. `warga_id` bisa NULL untuk
+ * laporan yang dikirim sebelum trigger penstempel ada, atau dari pengunjung
+ * yang tidak login.
+ */
+const fromPengaduanRow = (r: CloudRow): PengaduanAdmin => ({
+  id: String(r.id || ''),
+  nomorTiket: String(r.nomor_tiket || ''),
+  kategori: String(r.kategori || 'LAINNYA'),
+  namaPelapor: String(r.nama_pelapor || ''),
+  kontakPelapor: String(r.kontak_pelapor || ''),
+  alamatKejadian: String(r.alamat_kejadian || ''),
+  isiLaporan: String(r.isi_laporan || ''),
+  status: String(r.status || 'BARU'),
+  tanggapan: r.tanggapan || null,
+  wargaId: r.warga_id || null,
+  createdAt: String(r.created_at || ''),
+  updatedAt: String(r.updated_at || r.created_at || '')
 });
 
 const fromKeuanganRow = (r: CloudRow): TransaksiKeuangan => ({
@@ -708,6 +729,70 @@ class SupabaseService {
       return { success: true, tiket: typeof data === 'string' ? data : String(data || '') };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Laporan tidak dapat dikirim.' };
+    }
+  }
+
+  // ===================================================================
+  // Pengaduan — sisi PENGURUS (baca semua laporan + beri tanggapan).
+  // Akses tabel langsung; yang menyaring adalah policy RLS "Pengurus aktif
+  // boleh baca/tanggapi pengaduan" (scripts/setup-sapa-warga.sql), bukan
+  // kode ini. Warga sama sekali tidak punya SELECT ke tabel ini — jalurnya
+  // hanya RPC pengaduan_saya().
+  // ===================================================================
+
+  /**
+   * Seluruh pengaduan yang masuk, terbaru di atas. Hasil kosong (bukan error)
+   * bila pemanggilnya bukan pengurus aktif — RLS yang memutuskan.
+   */
+  public async fetchPengaduan(): Promise<{ data: PengaduanAdmin[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('pengaduan_rt004')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (error) return { data: [], error: `Gagal memuat pengaduan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromPengaduanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Ubah status dan/atau tulis tanggapan pengurus untuk satu pengaduan.
+   * Hanya dua kolom itu yang dikirim — isi laporan & identitas pelapor tidak
+   * pernah ditimpa dari sisi klien.
+   */
+  public async tanggapiPengaduan(
+    id: string,
+    status: string,
+    tanggapan: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const bersih = tanggapan.trim();
+      const { error } = await client
+        .from('pengaduan_rt004')
+        .update({
+          status,
+          tanggapan: bersih ? bersih : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) return { success: false, error: `Gagal menyimpan tanggapan: ${error.message}` };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
     }
   }
 
