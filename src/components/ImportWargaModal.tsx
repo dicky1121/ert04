@@ -85,13 +85,16 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
 
   if (!isOpen) return null;
 
-  const runAnalysisWithCustomConfig = (rawText: string, defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA', configs: typeof customSheetConfigs) => {
+  // `async` karena pustaka spreadsheet dimuat saat dipakai (dynamic import di
+  // storage.ts). Semua kesalahan sudah ditangkap di dalam, jadi pemanggilnya
+  // aman memakai `void` tanpa perlu ikut jadi async.
+  const runAnalysisWithCustomConfig = async (rawText: string, defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA', configs: typeof customSheetConfigs) => {
     setIsAnalyzing(true);
     setErrorMsg(null);
     try {
-      const result = storageService.analyzeRawTextData(
-        rawText, 
-        defaultRole, 
+      const result = await storageService.analyzeRawTextData(
+        rawText,
+        defaultRole,
         defaultRole === 'KONTRAK' ? 'Data Pengontrak' : defaultRole === 'LANSIA' ? 'Data Lansia RT 004' : 'Data Warga Tetap',
         configs
       );
@@ -129,7 +132,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     }
     setErrorMsg(null);
     setCustomSheetConfigs({});
-    runAnalysisWithCustomConfig(pastedPengontrakText, 'KONTRAK', {});
+    void runAnalysisWithCustomConfig(pastedPengontrakText, 'KONTRAK', {});
   };
 
   const handleAnalyzeWargaTetap = () => {
@@ -139,7 +142,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     }
     setErrorMsg(null);
     setCustomSheetConfigs({});
-    runAnalysisWithCustomConfig(pastedTetapText, 'TETAP', {});
+    void runAnalysisWithCustomConfig(pastedTetapText, 'TETAP', {});
   };
 
   const handleSheetRoleChange = (sheetName: string, newRole: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE') => {
@@ -153,7 +156,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -176,7 +179,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -192,7 +195,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -429,7 +432,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={() => storageService.downloadRT004TemplateExcel()}
+                        onClick={() => void storageService.downloadRT004TemplateExcel()}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
                         <Download className="w-4 h-4" />

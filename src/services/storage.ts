@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
-import { 
+import type { WorkBook } from 'xlsx';
+import {
   KartuKeluarga, 
   Warga, 
   SuratPengantar, 
@@ -27,6 +27,26 @@ import {
   initialAuditLogs,
   initialPengurusAccounts
 } from '../data/initialData';
+
+// ─── Pemuatan `xlsx` secara dinamis ──────────────────────────────────────────
+// Pustaka `xlsx` (±425 kB terminifikasi) HANYA dipakai fitur pengurus: ekspor
+// Excel, impor spreadsheet, dan unduh template. Dulu di-import statis di baris
+// pertama berkas ini, sehingga setiap warga yang membuka aplikasi ikut mengunduh
+// seluruh pustaka itu padahal tidak punya satu pun layar yang memakainya —
+// storage.ts sendiri tetap dibutuhkan warga (cache lokal, config, sesi).
+//
+// Sekarang modulnya diambil saat pertama kali benar-benar dipakai lalu disimpan
+// di `xlsxCache`, jadi klik kedua tidak mengunduh ulang. Tipe `WorkBook` tetap
+// di-import statis: `import type` dihapus saat kompilasi, jadi nol byte.
+type XlsxModule = typeof import('xlsx');
+let xlsxCache: XlsxModule | null = null;
+
+async function loadXlsx(): Promise<XlsxModule> {
+  if (!xlsxCache) {
+    xlsxCache = await import('xlsx');
+  }
+  return xlsxCache;
+}
 
 const STORAGE_KEYS = {
   KK: 'sip_rt004_kk_v1',
@@ -1142,7 +1162,10 @@ class StorageService {
   }
 
   // --- SPREADSHEET / EXCEL EXPORT & IMPORT ---
-  public exportToExcel() {
+  // Metode-metode di bagian ini `async` karena pustaka `xlsx` dimuat saat dipakai
+  // (lihat loadXlsx di atas), bukan karena ada I/O yang lambat.
+  public async exportToExcel(): Promise<void> {
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
 
     // 1. Sheet Data Warga
@@ -1249,8 +1272,9 @@ class StorageService {
   public importFromExcel(file: File): Promise<{ success: boolean; message: string; count: number }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await loadXlsx();
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
@@ -1478,14 +1502,14 @@ class StorageService {
   }
 
   // --- ANALYZE WORKBOOK DATA (ROBUST MULTI-SHEET & CONTENT HEURISTIC PARSER) ---
-  public analyzeWorkbookData(
-    workbook: XLSX.WorkBook,
-    customSheetConfigs?: Record<string, { 
-      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE'; 
-      startRow?: number; 
-      columnMapping?: SheetColumnMapping 
+  public async analyzeWorkbookData(
+    workbook: WorkBook,
+    customSheetConfigs?: Record<string, {
+      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE';
+      startRow?: number;
+      columnMapping?: SheetColumnMapping
     }>
-  ): ImportAnalysisResult {
+  ): Promise<ImportAnalysisResult> {
     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
       return {
         totalRows: 0,
@@ -1504,6 +1528,7 @@ class StorageService {
       };
     }
 
+    const XLSX = await loadXlsx();
     const currentWarga = this.getWargaList();
     const existingNikSet = new Set(currentWarga.map(w => w.nik.trim()));
     const seenNikInFile = new Set<string>();
@@ -2208,11 +2233,12 @@ class StorageService {
   ): Promise<ImportAnalysisResult> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await loadXlsx();
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          const result = this.analyzeWorkbookData(workbook, customSheetConfigs);
+          const result = await this.analyzeWorkbookData(workbook, customSheetConfigs);
           resolve(result);
         } catch (err) {
           reject(err);
@@ -2224,16 +2250,16 @@ class StorageService {
   }
 
   // --- DIRECT COPY-PASTE TABULAR DATA ANALYZER ---
-  public analyzeRawTextData(
-    rawText: string, 
+  public async analyzeRawTextData(
+    rawText: string,
     defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA' = 'TETAP',
     sheetName: string = 'Spreadsheet Salinan',
-    customSheetConfigs?: Record<string, { 
-      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE'; 
-      startRow?: number; 
-      columnMapping?: SheetColumnMapping 
+    customSheetConfigs?: Record<string, {
+      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE';
+      startRow?: number;
+      columnMapping?: SheetColumnMapping
     }>
-  ): ImportAnalysisResult {
+  ): Promise<ImportAnalysisResult> {
     if (!rawText || rawText.trim() === '') {
       return {
         totalRows: 0,
@@ -2276,8 +2302,9 @@ class StorageService {
       return line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
     });
 
+    const XLSX = await loadXlsx();
     const worksheet = XLSX.utils.aoa_to_sheet(gridData);
-    const workbook: XLSX.WorkBook = {
+    const workbook: WorkBook = {
       SheetNames: [sheetName],
       Sheets: { [sheetName]: worksheet }
     };
@@ -2540,7 +2567,8 @@ class StorageService {
   }
 
     // Template hanya memuat data sintetis agar data warga tidak ikut tersebar.
-  public downloadRT004TemplateExcel() {
+  public async downloadRT004TemplateExcel(): Promise<void> {
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
 
     // 1. Sheet: Data Warga Tetap

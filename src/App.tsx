@@ -476,8 +476,8 @@ export default function App() {
   };
 
   // Excel Handlers
-  const handleExportExcel = () => {
-    storageService.exportToExcel();
+  const handleExportExcel = async () => {
+    await storageService.exportToExcel();
     showToast('Berkas Excel kependudukan RT 004 berhasil diunduh!');
   };
 
