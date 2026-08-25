@@ -170,7 +170,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
     // Check if kepala keluarga is already in members list or create initial member
     const existingMembers = formData.anggota || [];
-    let updatedMembers = [...existingMembers];
+    const updatedMembers = [...existingMembers];
 
     if (!updatedMembers.some(m => m.nik === formData.kepalaKeluargaNik)) {
       const kepalaWarga: Warga = {

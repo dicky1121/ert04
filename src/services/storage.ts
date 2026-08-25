@@ -69,7 +69,7 @@ export function maskPhone(phone: string | undefined | null): string {
 // Helper to convert any date string format to ISO YYYY-MM-DD
 export function parseDateToIso(dateStr: string | undefined | null): string {
   if (!dateStr || dateStr.trim() === '' || dateStr === '-') return '1990-01-01';
-  let clean = dateStr.trim();
+  const clean = dateStr.trim();
 
   // Excel serial number (e.g. 29372 or 36526)
   if (/^\d{4,5}$/.test(clean)) {
@@ -1517,7 +1517,12 @@ class StorageService {
     let duplicateInFileCount = 0;
     let existingInDbCount = 0;
     let invalidNikCount = 0;
-    let invalidKkCount = 0;
+    // CATATAN: penghitung ini tidak pernah dinaikkan di mana pun, jadi ringkasan
+    // impor selalu melaporkan 0 "KK tidak valid". Dibiarkan `const` agar sifatnya
+    // jujur terlihat; menambahkan validasi nomor KK adalah pekerjaan tersendiri
+    // (perlu keputusan: format mana yang dianggap tidak valid) dan akan mengubah
+    // angka yang dilihat pengurus, jadi tidak diselipkan di sini.
+    const invalidKkCount = 0;
 
     const allParsedRows: ImportPreviewRow[] = [];
     const detectedSheets: string[] = workbook.SheetNames;
@@ -2112,7 +2117,10 @@ class StorageService {
         const isValid = Boolean(rawNama && rawNama.length > 0);
         if (isValid) validCount++;
 
-        let bansosStr = 'TIDAK_ADA';
+        // Status bansos memang TIDAK ditebak dari spreadsheet — kelayakan bansos
+        // adalah keputusan pengurus, bukan hasil inferensi baris impor. Semua baris
+        // masuk sebagai 'TIDAK_ADA' lalu ditetapkan manual di layar Prioritas Bansos.
+        const bansosStr = 'TIDAK_ADA';
         let ketKhusus = '';
         if (inferredRole === 'LANSIA') {
           ketKhusus = rawKeterangan || 'Data Lansia Prioritas RT 004';
@@ -2412,8 +2420,8 @@ class StorageService {
     clearExistingBeforeImport: boolean = false,
     persist: boolean = true
   ): { added: number; updated: number; skipped: number; wargaList: Warga[]; kkList: KartuKeluarga[] } {
-    let currentWarga = clearExistingBeforeImport ? [] : this.getWargaList();
-    let currentKK = clearExistingBeforeImport ? [] : this.getKKList();
+    const currentWarga = clearExistingBeforeImport ? [] : this.getWargaList();
+    const currentKK = clearExistingBeforeImport ? [] : this.getKKList();
     
     let added = 0;
     let updated = 0;

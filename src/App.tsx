@@ -306,7 +306,6 @@ export default function App() {
       aktif = false;
       unsub();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.isAuthenticated]);
 
   const handleSetujuiPengajuan = async (id: string, fields?: string[] | null) => {
