@@ -175,6 +175,38 @@ export interface PengumumanPublik {
   tanggalSelesai?: string | null;
 }
 
+/** Daftar kategori untuk pilihan di form pengurus. */
+export const KATEGORI_PENGUMUMAN_OPSI: KategoriPengumuman[] = [
+  'UMUM', 'KEGIATAN', 'KEAMANAN', 'KESEHATAN', 'IURAN', 'DARURAT',
+];
+
+/**
+ * Satu baris pengumuman sebagaimana dilihat PENGURUS — termasuk draf
+ * (`dipublikasikan = false`) yang tidak pernah keluar lewat RPC publik.
+ */
+export interface Pengumuman {
+  id: string;
+  judul: string;
+  isi: string;
+  kategori: KategoriPengumuman | string;
+  dipublikasikan: boolean;
+  tanggalMulai: string;
+  tanggalSelesai: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload simpan pengumuman; `id` kosong berarti tambah baru. */
+export interface PengumumanInput {
+  id?: string;
+  judul: string;
+  isi: string;
+  kategori: KategoriPengumuman | string;
+  dipublikasikan: boolean;
+  tanggalMulai: string;
+  tanggalSelesai: string | null;
+}
+
 export type KategoriPengaduan = 'KEAMANAN' | 'KEBERSIHAN' | 'INFRASTRUKTUR' | 'SOSIAL' | 'LAINNYA';
 
 /** Payload laporan warga yang dikirim lewat fungsi kirim_pengaduan. */

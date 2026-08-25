@@ -15,6 +15,8 @@ import {
   PengaduanInput,
   PengajuanSuratPublik,
   PengajuanWarga,
+  Pengumuman,
+  PengumumanInput,
   PengumumanPublik,
   RiwayatPengaduan,
   RiwayatSurat,
@@ -240,6 +242,21 @@ const fromPengaduanRow = (r: CloudRow): PengaduanAdmin => ({
   wargaId: r.warga_id || null,
   createdAt: String(r.created_at || ''),
   updatedAt: String(r.updated_at || r.created_at || '')
+});
+
+/**
+ * Baris `pengumuman_rt004` → tipe sisi pengurus (termasuk draf).
+ */
+const fromPengumumanRow = (r: CloudRow): Pengumuman => ({
+  id: String(r.id || ''),
+  judul: r.judul || '',
+  isi: r.isi || '',
+  kategori: String(r.kategori || 'UMUM'),
+  dipublikasikan: r.dipublikasikan === true,
+  tanggalMulai: r.tanggal_mulai || '',
+  tanggalSelesai: r.tanggal_selesai || null,
+  createdAt: r.created_at || '',
+  updatedAt: r.updated_at || r.created_at || ''
 });
 
 const fromKeuanganRow = (r: CloudRow): TransaksiKeuangan => ({
@@ -706,6 +723,108 @@ class SupabaseService {
     } catch {
       return [];
     }
+  }
+
+  // ===================================================================
+  // Pengumuman — sisi PENGURUS. Tabel diakses langsung; policy RLS
+  // (baca: pengurus aktif, tulis/hapus: admin RT) yang menyaring.
+  // Warga tetap hanya lewat RPC pengumuman_publik().
+  // ===================================================================
+
+  /** Semua pengumuman termasuk draf, terbaru di atas. */
+  public async fetchPengumuman(): Promise<{ data: Pengumuman[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('pengumuman_rt004')
+        .select('*')
+        .order('tanggal_mulai', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      if (error) return { data: [], error: `Gagal memuat pengumuman: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromPengumumanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan pengumuman (tambah bila `input.id` kosong, ubah bila terisi).
+   * `dibuat_oleh` diisi dari sesi saat menambah agar jejak penulisnya ada.
+   */
+  public async simpanPengumuman(
+    input: PengumumanInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const payload: Record<string, unknown> = {
+        judul: input.judul.trim(),
+        isi: input.isi.trim(),
+        kategori: input.kategori,
+        dipublikasikan: input.dipublikasikan,
+        tanggal_mulai: input.tanggalMulai,
+        tanggal_selesai: input.tanggalSelesai || null,
+        updated_at: new Date().toISOString()
+      };
+
+      if (input.id) {
+        const { error } = await client.from('pengumuman_rt004').update(payload).eq('id', input.id);
+        if (error) return { success: false, error: `Gagal menyimpan pengumuman: ${error.message}` };
+        return { success: true, id: input.id };
+      }
+
+      const { data: sesi } = await client.auth.getUser();
+      payload.dibuat_oleh = sesi?.user?.id ?? null;
+
+      const { data, error } = await client
+        .from('pengumuman_rt004')
+        .insert(payload)
+        .select('id')
+        .single();
+      if (error) return { success: false, error: `Gagal menyimpan pengumuman: ${error.message}` };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Hapus satu pengumuman. Hanya admin RT yang lolos policy RLS. */
+  public async hapusPengumuman(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { error } = await client.from('pengumuman_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: `Gagal menghapus pengumuman: ${error.message}` };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Siarkan satu pengumuman sebagai notifikasi ke semua HP terdaftar.
+   *
+   * Hanya `id` yang dikirim — judul & isi dibaca ULANG di server oleh Edge
+   * Function memakai service role, jadi klien tidak bisa menyuntikkan teks
+   * notifikasi sembarangan. Fungsinya juga menolak pemanggil yang bukan
+   * pengurus aktif dan pengumuman yang belum dipublikasikan.
+   */
+  public async siarkanPengumuman(
+    id: string
+  ): Promise<{ success: boolean; terkirim?: number; total?: number; error?: string }> {
+    const res = await this.invokeFunction<{ sent?: number; total?: number }>(
+      'kirim-notif-pengumuman',
+      { pengumuman_id: id }
+    );
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, terkirim: res.data?.sent ?? 0, total: res.data?.total ?? 0 };
   }
 
   /** Kirim laporan warga. Server membatasi 3 laporan per nomor per jam. */

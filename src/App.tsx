@@ -25,6 +25,7 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
 import { PengaduanAdminView } from './components/PengaduanAdminView';
+import { PengumumanAdminView } from './components/PengumumanAdminView';
 import { KegiatanAdminView } from './components/KegiatanAdminView';
 import { UmkmAdminView } from './components/UmkmAdminView';
 import { KeuanganAdminView } from './components/KeuanganAdminView';
@@ -129,6 +130,23 @@ export default function App() {
     };
     window.addEventListener('ews-notification-foreground', handleEWSNotificationForeground);
 
+    // Listener: notifikasi pengumuman di-tap. Untuk pengurus, buka tab Pengumuman.
+    // Sisi warga memakai state tab sendiri di WargaLayout, jadi setActiveTab di
+    // sini tidak berdampak pada mereka — pengumuman terbaru memang sudah tampil
+    // di Beranda warga, jadi membuka aplikasi saja sudah cukup.
+    const handlePengumumanNotificationTapped = () => {
+      setActiveTab('pengumuman');
+    };
+    window.addEventListener('pengumuman-notification-tapped', handlePengumumanNotificationTapped);
+
+    // Listener: pengumuman masuk saat app terbuka. Judulnya sudah berawalan 📢
+    // dari server, jadi jangan ditambahi emoji lagi di sini.
+    const handlePengumumanNotificationForeground = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      showToast(`${detail.title}${detail.body ? `: ${detail.body}` : ''}`, 'info');
+    };
+    window.addEventListener('pengumuman-notification-foreground', handlePengumumanNotificationForeground);
+
     // Keyboard shortcut for Search (Ctrl+K or Cmd+K)
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -199,6 +217,8 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('ews-notification-tapped', handleEWSNotificationTapped);
       window.removeEventListener('ews-notification-foreground', handleEWSNotificationForeground);
+      window.removeEventListener('pengumuman-notification-tapped', handlePengumumanNotificationTapped);
+      window.removeEventListener('pengumuman-notification-foreground', handlePengumumanNotificationForeground);
     };
   }, []);
 
@@ -781,6 +801,12 @@ export default function App() {
 
         {activeTab === 'pengaduan' && (
           <PengaduanAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'pengumuman' && (
+          <PengumumanAdminView
             currentUser={currentUser}
           />
         )}
