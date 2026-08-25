@@ -289,8 +289,16 @@ export default function App() {
 
   // Muat & pantau realtime pengajuan HANYA saat pengurus terautentikasi
   // (RLS mewajibkan sesi; tanpa sesi fetch mengembalikan daftar kosong).
+  //
+  // Peran WAJIB dicek, bukan cuma `isAuthenticated`: sesi warga juga
+  // terautentikasi, jadi tanpa cek ini setiap warga yang membuka aplikasi ikut
+  // menembak `warga_submissions_rt004` dan berlangganan realtime tabel itu.
+  // RLS memang menolaknya (balik daftar kosong, bukan kebocoran data), tapi
+  // permintaannya sia-sia dan langganan realtime-nya menahan koneksi. Ini
+  // menyelaraskan efek ini dengan guard peran yang sudah ada di bootstrap
+  // (baris 168, 178, 201).
   useEffect(() => {
-    if (!currentUser.isAuthenticated) {
+    if (!currentUser.isAuthenticated || currentUser.role === 'WARGA') {
       setPengajuanList([]);
       return;
     }
@@ -306,7 +314,7 @@ export default function App() {
       aktif = false;
       unsub();
     };
-  }, [currentUser.isAuthenticated]);
+  }, [currentUser.isAuthenticated, currentUser.role]);
 
   const handleSetujuiPengajuan = async (id: string, fields?: string[] | null) => {
     const result = await supabaseService.setujuiPendaftaranWarga(id, fields ?? null);
