@@ -42,16 +42,59 @@ export interface LetterDocumentData {
   signatureSpacePt?: number;
 }
 
+// ─── Pengamanan teks sebelum ditempel ke HTML ────────────────────────────────
+// Berkas ini menyusun dokumen HTML dengan template string, lalu hasilnya
+// ditulis lewat `document.write()` (jendela cetak & iframe) atau diunduh
+// sebagai .doc/.html. Semua nilai yang masuk berasal dari data warga —
+// nama, alamat, keperluan — yang diisi warga sendiri lewat formulir publik.
+//
+// Tanpa penyaringan, nama seperti `<img src=x onerror="...">` akan ikut
+// dieksekusi di jendela cetak. Jendela itu dibuka dengan `window.open('')`
+// sehingga origin-nya MEWARISI origin aplikasi → skrip suntikan bisa membaca
+// localStorage, tempat sesi Supabase pengurus disimpan. Jadi warga bisa
+// mencuri sesi pengurus hanya dengan mengajukan surat lalu menunggu surat itu
+// dicetak. Untuk berkas .doc, dampaknya beda tapi tetap nyata: tag yang tidak
+// disaring bisa merombak struktur tabel surat resmi.
+//
+// Karena tidak ada satu pun kolom di sini yang MEMANG berisi HTML, semuanya
+// di-escape tanpa kecuali.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Salinan LetterDocumentData dengan seluruh nilai teks sudah di-escape.
+ * Angka (ukuran font, spasi) dibiarkan apa adanya karena tipenya `number`
+ * dan hanya masuk ke properti CSS, bukan ke isi dokumen.
+ */
+function escapeLetterData(data: LetterDocumentData): LetterDocumentData {
+  const hasil: Record<string, unknown> = {};
+  for (const [kunci, nilai] of Object.entries(data)) {
+    hasil[kunci] = typeof nilai === 'string' ? escapeHtml(nilai) : nilai;
+  }
+  return hasil as LetterDocumentData;
+}
+
 /**
  * Builds the standalone, high-fidelity A4 HTML string with inline CSS and responsive print toolbar.
  */
 export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Surat_Pengantar_A4'): string => {
+  // `elementHtml` adalah hasil serialisasi `element.innerHTML` dari DOM yang
+  // sudah dirender React, jadi isinya sudah ter-escape — tidak boleh
+  // di-escape ulang (nanti tag-nya tampil sebagai teks). `docTitle` sebaliknya
+  // adalah string mentah yang dirangkai dari nama pemohon, jadi WAJIB disaring.
+  const judul = escapeHtml(docTitle);
   return `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${docTitle}</title>
+  <title>${judul}</title>
   <style>
     @page {
       size: A4 portrait;
@@ -238,7 +281,7 @@ export const buildPrintableHtml = (elementHtml: string, docTitle: string = 'Sura
 <body>
   <div class="print-toolbar">
     <div class="print-toolbar-title">
-      <span>📄 ${docTitle}</span>
+      <span>📄 ${judul}</span>
       <span class="print-toolbar-badge">Standar A4 Siap Cetak</span>
     </div>
     <div class="print-toolbar-actions">
@@ -352,7 +395,10 @@ export const printOfficialLetter = (elementId: string = 'official-letter-sheet',
  * Can be opened in MS Word, WordPad, or LibreOffice and printed directly.
  */
 export const exportLetterToWord = (data: LetterDocumentData, filename: string = 'Surat_Pengantar_RT004.doc') => {
-  const fontFamily = data.fontFamily || 'Arial';
+  // Seluruh nilai teks disaring SEKALI di sini, lalu hanya `teks` yang boleh
+  // ditempel ke template di bawah — `data` mentah tidak dipakai lagi.
+  const teks = escapeLetterData(data);
+  const fontFamily = teks.fontFamily || 'Arial';
   const bodyFontSize = data.bodyFontSizePt || 10;
   const kopFontSize = data.kopFontSizePt || 12;
   const titleFontSize = data.titleFontSizePt || 12;
@@ -364,7 +410,7 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
       <meta charset="utf-8">
-      <title>${data.judulSurat || 'Surat Pengantar'}</title>
+      <title>${teks.judulSurat || 'Surat Pengantar'}</title>
       <style>
         @page Section1 {
           size: 595.3pt 841.9pt; /* A4 size */
@@ -440,21 +486,21 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
     <body>
       <div class="Section1">
         <!-- HEADER KOP -->
-        <p class="header-title">${data.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI'}</p>
-        <p class="header-title" style="font-size: ${kopFontSize + 1}pt;">${data.kopTeksRT || 'RT 004 RW 007'}</p>
-        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKelurahan || 'KELURAHAN JATIMULYA'}</p>
-        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${data.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}</p>
-        <p class="header-sub">${data.kopSekretariatText || 'Sekretariat : jl jampang no 111 jatimulya tlp 0896-7720-3444'}</p>
+        <p class="header-title">${teks.kopInstansiAtas || 'PEMERINTAH KABUPATEN BEKASI'}</p>
+        <p class="header-title" style="font-size: ${kopFontSize + 1}pt;">${teks.kopTeksRT || 'RT 004 RW 007'}</p>
+        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${teks.kopKelurahan || 'KELURAHAN JATIMULYA'}</p>
+        <p class="header-title" style="font-size: ${Math.max(8, kopFontSize - 1)}pt;">${teks.kopKecamatan || 'KECAMATAN TAMBUN SELATAN'}</p>
+        <p class="header-sub">${teks.kopSekretariatText || 'Sekretariat : jl jampang no 111 jatimulya tlp 0896-7720-3444'}</p>
         
         <div class="line-divider"></div>
 
         <!-- JUDUL SURAT -->
-        <p class="letter-title">${data.judulSurat || 'SURAT PENGANTAR'}</p>
-        <p class="letter-no">NO : ${data.nomorSurat || '185 / RT 004 RW 007 / SP / 2026'}</p>
+        <p class="letter-title">${teks.judulSurat || 'SURAT PENGANTAR'}</p>
+        <p class="letter-no">NO : ${teks.nomorSurat || '185 / RT 004 RW 007 / SP / 2026'}</p>
 
         <!-- KALIMAT PEMBUKA -->
         <p style="text-align: justify; margin-bottom: ${sectionSpacing}pt;">
-          ${data.kalimatPembuka || 'Yang Bertanda Tangan Dibawah Ini Ketua Rt 004 Rw 007 Kelurahan Jatimulya, Menerangkan Bahwa :'}
+          ${teks.kalimatPembuka || 'Yang Bertanda Tangan Dibawah Ini Ketua Rt 004 Rw 007 Kelurahan Jatimulya, Menerangkan Bahwa :'}
         </p>
 
         <!-- DATA WARGA / PEMOHON -->
@@ -462,86 +508,86 @@ export const exportLetterToWord = (data: LetterDocumentData, filename: string = 
           <tr>
             <td class="col-label">Nama</td>
             <td class="col-sep">:</td>
-            <td class="col-val"><b>${data.namaPemohon || '-'}</b></td>
+            <td class="col-val"><b>${teks.namaPemohon || '-'}</b></td>
           </tr>
           <tr>
             <td class="col-label">Tempat Tgl Lahir</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.tempatTglLahir || '-'}</td>
+            <td class="col-val">${teks.tempatTglLahir || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Jenis Kelamin</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.jenisKelamin || '-'}</td>
+            <td class="col-val">${teks.jenisKelamin || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Status Perkawinan</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.statusKawin || '-'}</td>
+            <td class="col-val">${teks.statusKawin || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Agama</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.agama || '-'}</td>
+            <td class="col-val">${teks.agama || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">No Ktp / No Nik</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.nikPemohon || '-'}</td>
+            <td class="col-val">${teks.nikPemohon || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Pekerjaan</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.pekerjaan || '-'}</td>
+            <td class="col-val">${teks.pekerjaan || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Telepon / Hp</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.telepon || '-'}</td>
+            <td class="col-val">${teks.telepon || '-'}</td>
           </tr>
           <tr>
             <td class="col-label">Alamat Lengkap</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.alamatBaris1 || '-'}</td>
+            <td class="col-val">${teks.alamatBaris1 || '-'}</td>
           </tr>
-          ${data.alamatBaris2 ? `
+          ${teks.alamatBaris2 ? `
           <tr>
             <td class="col-label"></td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.alamatBaris2}</td>
+            <td class="col-val">${teks.alamatBaris2}</td>
           </tr>
           ` : ''}
           <tr>
             <td class="col-label">Keperluan</td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.keperluan1 || '-'}</td>
+            <td class="col-val">${teks.keperluan1 || '-'}</td>
           </tr>
-          ${data.keperluan2 ? `
+          ${teks.keperluan2 ? `
           <tr>
             <td class="col-label"></td>
             <td class="col-sep">:</td>
-            <td class="col-val">${data.keperluan2}</td>
+            <td class="col-val">${teks.keperluan2}</td>
           </tr>
           ` : ''}
         </table>
 
         <!-- KALIMAT PENUTUP -->
         <p style="text-align: justify; margin-bottom: ${sectionSpacing}pt;">
-          ${data.kalimatPenutup || 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.'}
+          ${teks.kalimatPenutup || 'Benar Bahwa Yang Bersangkutan Adalah Warga Kami , Demikian Surat- Pengantar Ini dibuat untuk dapat dipergunakan sebagaimana mestinya.'}
         </p>
 
         <!-- TANDA TANGAN -->
         <table class="ttd-table">
           <tr>
             <td style="width: 50%;">
-              <p style="margin-bottom: 2pt;">${data.lokasiSurat || 'Jatimulya'} ${data.tanggalSurat || ''}</p>
+              <p style="margin-bottom: 2pt;">${teks.lokasiSurat || 'Jatimulya'} ${teks.tanggalSurat || ''}</p>
               <p style="font-weight: bold; margin-bottom: ${signatureSpace}pt;">Ketua Rt 004 Rw 007</p>
-              <p style="font-weight: bold; text-decoration: underline;">${data.namaKetuaRT || 'Yanto'}</p>
+              <p style="font-weight: bold; text-decoration: underline;">${teks.namaKetuaRT || 'Yanto'}</p>
             </td>
             <td style="width: 50%;">
               <p style="margin-bottom: 2pt;">Mengetahui</p>
               <p style="font-weight: bold; margin-bottom: ${signatureSpace}pt;">Ketua Rw 007</p>
-              <p style="font-weight: bold; text-decoration: underline;">${data.namaKetuaRW || 'Imron Rosadi'}</p>
+              <p style="font-weight: bold; text-decoration: underline;">${teks.namaKetuaRW || 'Imron Rosadi'}</p>
             </td>
           </tr>
         </table>
