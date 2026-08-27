@@ -63,6 +63,18 @@ const STORAGE_KEYS = {
   PRIVACY_MASK: 'sip_rt004_privacy_mask_v1'
 };
 
+/**
+ * Nomor KK cadangan untuk baris impor yang benar-benar tidak punya nomor KK —
+ * baik di kolomnya sendiri maupun warisan dari kepala keluarga di atasnya.
+ *
+ * Nilai ini WAJIB ada karena `kk_rt004` menjadi induk foreign key `warga_rt004`:
+ * baris tanpa KK akan gagal disinkronkan ke Supabase. Tapi ia tetap nomor
+ * fabrikasi, jadi `analyzeWorkbookData` menghitungnya sebagai "nomor KK
+ * bermasalah" supaya pengurus tahu ada baris yang KK-nya perlu dilengkapi
+ * manual, bukan diam-diam menganggapnya data sah.
+ */
+const KK_SEMENTARA = '3216060000000000';
+
 // Helper to mask sensitive data according to UU PDP No. 27/2022 (Indonesian Privacy Law)
 export function maskNik(nik: string | undefined | null): string {
   if (!nik || nik === '-' || nik.length < 8) return '-';
@@ -1462,12 +1474,7 @@ class StorageService {
     let duplicateInFileCount = 0;
     let existingInDbCount = 0;
     let invalidNikCount = 0;
-    // CATATAN: penghitung ini tidak pernah dinaikkan di mana pun, jadi ringkasan
-    // impor selalu melaporkan 0 "KK tidak valid". Dibiarkan `const` agar sifatnya
-    // jujur terlihat; menambahkan validasi nomor KK adalah pekerjaan tersendiri
-    // (perlu keputusan: format mana yang dianggap tidak valid) dan akan mengubah
-    // angka yang dilihat pengurus, jadi tidak diselipkan di sini.
-    const invalidKkCount = 0;
+    let invalidKkCount = 0;
 
     const allParsedRows: ImportPreviewRow[] = [];
     const detectedSheets: string[] = workbook.SheetNames;
@@ -2030,6 +2037,12 @@ class StorageService {
           finalNik = `NONIK-${statusTinggal === 'KONTRAK' ? 'KONTRAK' : 'WARGA'}-${globalRowCounter.toString().padStart(3, '0')}-${Date.now().toString().slice(-4)}`;
         }
 
+        // Nomor KK final: kolomnya sendiri, kalau kosong warisi dari kepala
+        // keluarga di atasnya (`lastKK`), kalau itu pun tidak ada baru pakai
+        // nomor cadangan. Dideklarasikan di sini — bukan tepat sebelum dipakai —
+        // karena validasi di bawah perlu tahu hasil akhirnya.
+        const finalKK = rawKK || (lastKK || KK_SEMENTARA);
+
         const errorMessages: string[] = [];
         if (!rawNama) {
           errorMessages.push('Nama lengkap warga tidak boleh kosong');
@@ -2041,6 +2054,20 @@ class StorageService {
             errorMessages.push(`Format NIK ${rawNik.length} digit (standar KTP 16 digit)`);
             invalidNikCount++;
           }
+        }
+
+        // Nomor KK: dua masalah yang sama-sama perlu dilihat pengurus. Baris yang
+        // MEWARISI KK kepala keluarga tidak kena flag — `rawKK` sudah di-set ke
+        // `lastKK` di atas, jadi `finalKK` di sini bernilai KK keluarga yang sah.
+        if (finalKK === KK_SEMENTARA) {
+          errorMessages.push('Nomor KK tidak ada di berkas (dipakai KK sementara)');
+          invalidKkCount++;
+        } else if (finalKK.length !== 16 || !/^\d+$/.test(finalKK)) {
+          // Umumnya KK terpotong karena Excel membuang angka nol di depan. Nomor
+          // seperti ini diwariskan ke seluruh anggota keluarga (ambang `>= 10` di
+          // atas), jadi satu sel rusak bisa mencemari beberapa baris sekaligus.
+          errorMessages.push(`Nomor KK ${finalKK.length} digit (standar 16 digit)`);
+          invalidKkCount++;
         }
 
         let isDuplicateInFile = false;
@@ -2074,8 +2101,6 @@ class StorageService {
         } else if (rawKeterangan) {
           ketKhusus = rawKeterangan;
         }
-
-        const finalKK = rawKK || (lastKK || '3216060000000000');
 
         allParsedRows.push({
           rowNumber: globalRowCounter++,
@@ -2425,7 +2450,7 @@ class StorageService {
       }
 
       // Group for Kartu Keluarga synchronization (include ALL valid or generated KKs)
-      const targetKK = r.nomorKK || '3216060000000000';
+      const targetKK = r.nomorKK || KK_SEMENTARA;
       if (!kkMap.has(targetKK)) {
         kkMap.set(targetKK, []);
       }
