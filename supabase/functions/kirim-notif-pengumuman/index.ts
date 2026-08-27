@@ -48,6 +48,23 @@ function err(message: string, status = 400) {
   return new Response(JSON.stringify({ success: false, error: message }), { status, headers: jsonHeaders });
 }
 
+/**
+ * Error yang pesannya MEMANG pantas dibaca pemanggil — dipakai untuk panduan
+ * konfigurasi (secret Firebase belum di-set / bukan JSON valid / tanpa
+ * client_email). Pesan seperti itu tidak berguna kalau digeneralkan: yang
+ * menekan tombol Siarkan adalah orang yang sama yang bisa membetulkannya.
+ *
+ * Semua `throw` lain (error Postgres, body error OAuth Google) sengaja TIDAK
+ * memakai kelas ini: teksnya berhenti di log, dan pemanggil hanya menerima
+ * pesan generik berikut kode korelasi.
+ */
+class PesanAman extends Error {
+  constructor(message: string, readonly status = 500) {
+    super(message);
+    this.name = 'PesanAman';
+  }
+}
+
 // ── util encoding ────────────────────────────────────────────────────────────
 
 /** Base64URL encode (tanpa padding) — format wajib untuk JWT. */
@@ -265,7 +282,7 @@ Deno.serve(async (req) => {
     // 3. Service account Firebase.
     const rawServiceAccount = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
     if (!rawServiceAccount) {
-      throw new Error(
+      throw new PesanAman(
         'Secret FIREBASE_SERVICE_ACCOUNT belum di-set. Buka Supabase Dashboard > Edge Functions > Secrets, ' +
           'lalu tempel seluruh isi file JSON service account Firebase.'
       );
@@ -275,15 +292,15 @@ Deno.serve(async (req) => {
     try {
       sa = JSON.parse(rawServiceAccount);
     } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT bukan JSON yang valid. Tempel seluruh isi file JSON-nya.');
+      throw new PesanAman('FIREBASE_SERVICE_ACCOUNT bukan JSON yang valid. Tempel seluruh isi file JSON-nya.');
     }
     if (!sa.client_email || !sa.private_key) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT tidak memuat client_email / private_key.');
+      throw new PesanAman('FIREBASE_SERVICE_ACCOUNT tidak memuat client_email / private_key.');
     }
 
     const projectId = Deno.env.get('FIREBASE_PROJECT_ID') || sa.project_id;
     if (!projectId) {
-      throw new Error('project_id Firebase tidak diketahui. Set secret FIREBASE_PROJECT_ID.');
+      throw new PesanAman('project_id Firebase tidak diketahui. Set secret FIREBASE_PROJECT_ID.');
     }
 
     // 4. Ambil daftar token tujuan.
@@ -332,8 +349,16 @@ Deno.serve(async (req) => {
       { status: 200, headers: jsonHeaders }
     );
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('❌ kirim-notif-pengumuman error:', message);
-    return err(message, 500);
+    // Detail penuh (pesan Postgres, body error OAuth Google) hanya masuk log
+    // Supabase; pemanggil dapat kode korelasi untuk dicocokkan dengan log itu.
+    // Kecuali `PesanAman` — panduan konfigurasi memang untuk dibaca pengurus.
+    const jejak = crypto.randomUUID().slice(0, 8);
+    const detail = e instanceof Error ? (e.stack ?? e.message) : String(e);
+    console.error(`❌ kirim-notif-pengumuman error [${jejak}]:`, detail);
+    if (e instanceof PesanAman) return err(e.message, e.status);
+    return err(
+      `Terjadi kesalahan di server (kode ${jejak}). Hubungi admin sistem dan sebutkan kode ini.`,
+      500
+    );
   }
 });

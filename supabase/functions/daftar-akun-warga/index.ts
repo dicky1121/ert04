@@ -223,8 +223,17 @@ Deno.serve(async (req) => {
       { status: 200, headers: jsonHeaders }
     );
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('daftar-akun-warga error:', message);
-    return err(message, 500);
+    // Fungsi ini dipanggil ANON, jadi apa pun yang dipantulkan ke luar terbaca
+    // internet terbuka. Pesan mentahnya membawa nama tabel (`warga_akun`,
+    // `warga_submissions_rt004`) dan teks error Postgres/GoTrue — itu hanya
+    // boleh masuk log Supabase. Pemanggil cukup dapat kode korelasi supaya
+    // keluhan warga masih bisa dicocokkan dengan baris log yang tepat.
+    const jejak = crypto.randomUUID().slice(0, 8);
+    const detail = e instanceof Error ? (e.stack ?? e.message) : String(e);
+    console.error(`daftar-akun-warga error [${jejak}]:`, detail);
+    return err(
+      `Terjadi kesalahan di server (kode ${jejak}). Hubungi pengurus RT dan sebutkan kode ini.`,
+      500
+    );
   }
 });
