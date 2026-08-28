@@ -1,19 +1,22 @@
 -- ============================================================
 -- Tabel Pengajuan Perubahan KK dari Portal Warga
 -- Jalankan sekali di Supabase SQL Editor
+--
+-- CATATAN: warga_rt004.id bertipe TEXT (bukan UUID), maka
+-- semua foreign key ke tabel itu harus TEXT juga.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS kk_pengajuan_rt004 (
   id                        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  warga_id                  UUID        NOT NULL REFERENCES warga_rt004(id) ON DELETE CASCADE,
+  warga_id                  TEXT        NOT NULL REFERENCES warga_rt004(id) ON DELETE CASCADE,
   nama_pengaju              TEXT,
   jenis                     TEXT        NOT NULL CHECK (jenis IN ('UBAH_NOMOR_KK', 'HAPUS_ANGGOTA')),
   nomor_kk_baru             TEXT        NULL,
-  anggota_target_id         UUID        NULL REFERENCES warga_rt004(id) ON DELETE SET NULL,
+  anggota_target_id         TEXT        NULL REFERENCES warga_rt004(id) ON DELETE SET NULL,
   nama_anggota_target       TEXT        NULL,
   alasan                    TEXT        NOT NULL,
   status                    TEXT        NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'DISETUJUI', 'DITOLAK')),
-  ditambahkan_oleh_warga_id UUID        NULL,   -- auth.uid warga yang mengajukan (untuk validasi kepemilikan)
+  ditambahkan_oleh_warga_id TEXT        NULL,   -- auth.uid warga yang mengajukan (untuk validasi kepemilikan)
   diajukan_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   direview_at               TIMESTAMPTZ NULL,
   direview_oleh             TEXT        NULL,
@@ -60,7 +63,7 @@ CREATE POLICY "Pengurus aktif bisa review pengajuan KK"
   USING (public.is_pengurus_aktif())
   WITH CHECK (public.is_pengurus_aktif());
 
--- Pengurus aktif bisa select semua
+-- Pengurus aktif bisa baca semua pengajuan KK
 CREATE POLICY "Pengurus aktif bisa baca semua pengajuan KK"
   ON kk_pengajuan_rt004 FOR SELECT
   TO authenticated
