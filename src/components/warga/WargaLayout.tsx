@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Clock3,
   Coins,
+  CreditCard,
   FileText,
   History,
   Home,
@@ -43,6 +44,7 @@ import {
   RTConfig,
   TagihanIuran,
   TransaksiKeuangan,
+  PengajuanKKInput,
 } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
@@ -274,6 +276,150 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
+/** Modal ajukan perubahan Kartu Keluarga dari portal warga. */
+const PerbaruiKKModal: React.FC<{
+  nomorKKSekarang?: string;
+  onClose: () => void;
+}> = ({ nomorKKSekarang, onClose }) => {
+  const [jenis, setJenis] = useState<'UBAH_NOMOR_KK' | 'HAPUS_ANGGOTA'>('UBAH_NOMOR_KK');
+  const [nomorKKBaru, setNomorKKBaru] = useState('');
+  const [alasan, setAlasan] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  const onlyDigits = (v: string) => v.replace(/\D/g, '');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null);
+    if (jenis === 'UBAH_NOMOR_KK') {
+      if (nomorKKBaru.length !== 16) { setErr('Nomor KK baru harus 16 digit.'); return; }
+    }
+    if (!alasan.trim()) { setErr('Alasan wajib diisi.'); return; }
+
+    setBusy(true);
+    const input: PengajuanKKInput = {
+      jenis,
+      nomorKKBaru: jenis === 'UBAH_NOMOR_KK' ? nomorKKBaru : undefined,
+      alasan: alasan.trim(),
+    };
+    const result = await supabaseService.ajukanPerubahanKK(input);
+    setBusy(false);
+    if (!result.success) { setErr(result.error || 'Gagal mengirim pengajuan.'); return; }
+    setOk('Pengajuan terkirim. Menunggu persetujuan pengurus RT.');
+    setTimeout(onClose, 1800);
+  };
+
+  const inputCls = 'w-full p-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 bg-slate-50 focus:bg-white transition';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+        <div className="flex items-center gap-3 px-5 py-4 bg-blue-600">
+          <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+            <CreditCard className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="flex-1 text-base font-bold text-white">Perbarui Kartu Keluarga</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white" aria-label="Tutup">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <form onSubmit={submit} className="px-5 py-4 space-y-3">
+          <p className="text-xs text-slate-500">Pengajuan akan ditinjau pengurus sebelum diterapkan.</p>
+
+          {/* Jenis perubahan */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Jenis Perubahan</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['UBAH_NOMOR_KK', 'HAPUS_ANGGOTA'] as const).map(j => (
+                <button
+                  key={j}
+                  type="button"
+                  onClick={() => setJenis(j)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                    jenis === j
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {j === 'UBAH_NOMOR_KK' ? 'Ubah Nomor KK' : 'Hapus Anggota'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* KK saat ini */}
+          {nomorKKSekarang && (
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-xs">
+              <span className="text-slate-500">KK saat ini</span>
+              <span className="font-mono font-semibold text-slate-800">{nomorKKSekarang}</span>
+            </div>
+          )}
+
+          {/* Field UBAH_NOMOR_KK */}
+          {jenis === 'UBAH_NOMOR_KK' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Nomor KK Baru (16 digit)</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={nomorKKBaru}
+                onChange={e => setNomorKKBaru(onlyDigits(e.target.value).slice(0, 16))}
+                placeholder="16 digit sesuai KK baru"
+                className={inputCls + ' font-mono'}
+              />
+              <p className="text-xs text-slate-400 mt-1">{nomorKKBaru.length}/16 digit</p>
+            </div>
+          )}
+
+          {/* Field HAPUS_ANGGOTA */}
+          {jenis === 'HAPUS_ANGGOTA' && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+              <p className="font-bold mb-0.5">Catatan:</p>
+              <p>Permintaan hapus anggota hanya akan diproses jika Anda adalah yang menambahkan anggota tersebut. Sebutkan nama anggota di kolom alasan.</p>
+            </div>
+          )}
+
+          {/* Alasan */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan</label>
+            <textarea
+              value={alasan}
+              onChange={e => setAlasan(e.target.value)}
+              placeholder="Jelaskan alasan perubahan secara singkat…"
+              rows={3}
+              maxLength={300}
+              className={inputCls + ' resize-none'}
+            />
+          </div>
+
+          {err && (
+            <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> <span>{err}</span>
+            </div>
+          )}
+          {ok && (
+            <div className="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700 font-semibold">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> <span>{ok}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl text-sm"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+            Kirim Pengajuan
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 /**
  * Shell dashboard warga (mobile-first, bottom navigation 4 tab + FAB Surat).
  * Beranda menampilkan statistik pribadi, grid LAYANAN, kas RT, kegiatan, dan
@@ -301,6 +447,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [openPerbarui, setOpenPerbarui] = useState(false);
   const [openEWS, setOpenEWS] = useState(false);
   const [openGantiPin, setOpenGantiPin] = useState(false);
+  const [openPerbaruiKK, setOpenPerbaruiKK] = useState(false);
 
   const isNativeApp = Capacitor.isNativePlatform();
 
@@ -646,6 +793,21 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
 
             <button
               type="button"
+              onClick={() => setOpenPerbaruiKK(true)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-bold text-slate-900">Perbarui Kartu Keluarga</span>
+                <span className="text-xs text-slate-500">Ajukan perubahan nomor KK atau hapus anggota</span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => setOpenGantiPin(true)}
               className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:shadow-md"
             >
@@ -727,6 +889,12 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       {openPerbarui && <DaftarWargaModal mode="publik" onClose={() => setOpenPerbarui(false)} />}
       {isNativeApp && <EWSLaporanModal isOpen={openEWS} onClose={() => setOpenEWS(false)} />}
       {openGantiPin && <GantiPinModal onClose={() => setOpenGantiPin(false)} />}
+      {openPerbaruiKK && (
+        <PerbaruiKKModal
+          nomorKKSekarang={currentUser.nomorKK}
+          onClose={() => setOpenPerbaruiKK(false)}
+        />
+      )}
     </div>
   );
 };

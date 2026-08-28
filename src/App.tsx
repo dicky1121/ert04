@@ -24,6 +24,8 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
+import { EWSDetailModal } from './components/EWSDetailModal';
+import { VerifikasiSurat } from './components/VerifikasiSurat';
 import { PengaduanAdminView } from './components/PengaduanAdminView';
 import { PengumumanAdminView } from './components/PengumumanAdminView';
 import { KegiatanAdminView } from './components/KegiatanAdminView';
@@ -68,6 +70,13 @@ export default function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
   const [ewsBaruCount, setEwsBaruCount] = useState(0);
+  const [ewsDetailId, setEwsDetailId] = useState<string | null>(null);
+
+  // Deteksi URL parameter ?verifikasi= untuk halaman verifikasi surat QR
+  const [verifikasiKode, setVerifikasiKode] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('verifikasi') || null;
+  });
   const [pengajuanList, setPengajuanList] = useState<PengajuanWarga[]>([]);
   const [wargaSubTab, setWargaSubTab] = useState<'data' | 'pengajuan'>('data');
 
@@ -116,10 +125,14 @@ export default function App() {
       setEwsBaruCount(prev => prev + 1);
     });
 
-    // Listener: notification EWS di-tap, navigasi ke tab EWS
-    const handleEWSNotificationTapped = () => {
+    // Listener: notification EWS di-tap, navigasi ke tab EWS + buka popup detail
+    const handleEWSNotificationTapped = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
       setActiveTab('ews');
       setEwsBaruCount(0); // Reset badge
+      if (detail?.laporan_id) {
+        setEwsDetailId(String(detail.laporan_id));
+      }
     };
     window.addEventListener('ews-notification-tapped', handleEWSNotificationTapped);
 
@@ -899,6 +912,28 @@ export default function App() {
           showToast(`Berhasil beralih ke akun ${user.nama} (${user.role})`);
         }}
       />
+
+      {/* Popup detail laporan EWS — muncul saat notifikasi push EWS diklik */}
+      {ewsDetailId && (
+        <EWSDetailModal
+          laporanId={ewsDetailId}
+          onClose={() => setEwsDetailId(null)}
+        />
+      )}
+
+      {/* Halaman verifikasi keaslian surat QR — muncul saat URL punya ?verifikasi= */}
+      {verifikasiKode && (
+        <VerifikasiSurat
+          kode={verifikasiKode}
+          onTutup={() => {
+            setVerifikasiKode(null);
+            // Hapus parameter dari URL tanpa reload
+            const url = new URL(window.location.href);
+            url.searchParams.delete('verifikasi');
+            window.history.replaceState({}, '', url.toString());
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="no-print bg-white border-t border-slate-200 mt-auto py-5 text-center text-xs text-slate-500">

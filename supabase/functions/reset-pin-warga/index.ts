@@ -85,8 +85,12 @@ Deno.serve(async (req) => {
       { status: 200, headers: jsonHeaders }
     );
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('reset-pin-warga error:', message);
-    return err(message, 500);
+    const jejak = crypto.randomUUID().slice(0, 8);
+    const detail = e instanceof Error ? (e.stack ?? e.message) : String(e);
+    console.error(`reset-pin-warga error [${jejak}]:`, detail);
+    return err(
+      `Terjadi kesalahan di server (kode ${jejak}). Hubungi admin sistem dan sebutkan kode ini.`,
+      500
+    );
   }
 });

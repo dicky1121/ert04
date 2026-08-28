@@ -2059,14 +2059,16 @@ class StorageService {
         // Nomor KK: dua masalah yang sama-sama perlu dilihat pengurus. Baris yang
         // MEWARISI KK kepala keluarga tidak kena flag — `rawKK` sudah di-set ke
         // `lastKK` di atas, jadi `finalKK` di sini bernilai KK keluarga yang sah.
+        // KK sementara (tidak ada di berkas) dicatat sebagai warning — baris tetap
+        // bisa di-commit, KK bisa dilengkapi pengurus kemudian.
         if (finalKK === KK_SEMENTARA) {
-          errorMessages.push('Nomor KK tidak ada di berkas (dipakai KK sementara)');
+          errorMessages.push('Nomor KK tidak ada di berkas — akan diisi sementara (bisa dilengkapi kemudian)');
           invalidKkCount++;
         } else if (finalKK.length !== 16 || !/^\d+$/.test(finalKK)) {
           // Umumnya KK terpotong karena Excel membuang angka nol di depan. Nomor
           // seperti ini diwariskan ke seluruh anggota keluarga (ambang `>= 10` di
           // atas), jadi satu sel rusak bisa mencemari beberapa baris sekaligus.
-          errorMessages.push(`Nomor KK ${finalKK.length} digit (standar 16 digit)`);
+          errorMessages.push(`Nomor KK ${finalKK.length} digit (standar 16 digit) — periksa dan perbaiki setelah impor`);
           invalidKkCount++;
         }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Printer, ShieldCheck, Copy, Check, CreditCard as Edit3, RotateCcw, FileText, CircleCheck as CheckCircle2, Type, Sparkles, FileDown } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { SuratPengantar, RTConfig } from '../types';
 import { LambangBekasiLogo } from './BekasiLogo';
 import { printOfficialLetter, exportLetterToWord } from '../utils/printDocument';
@@ -607,12 +608,28 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               <div className="font-bold underline text-black uppercase">{namaKetuaRT}</div>
             </div>
 
-            {/* Kolom Kanan: Mengetahui Ketua RW */}
-            <div className="text-center px-4">
+            {/* Kolom Kanan: Mengetahui Ketua RW + QR verifikasi di pojok kanan bawah */}
+            <div className="text-center px-4 relative">
               <div>Mengetahui</div>
               <div className="font-semibold">Ketua Rw 007</div>
               <div style={{ height: `${signatureSpacePt}pt` }}></div>
               <div className="font-bold underline text-black uppercase">{namaKetuaRW}</div>
+
+              {/* QR Code verifikasi keaslian surat */}
+              {surat.kodeVerifikasiQr && (
+                <div className="absolute bottom-0 right-0 flex flex-col items-center gap-0.5 print:block">
+                  <QRCodeSVG
+                    value={`${window.location.origin}?verifikasi=${encodeURIComponent(surat.kodeVerifikasiQr)}`}
+                    size={60}
+                    level="M"
+                    includeMargin={false}
+                    style={{ display: 'block' }}
+                  />
+                  <span style={{ fontSize: '6pt', color: '#6b7280', textAlign: 'center', display: 'block', lineHeight: '1.2' }}>
+                    Scan untuk verifikasi
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -130,7 +130,7 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (form.nik.length !== 16) e.nik = 'NIK harus tepat 16 digit angka.';
-    if (form.nomorKK.length !== 16) e.nomorKK = 'Nomor KK harus tepat 16 digit angka.';
+    if (form.nomorKK.length > 0 && form.nomorKK.length !== 16) e.nomorKK = 'Nomor KK harus tepat 16 digit angka (atau kosongkan jika belum ada).';
     if (form.nama.trim().length < 2) e.nama = 'Nama lengkap wajib diisi.';
     if (!form.tanggalLahir) e.tanggalLahir = 'Tanggal lahir wajib diisi.';
     if (!isValidPhone(form.nomorHp)) e.nomorHp = 'Nomor HP tidak valid. Contoh: 081298765432.';
@@ -434,16 +434,19 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
               {/* Nomor KK */}
               <div>
                 <label className={labelCls}>
-                  Nomor Kartu Keluarga <span className="text-rose-500">*</span>
+                  Nomor Kartu Keluarga <span className="text-slate-400 font-normal text-[11px]">(opsional)</span>
                 </label>
                 <input
                   inputMode="numeric"
                   value={form.nomorKK}
                   onChange={(e) => setField('nomorKK', onlyDigits(e.target.value).slice(0, 16))}
-                  placeholder="16 digit sesuai KK"
+                  placeholder="16 digit sesuai KK (kosongkan jika belum ada)"
                   className={inputCls}
                 />
                 {errors.nomorKK && <p className="text-xs text-rose-600 mt-1">{errors.nomorKK}</p>}
+                {!errors.nomorKK && (
+                  <p className="text-[11px] text-slate-400 mt-1">Kosongkan jika belum memiliki KK atau belum tahu nomornya.</p>
+                )}
               </div>
 
               {/* Nama */}

@@ -14,7 +14,9 @@ import {
   UserPlus,
   KeyRound,
   Fingerprint,
-  BadgeCheck
+  BadgeCheck,
+  LogIn,
+  X as XIcon,
 } from 'lucide-react';
 import { CurrentUser, RTConfig } from '../types';
 import { BekasiLogo } from './BekasiLogo';
@@ -65,6 +67,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [showDaftar, setShowDaftar] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const switchMode = (mode: 'warga' | 'pengurus') => {
     setPortalMode(mode);
@@ -302,6 +305,15 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Tombol Masuk — hanya tampil di mobile (di desktop form login sudah ada di panel kanan) */}
+        <button
+          type="button"
+          onClick={() => setShowLoginPopup(true)}
+          className="md:hidden w-full mt-5 py-3 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[.98] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition"
+        >
+          <LogIn className="w-4 h-4" /> Masuk ke Portal
+        </button>
 
         {/* Footer security note */}
         <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
@@ -687,6 +699,204 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           </p>
         </div>
         {showDaftar && <DaftarWargaModal mode="akun" onClose={() => setShowDaftar(false)} />}
+
+        {/* ── Popup Login (muncul saat tombol "Masuk ke Portal" di panel info RT diklik) ── */}
+        {showLoginPopup && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowLoginPopup(false); }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Login ke Portal"
+          >
+            <div className="w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
+              {/* Header popup */}
+              <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                    <LogIn className="w-4 h-4 text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">Masuk ke Portal</p>
+                    <p className="text-[11px] text-slate-300">RT 004 RW 007 Kelurahan Jatimulya</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPopup(false)}
+                  aria-label="Tutup"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 space-y-4">
+                {/* Toggle Warga | Pengurus */}
+                {cloudAuthAvailable && (
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+                    <button
+                      type="button"
+                      onClick={() => switchMode('warga')}
+                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        effectiveMode === 'warga'
+                          ? 'bg-white text-emerald-700 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Users className="w-4 h-4" /> Warga
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchMode('pengurus')}
+                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        effectiveMode === 'pengurus'
+                          ? 'bg-white text-emerald-700 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Shield className="w-4 h-4" /> Pengurus
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Form Warga ── */}
+                {effectiveMode === 'warga' && (
+                  <form onSubmit={handleWargaSubmit} className="space-y-3.5">
+                    <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
+                      <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                      <span>Masuk dengan <b>NIK</b> + <b>PIN 6 angka</b>.</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Fingerprint className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="username"
+                          placeholder="16 digit sesuai KTP"
+                          value={nik}
+                          onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                          className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono transition"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">{nik.length}/16 digit</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <KeyRound className="w-4 h-4" />
+                        </div>
+                        <input
+                          type={showPin ? 'text' : 'password'}
+                          inputMode="numeric"
+                          autoComplete="current-password"
+                          placeholder="••••••"
+                          value={pin}
+                          onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-[0.3em] transition"
+                        />
+                        <button type="button" onClick={() => setShowPin(!showPin)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                          {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    {errorMessage && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" /> <span>{errorMessage}</span>
+                      </div>
+                    )}
+                    {successMessage && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" /> <span>{successMessage}</span>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <BadgeCheck className="w-4 h-4" />
+                      {isLoading ? 'Memverifikasi...' : 'Masuk ke Portal Warga'}
+                      <ArrowRight className="w-4 h-4 ml-1" />
+                    </button>
+                    <div className="pt-1 border-t border-slate-100 text-center">
+                      <p className="text-xs text-slate-500 mb-2">Belum punya akun warga?</p>
+                      <button
+                        type="button"
+                        onClick={() => { setShowLoginPopup(false); setShowDaftar(true); }}
+                        className="w-full py-2.5 px-4 border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+                      >
+                        <UserPlus className="w-4 h-4" /> Daftar Akun Warga
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* ── Form Pengurus ── */}
+                {effectiveMode === 'pengurus' && (
+                  <form onSubmit={handleFormSubmit} className="space-y-3.5">
+                    <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
+                      <Shield className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                      <span>{cloudAuthAvailable ? 'Login dengan email & password akun pengurus.' : 'Mode offline: masukkan PIN lokal.'}</span>
+                    </div>
+                    {cloudAuthAvailable && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Email:</label>
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          placeholder="email@pengurus.rt004.id"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Password:</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete="current-password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full pl-3 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    {errorMessage && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" /> <span>{errorMessage}</span>
+                      </div>
+                    )}
+                    {successMessage && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" /> <span>{successMessage}</span>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Shield className="w-4 h-4" />
+                      {isLoading ? 'Memverifikasi...' : 'Masuk Portal Pengurus'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

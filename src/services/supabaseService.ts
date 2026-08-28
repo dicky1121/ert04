@@ -37,7 +37,11 @@ import {
   UmkmVarian,
   UmkmTokoInput,
   UmkmProdukInput,
-  Warga
+  Warga,
+  PengajuanKK,
+  PengajuanKKInput,
+  JenisPengajuanKK,
+  StatusPengajuanKK,
 } from '../types';
 
 
@@ -297,7 +301,10 @@ const fromIuranRow = (r: CloudRow): TagihanIuran => {
 const fromPengaturanIuranRow = (r: CloudRow): PengaturanIuran => ({
   infoPembayaran: r.info_pembayaran || '',
   nominalDefault: Number(r.nominal_default) || 0,
-  judulDefault: r.judul_default || 'Iuran Kas RT'
+  judulDefault: r.judul_default || 'Iuran Kas RT',
+  metodePembayaran: Array.isArray(r.metode_pembayaran) ? r.metode_pembayaran : [],
+  reminderAktif: Boolean(r.reminder_aktif),
+  hariReminder: Number(r.hari_reminder) || 1,
 });
 
 // ── UMKM mini-marketplace: pemetaan baris DB → tipe aplikasi ──────────────────
@@ -2414,6 +2421,36 @@ ON CONFLICT (id) DO NOTHING;
     return `EWS-${tanggal}-${acak.toUpperCase()}`;
   }
 
+  /** Ambil satu laporan EWS by ID — dipakai popup detail saat notifikasi diklik. */
+  public async fetchLaporanEWSById(id: string): Promise<{ data: LaporanEWS | null; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: null, error: 'Aplikasi belum tersambung ke Supabase.' };
+    try {
+      const { data, error } = await client
+        .from('ews_laporan_rt004')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) return { data: null, error: error.message };
+      if (!data) return { data: null, error: 'Laporan tidak ditemukan.' };
+      return {
+        data: {
+          id: String(data.id || ''),
+          jenis_kejadian: data.jenis_kejadian || 'LAINNYA',
+          deskripsi: data.deskripsi || '',
+          nama_pelapor: data.nama_pelapor || '',
+          alamat: data.alamat || '',
+          foto_url: data.foto_url || null,
+          status: (data.status || 'BARU') as StatusEWS,
+          created_at: data.created_at || '',
+          updated_at: data.updated_at || '',
+        } as LaporanEWS,
+      };
+    } catch (err: any) {
+      return { data: null, error: err?.message || 'Gagal memuat detail laporan.' };
+    }
+  }
+
   /**
    * Kirim laporan darurat dari warga.
    * Bisa dipanggil tanpa login (anon) — RLS mengizinkan INSERT dari anon.
@@ -2809,8 +2846,24 @@ ON CONFLICT (id) DO NOTHING;
     if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
 
     try {
+      // Ambil foto_url dulu sebelum menghapus baris
+      const { data: existing } = await client
+        .from('kegiatan_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error } = await client.from('kegiatan_rt004').delete().eq('id', id);
       if (error) return { success: false, error: error.message };
+
+      // Hapus foto dari Storage jika ada
+      if (existing?.foto_url) {
+        const path = existing.foto_url.split('/kegiatan-foto/').pop();
+        if (path) {
+          await client.storage.from('kegiatan-foto').remove([path]).catch(() => {});
+        }
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
@@ -3044,8 +3097,21 @@ ON CONFLICT (id) DO NOTHING;
     if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
 
     try {
+      // Ambil bukti_path dulu sebelum menghapus baris
+      const { data: existing } = await client
+        .from('iuran_rt004')
+        .select('bukti_path')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error } = await client.from('iuran_rt004').delete().eq('id', id);
       if (error) return { success: false, error: error.message };
+
+      // Hapus file bukti dari Storage jika ada
+      if (existing?.bukti_path) {
+        await client.storage.from('bukti-bayar').remove([existing.bukti_path]).catch(() => {});
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
@@ -3114,6 +3180,16 @@ ON CONFLICT (id) DO NOTHING;
     }
 
     try {
+      // Hapus file bukti lama jika sudah ada (warga upload ulang)
+      const { data: existing } = await client
+        .from('iuran_rt004')
+        .select('bukti_path')
+        .eq('id', id)
+        .maybeSingle();
+      if (existing?.bukti_path) {
+        await client.storage.from('bukti-bayar').remove([existing.bukti_path]).catch(() => {});
+      }
+
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const objectPath = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error: upErr } = await client.storage
@@ -3207,7 +3283,10 @@ ON CONFLICT (id) DO NOTHING;
         id: 1,
         info_pembayaran: (input.infoPembayaran || '').trim(),
         nominal_default: Math.max(0, Math.round(Number(input.nominalDefault) || 0)),
-        judul_default: (input.judulDefault || 'Iuran Kas RT').trim() || 'Iuran Kas RT'
+        judul_default: (input.judulDefault || 'Iuran Kas RT').trim() || 'Iuran Kas RT',
+        metode_pembayaran: Array.isArray(input.metodePembayaran) ? input.metodePembayaran : [],
+        reminder_aktif: Boolean(input.reminderAktif),
+        hari_reminder: Math.min(28, Math.max(1, Number(input.hariReminder) || 1)),
       };
       const { error } = await client
         .from('pengaturan_iuran_rt004')
@@ -3362,8 +3441,43 @@ ON CONFLICT (id) DO NOTHING;
     if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
 
     try {
+      // Kumpulkan semua foto produk milik lapak ini sebelum menghapus
+      const { data: produkList } = await client
+        .from('umkm_produk_rt004')
+        .select('foto_url')
+        .eq('umkm_id', id);
+
+      // Ambil foto lapak sendiri
+      const { data: toko } = await client
+        .from('umkm_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error } = await client.from('umkm_rt004').delete().eq('id', id);
       if (error) return { success: false, error: error.message };
+
+      // Hapus foto toko dan semua foto produk dari Storage
+      const paths: string[] = [];
+      const extractPath = (url: string | null) => {
+        if (!url) return null;
+        const part = url.split('/umkm-foto/').pop();
+        return part ? part.split('?')[0] : null;
+      };
+
+      if (toko?.foto_url) {
+        const p = extractPath(toko.foto_url);
+        if (p) paths.push(p);
+      }
+      (produkList ?? []).forEach((pr: { foto_url: string | null }) => {
+        const p = extractPath(pr.foto_url);
+        if (p) paths.push(p);
+      });
+
+      if (paths.length > 0) {
+        await client.storage.from('umkm-foto').remove(paths).catch(() => {});
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
@@ -3467,8 +3581,22 @@ ON CONFLICT (id) DO NOTHING;
     if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
 
     try {
+      // Ambil foto_url sebelum hapus
+      const { data: existing } = await client
+        .from('umkm_produk_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error } = await client.from('umkm_produk_rt004').delete().eq('id', id);
       if (error) return { success: false, error: error.message };
+
+      // Hapus foto dari Storage jika ada
+      if (existing?.foto_url) {
+        const path = existing.foto_url.split('/umkm-foto/').pop()?.split('?')[0];
+        if (path) await client.storage.from('umkm-foto').remove([path]).catch(() => {});
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
@@ -3549,6 +3677,153 @@ ON CONFLICT (id) DO NOTHING;
       }
     });
   }
+  // ── Pengajuan Perubahan KK ──────────────────────────────────────────────────
+
+  /** Ambil semua pengajuan KK (admin). */
+  public async fetchPengajuanKK(): Promise<{ data: PengajuanKK[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Supabase client tidak tersedia.' };
+    try {
+      const { data, error } = await client
+        .from('kk_pengajuan_rt004')
+        .select('*')
+        .order('diajukan_at', { ascending: false });
+      if (error) return { data: [], error: error.message };
+      return {
+        data: (data ?? []).map((r: Record<string, unknown>) => ({
+          id: String(r.id ?? ''),
+          wargaId: String(r.warga_id ?? ''),
+          namaPengaju: String(r.nama_pengaju ?? ''),
+          jenis: (r.jenis ?? 'UBAH_NOMOR_KK') as JenisPengajuanKK,
+          nomorKKBaru: r.nomor_kk_baru ? String(r.nomor_kk_baru) : null,
+          anggotaTargetId: r.anggota_target_id ? String(r.anggota_target_id) : null,
+          namaAnggotaTarget: r.nama_anggota_target ? String(r.nama_anggota_target) : undefined,
+          alasan: String(r.alasan ?? ''),
+          status: (r.status ?? 'PENDING') as StatusPengajuanKK,
+          ditambahkanOlehWargaId: r.ditambahkan_oleh_warga_id ? String(r.ditambahkan_oleh_warga_id) : null,
+          diajukanAt: String(r.diajukan_at ?? ''),
+          direviewAt: r.direview_at ? String(r.direview_at) : null,
+          direviewOleh: r.direview_oleh ? String(r.direview_oleh) : null,
+          catatanAdmin: r.catatan_admin ? String(r.catatan_admin) : null,
+        })) as PengajuanKK[],
+      };
+    } catch (err: any) {
+      return { data: [], error: err?.message };
+    }
+  }
+
+  /** Warga mengajukan perubahan KK. */
+  public async ajukanPerubahanKK(
+    input: PengajuanKKInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    const userId = authState.getUserId();
+    if (!userId) return { success: false, error: 'Sesi tidak valid. Silakan login ulang.' };
+
+    // Ambil warga_id dari warga_akun
+    const { data: akun } = await client
+      .from('warga_akun')
+      .select('warga_id, nama')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!akun?.warga_id) return { success: false, error: 'Data warga tidak ditemukan. Hubungi pengurus.' };
+
+    try {
+      const payload = {
+        warga_id: akun.warga_id,
+        nama_pengaju: akun.nama,
+        jenis: input.jenis,
+        nomor_kk_baru: input.nomorKKBaru?.trim() || null,
+        anggota_target_id: input.anggotaTargetId || null,
+        alasan: input.alasan.trim(),
+        status: 'PENDING',
+        ditambahkan_oleh_warga_id: userId,
+        diajukan_at: new Date().toISOString(),
+      };
+      const { data, error } = await client
+        .from('kk_pengajuan_rt004')
+        .insert(payload)
+        .select('id')
+        .single();
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Admin: setujui pengajuan KK — terapkan perubahan ke tabel terkait. */
+  public async setujuiPengajuanKK(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    try {
+      // Baca detail pengajuan
+      const { data: p, error: pErr } = await client
+        .from('kk_pengajuan_rt004')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (pErr || !p) return { success: false, error: pErr?.message ?? 'Pengajuan tidak ditemukan.' };
+
+      if (p.jenis === 'UBAH_NOMOR_KK' && p.nomor_kk_baru) {
+        // Update nomor KK di warga_rt004
+        const { error: updErr } = await client
+          .from('warga_rt004')
+          .update({ nomor_kk: p.nomor_kk_baru })
+          .eq('id', p.warga_id);
+        if (updErr) return { success: false, error: `Gagal memperbarui KK: ${updErr.message}` };
+      } else if (p.jenis === 'HAPUS_ANGGOTA' && p.anggota_target_id) {
+        // Hapus anggota dari warga_rt004 (pengurus yang approve = yang mengeksekusi)
+        const { error: hapErr } = await client
+          .from('warga_rt004')
+          .delete()
+          .eq('id', p.anggota_target_id);
+        if (hapErr) return { success: false, error: `Gagal menghapus anggota: ${hapErr.message}` };
+      }
+
+      // Tandai pengajuan sebagai DISETUJUI
+      await client
+        .from('kk_pengajuan_rt004')
+        .update({
+          status: 'DISETUJUI',
+          direview_at: new Date().toISOString(),
+          direview_oleh: authState.getUserId(),
+        })
+        .eq('id', id);
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Admin: tolak pengajuan KK. */
+  public async tolakPengajuanKK(
+    id: string,
+    catatan: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    try {
+      const { error } = await client
+        .from('kk_pengajuan_rt004')
+        .update({
+          status: 'DITOLAK',
+          catatan_admin: catatan.trim() || null,
+          direview_at: new Date().toISOString(),
+          direview_oleh: authState.getUserId(),
+        })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
 }
 
 export const supabaseService = new SupabaseService();

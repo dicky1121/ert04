@@ -59,6 +59,9 @@ const PENGATURAN_BAWAAN: PengaturanIuran = {
   infoPembayaran: '',
   nominalDefault: 0,
   judulDefault: JUDUL_BAWAAN,
+  metodePembayaran: [],
+  reminderAktif: false,
+  hariReminder: 1,
 };
 
 const inputCls =
@@ -160,6 +163,36 @@ const TagihanFormModal: React.FC<{
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Combobox search warga
+  const [cariWarga, setCariWarga] = useState<string>(() => {
+    if (awal.wargaId) {
+      const found = wargaTerurut.find(w => w.id === awal.wargaId);
+      return found ? found.nama : '';
+    }
+    return '';
+  });
+  const [showDropdown, setShowDropdown] = useState(false);
+  const comboRef = React.useRef<HTMLDivElement>(null);
+
+  const wargaTersaring = useMemo(() => {
+    const q = cariWarga.trim().toLowerCase();
+    if (!q) return wargaTerurut.slice(0, 50);
+    return wargaTerurut.filter(w =>
+      w.nama.toLowerCase().includes(q) || (w.nik && w.nik.includes(q))
+    ).slice(0, 50);
+  }, [cariWarga, wargaTerurut]);
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const setField = <K extends keyof TagihanIuranInput>(key: K, value: TagihanIuranInput[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
@@ -206,19 +239,62 @@ const TagihanFormModal: React.FC<{
             </p>
           </>
         ) : (
-          <select
-            id="iuran-warga"
-            value={form.wargaId}
-            onChange={e => setField('wargaId', e.target.value)}
-            className={inputCls}
-          >
-            <option value="">— Pilih warga —</option>
-            {wargaTerurut.map(w => (
-              <option key={w.id} value={w.id}>
-                {w.nama}{w.nik ? ` · ${w.nik}` : ''}
-              </option>
-            ))}
-          </select>
+          <div ref={comboRef} className="relative">
+            <div className="relative">
+              <input
+                id="iuran-warga"
+                type="text"
+                value={cariWarga}
+                onChange={e => {
+                  setCariWarga(e.target.value);
+                  setField('wargaId', '');
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Cari nama atau NIK warga…"
+                autoComplete="off"
+                className={`${inputCls} pr-8`}
+              />
+              {cariWarga && (
+                <button
+                  type="button"
+                  onClick={() => { setCariWarga(''); setField('wargaId', ''); setShowDropdown(true); }}
+                  className="absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 hover:text-slate-600"
+                  aria-label="Hapus pilihan"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {showDropdown && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                {wargaTersaring.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-xs text-slate-400">Tidak ada warga yang cocok.</p>
+                ) : (
+                  wargaTersaring.map(w => (
+                    <button
+                      key={w.id}
+                      type="button"
+                      onMouseDown={() => {
+                        setField('wargaId', w.id);
+                        setCariWarga(w.nama);
+                        setShowDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition flex flex-col gap-0.5 ${
+                        form.wargaId === w.id ? 'bg-emerald-50' : ''
+                      }`}
+                    >
+                      <span className="text-sm font-semibold text-slate-800">{w.nama}</span>
+                      {w.nik && <span className="text-[11px] font-mono text-slate-400">{w.nik}</span>}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+            {form.wargaId && (
+              <p className="mt-1 text-[11px] text-emerald-600 font-medium">✓ Warga dipilih</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -661,9 +737,34 @@ const SetelanModal: React.FC<{
   onClose: () => void;
   onSubmit: (input: PengaturanIuran) => Promise<boolean>;
 }> = ({ awal, onClose, onSubmit }) => {
-  const [form, setForm] = useState<PengaturanIuran>(awal);
+  const [form, setForm] = useState<PengaturanIuran>({
+    ...awal,
+    metodePembayaran: awal.metodePembayaran ?? [],
+  });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // State untuk form tambah metode baru
+  const [labelBaru, setLabelBaru] = useState('');
+  const [detailBaru, setDetailBaru] = useState('');
+  const [errMetode, setErrMetode] = useState<string | null>(null);
+
+  const tambahMetode = () => {
+    if (!labelBaru.trim()) { setErrMetode('Label metode wajib diisi.'); return; }
+    if (!detailBaru.trim()) { setErrMetode('Detail metode wajib diisi.'); return; }
+    setErrMetode(null);
+    const id = crypto.randomUUID().slice(0, 8);
+    setForm(p => ({
+      ...p,
+      metodePembayaran: [...(p.metodePembayaran ?? []), { id, label: labelBaru.trim(), detail: detailBaru.trim() }],
+    }));
+    setLabelBaru('');
+    setDetailBaru('');
+  };
+
+  const hapusMetode = (id: string) => {
+    setForm(p => ({ ...p, metodePembayaran: (p.metodePembayaran ?? []).filter(m => m.id !== id) }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -674,6 +775,9 @@ const SetelanModal: React.FC<{
       infoPembayaran: form.infoPembayaran.trim(),
       nominalDefault: form.nominalDefault,
       judulDefault: form.judulDefault.trim(),
+      metodePembayaran: form.metodePembayaran ?? [],
+      reminderAktif: form.reminderAktif,
+      hariReminder: form.hariReminder,
     });
     setSaving(false);
     if (ok) onClose();
@@ -685,6 +789,7 @@ const SetelanModal: React.FC<{
       icon={Settings2}
       onClose={onClose}
       onSubmit={handleSubmit}
+      wide
       footer={
         <>
           <TombolBatal onClick={onClose} />
@@ -699,20 +804,84 @@ const SetelanModal: React.FC<{
         </>
       }
     >
+      {/* ── Info pembayaran (teks bebas) ── */}
       <div>
-        <label className={labelCls} htmlFor="set-info">Info pembayaran</label>
+        <label className={labelCls} htmlFor="set-info">Info pembayaran (teks bebas)</label>
         <textarea
           id="set-info"
           value={form.infoPembayaran}
           onChange={e => setForm(p => ({ ...p, infoPembayaran: e.target.value }))}
-          rows={4}
+          rows={3}
           maxLength={600}
-          placeholder={'Contoh:\nTransfer BCA 1234567890 a/n Kas RT 004\nAtau tunai ke Bendahara.'}
+          placeholder={'Catatan tambahan cara bayar, mis. jam pelayanan kasir…'}
           className={`${inputCls} resize-none`}
         />
         <p className="mt-1.5 text-[11px] text-slate-400">
-          Ditampilkan di layar Iuran warga sebagai panduan cara membayar.
+          Ditampilkan di layar Iuran warga sebagai panduan tambahan.
         </p>
+      </div>
+
+      {/* ── Metode pembayaran ── */}
+      <div>
+        <label className={labelCls}>Metode Pembayaran</label>
+        <p className="mb-2 text-[11px] text-slate-400">
+          Daftar cara bayar yang tampil ke warga di halaman Iuran Saya.
+        </p>
+
+        {/* Daftar metode yang sudah ada */}
+        {(form.metodePembayaran ?? []).length > 0 ? (
+          <div className="mb-3 space-y-2">
+            {(form.metodePembayaran ?? []).map(m => (
+              <div key={m.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-800">{m.label}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">{m.detail}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => hapusMetode(m.id)}
+                  className="shrink-0 text-rose-400 hover:text-rose-600 transition p-1 rounded-lg hover:bg-rose-50"
+                  aria-label={`Hapus metode ${m.label}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-3 text-[11px] text-slate-400 italic">Belum ada metode pembayaran ditambahkan.</p>
+        )}
+
+        {/* Form tambah metode baru */}
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-3 space-y-2">
+          <p className="text-[11px] font-bold text-slate-600">Tambah metode baru</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={labelBaru}
+              onChange={e => { setLabelBaru(e.target.value); setErrMetode(null); }}
+              placeholder="Label (mis. Transfer BCA)"
+              className={inputCls}
+              maxLength={50}
+            />
+            <input
+              type="text"
+              value={detailBaru}
+              onChange={e => { setDetailBaru(e.target.value); setErrMetode(null); }}
+              placeholder="Detail (mis. 1234567 a/n RT 004)"
+              className={inputCls}
+              maxLength={100}
+            />
+          </div>
+          {errMetode && <p className="text-[11px] text-rose-600">{errMetode}</p>}
+          <button
+            type="button"
+            onClick={tambahMetode}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 transition"
+          >
+            <Plus className="w-3.5 h-3.5" /> Tambah Metode
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -744,6 +913,57 @@ const SetelanModal: React.FC<{
       <p className="text-[11px] leading-relaxed text-slate-400">
         Nilai bawaan hanya mengisi otomatis formulir tagihan baru — tagihan yang sudah ada tidak berubah.
       </p>
+
+      {/* ── Reminder iuran bulanan ── */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-slate-800">Reminder Iuran Bulanan</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Kirim push notification ke warga yang belum bayar pada tanggal yang ditentukan.
+            </p>
+          </div>
+          {/* Toggle switch */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.reminderAktif}
+            onClick={() => setForm(p => ({ ...p, reminderAktif: !p.reminderAktif }))}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+              form.reminderAktif ? 'bg-emerald-500' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                form.reminderAktif ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {form.reminderAktif && (
+          <div className="pt-1 border-t border-slate-200">
+            <label className="block text-xs font-bold text-slate-600 mb-1.5" htmlFor="set-hari-reminder">
+              Kirim pada tanggal
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="set-hari-reminder"
+                type="number"
+                min={1}
+                max={28}
+                value={form.hariReminder ?? 1}
+                onChange={e => setForm(p => ({ ...p, hariReminder: Math.min(28, Math.max(1, Number(e.target.value) || 1)) }))}
+                className="w-20 text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition font-bold text-center"
+              />
+              <span className="text-xs text-slate-500">setiap bulan (1–28)</span>
+            </div>
+            <p className="text-[11px] text-amber-600 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+              ⚠️ Reminder dikirim via Supabase pg_cron. Pastikan Edge Function <code className="font-mono">kirim-notif-iuran</code> sudah di-deploy dan pg_cron aktif.
+            </p>
+          </div>
+        )}
+      </div>
 
       {formError && <PesanError pesan={formError} />}
     </ModalShell>

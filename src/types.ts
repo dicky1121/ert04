@@ -811,11 +811,21 @@ export interface TagihanIuranInput {
   jatuhTempo?: string | null;
 }
 
+/** Satu metode pembayaran iuran yang bisa di-set pengurus. */
+export interface MetodePembayaran {
+  id: string;       // uuid pendek, unik per metode
+  label: string;    // mis. "Transfer BCA"
+  detail: string;   // mis. "1234567 a/n Kas RT 004 RW 007"
+}
+
 /** Setelan iuran RT (baris tunggal) — info pembayaran & nilai default. */
 export interface PengaturanIuran {
   infoPembayaran: string;
   nominalDefault: number;
   judulDefault: string;
+  metodePembayaran?: MetodePembayaran[]; // daftar metode bayar yang tampil ke warga
+  reminderAktif?: boolean;               // untuk Task 7 — reminder otomatis bulanan
+  hariReminder?: number;                 // tanggal kirim reminder (1-28, default 1)
 }
 
 export interface AuditLog {
@@ -918,3 +928,36 @@ export interface ImportAnalysisResult {
 }
 
 
+
+// =====================================================================
+// PENGAJUAN PERUBAHAN KK — Warga mengajukan, pengurus approve
+// =====================================================================
+
+export type JenisPengajuanKK = 'UBAH_NOMOR_KK' | 'HAPUS_ANGGOTA';
+export type StatusPengajuanKK = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+
+/** Satu baris pengajuan perubahan KK (tabel kk_pengajuan_rt004). */
+export interface PengajuanKK {
+  id: string;
+  wargaId: string;              // id warga yang mengajukan (warga_rt004.id)
+  namaPengaju?: string;         // nama warga pengaju (join)
+  jenis: JenisPengajuanKK;
+  nomorKKBaru?: string | null;  // untuk UBAH_NOMOR_KK
+  anggotaTargetId?: string | null; // untuk HAPUS_ANGGOTA (warga_rt004.id)
+  namaAnggotaTarget?: string;   // nama anggota yang ingin dihapus (join)
+  alasan: string;
+  status: StatusPengajuanKK;
+  ditambahkanOlehWargaId?: string | null; // auth.uid warga yang menambahkan anggota tsb
+  diajukanAt: string;
+  direviewAt?: string | null;
+  direviewOleh?: string | null;
+  catatanAdmin?: string | null;
+}
+
+/** Input untuk mengajukan perubahan KK dari portal warga. */
+export interface PengajuanKKInput {
+  jenis: JenisPengajuanKK;
+  nomorKKBaru?: string;
+  anggotaTargetId?: string;
+  alasan: string;
+}
