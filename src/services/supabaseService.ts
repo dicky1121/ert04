@@ -3,22 +3,45 @@ import { storageService } from './storage';
 import { authState } from './authState';
 import {
   KartuKeluarga,
+  Kegiatan,
+  KegiatanInput,
   KonfigurasiPublik,
   LaporanEWS,
   LaporanEWSInput,
   MutasiPenduduk,
   PendaftaranWargaInput,
+  DaftarAkunWargaInput,
+  PengaduanAdmin,
   PengaduanInput,
   PengajuanSuratPublik,
   PengajuanWarga,
+  Pengumuman,
+  PengumumanInput,
   PengumumanPublik,
+  RiwayatPengaduan,
+  RiwayatSurat,
   RTConfig,
   StatistikPublik,
   StatusEWS,
   StatusPendaftaranWarga,
   StatusPengajuanPublik,
+  StatusUmkm,
   SuratPengantar,
-  Warga
+  TagihanIuran,
+  TagihanIuranInput,
+  PengaturanIuran,
+  TransaksiKeuangan,
+  TransaksiKeuanganInput,
+  UmkmToko,
+  UmkmProduk,
+  UmkmVarian,
+  UmkmTokoInput,
+  UmkmProdukInput,
+  Warga,
+  PengajuanKK,
+  PengajuanKKInput,
+  JenisPengajuanKK,
+  StatusPengajuanKK,
 } from '../types';
 
 
@@ -187,10 +210,148 @@ const fromSubmissionRow = (r: CloudRow): PengajuanWarga => ({
   jenisPengajuan: r.jenis_pengajuan === 'PERBARUI' ? 'PERBARUI' : 'BARU',
   status: (['PENDING', 'DISETUJUI', 'DITOLAK'].includes(r.status) ? r.status : 'PENDING') as PengajuanWarga['status'],
   matchedWargaId: r.matched_warga_id || null,
+  akunUserId: r.akun_user_id || null,
   catatanAdmin: r.catatan_admin || null,
   submittedAt: r.submitted_at || '',
   reviewedAt: r.reviewed_at || null
 });
+
+const fromKegiatanRow = (r: CloudRow): Kegiatan => ({
+  id: String(r.id || ''),
+  judul: r.judul || '',
+  deskripsi: r.deskripsi || '',
+  tanggal: r.tanggal || '',
+  waktu: r.waktu || '',
+  lokasi: r.lokasi || '',
+  fotoUrl: r.foto_url || null,
+  dipublikasikan: r.dipublikasikan !== false,
+  createdAt: r.created_at || ''
+});
+
+/**
+ * Baris `pengaduan_rt004` → tipe sisi pengurus. `warga_id` bisa NULL untuk
+ * laporan yang dikirim sebelum trigger penstempel ada, atau dari pengunjung
+ * yang tidak login.
+ */
+const fromPengaduanRow = (r: CloudRow): PengaduanAdmin => ({
+  id: String(r.id || ''),
+  nomorTiket: String(r.nomor_tiket || ''),
+  kategori: String(r.kategori || 'LAINNYA'),
+  namaPelapor: String(r.nama_pelapor || ''),
+  kontakPelapor: String(r.kontak_pelapor || ''),
+  alamatKejadian: String(r.alamat_kejadian || ''),
+  isiLaporan: String(r.isi_laporan || ''),
+  status: String(r.status || 'BARU'),
+  tanggapan: r.tanggapan || null,
+  wargaId: r.warga_id || null,
+  createdAt: String(r.created_at || ''),
+  updatedAt: String(r.updated_at || r.created_at || '')
+});
+
+/**
+ * Baris `pengumuman_rt004` → tipe sisi pengurus (termasuk draf).
+ */
+const fromPengumumanRow = (r: CloudRow): Pengumuman => ({
+  id: String(r.id || ''),
+  judul: r.judul || '',
+  isi: r.isi || '',
+  kategori: String(r.kategori || 'UMUM'),
+  dipublikasikan: r.dipublikasikan === true,
+  tanggalMulai: r.tanggal_mulai || '',
+  tanggalSelesai: r.tanggal_selesai || null,
+  createdAt: r.created_at || '',
+  updatedAt: r.updated_at || r.created_at || ''
+});
+
+const fromKeuanganRow = (r: CloudRow): TransaksiKeuangan => ({
+  id: String(r.id || ''),
+  tanggal: r.tanggal || '',
+  jenis: r.jenis === 'KELUAR' ? 'KELUAR' : 'MASUK',
+  kategori: r.kategori || 'Lainnya',
+  jumlah: Number(r.jumlah) || 0,
+  keterangan: r.keterangan || '',
+  bulanKas: r.bulan_kas || (r.tanggal ? String(r.tanggal).slice(0, 7) : ''),
+  createdAt: r.created_at || ''
+});
+
+// ── Iuran / Tagihan warga: pemetaan baris DB → tipe aplikasi ──────────────────
+const fromIuranRow = (r: CloudRow): TagihanIuran => {
+  const status = String(r.status || 'BELUM_LUNAS');
+  return {
+    id: String(r.id || ''),
+    wargaId: String(r.warga_id || ''),
+    judul: r.judul || 'Iuran Kas RT',
+    periode: r.periode || '',
+    jumlah: Number(r.jumlah) || 0,
+    status: (['BELUM_LUNAS', 'MENUNGGU_VERIFIKASI', 'LUNAS', 'DITOLAK'].includes(status)
+      ? status
+      : 'BELUM_LUNAS') as TagihanIuran['status'],
+    jatuhTempo: r.jatuh_tempo || null,
+    buktiPath: r.bukti_path || null,
+    dibayarAt: r.dibayar_at || null,
+    verifiedBy: r.verified_by || null,
+    verifiedAt: r.verified_at || null,
+    catatan: r.catatan || null,
+    dibuatOleh: r.dibuat_oleh || null,
+    createdAt: r.created_at || '',
+    updatedAt: r.updated_at || ''
+  };
+};
+
+const fromPengaturanIuranRow = (r: CloudRow): PengaturanIuran => ({
+  infoPembayaran: r.info_pembayaran || '',
+  nominalDefault: Number(r.nominal_default) || 0,
+  judulDefault: r.judul_default || 'Iuran Kas RT',
+  metodePembayaran: Array.isArray(r.metode_pembayaran) ? r.metode_pembayaran : [],
+  reminderAktif: Boolean(r.reminder_aktif),
+  hariReminder: Number(r.hari_reminder) || 1,
+});
+
+// ── UMKM mini-marketplace: pemetaan baris DB → tipe aplikasi ──────────────────
+const fromVarianRow = (r: CloudRow): UmkmVarian => ({
+  id: String(r.id || ''),
+  produkId: String(r.produk_id || ''),
+  namaVarian: r.nama_varian || '',
+  harga: Number(r.harga) || 0,
+  tersedia: r.tersedia !== false,
+  urutan: Number(r.urutan) || 0
+});
+
+const fromProdukRow = (r: CloudRow): UmkmProduk => {
+  const varianRaw = Array.isArray(r.umkm_varian_rt004) ? r.umkm_varian_rt004 : [];
+  return {
+    id: String(r.id || ''),
+    umkmId: String(r.umkm_id || ''),
+    namaProduk: r.nama_produk || '',
+    deskripsi: r.deskripsi || '',
+    harga: Number(r.harga) || 0,
+    fotoUrl: r.foto_url || null,
+    tersedia: r.tersedia !== false,
+    urutan: Number(r.urutan) || 0,
+    varian: varianRaw.map(fromVarianRow).sort((a, b) => a.urutan - b.urutan)
+  };
+};
+
+const fromTokoRow = (r: CloudRow, currentUid?: string | null): UmkmToko => {
+  const produkRaw = Array.isArray(r.umkm_produk_rt004) ? r.umkm_produk_rt004 : [];
+  const ownerUid = String(r.owner_uid || '');
+  return {
+    id: String(r.id || ''),
+    ownerUid,
+    namaUsaha: r.nama_usaha || '',
+    kategori: r.kategori || 'Lainnya',
+    deskripsi: r.deskripsi || '',
+    fotoUrl: r.foto_url || null,
+    kontakWa: r.kontak_wa || '',
+    alamat: r.alamat || '',
+    status: (['PENDING', 'VERIFIED', 'DITOLAK'].includes(r.status) ? r.status : 'PENDING') as StatusUmkm,
+    catatanAdmin: r.catatan_admin || null,
+    reviewedAt: r.reviewed_at || null,
+    createdAt: r.created_at || '',
+    produk: produkRaw.map(fromProdukRow).sort((a, b) => a.urutan - b.urutan),
+    milikSaya: currentUid ? ownerUid === currentUid : false
+  };
+};
 
 const toKKRow = (k: KartuKeluarga): CloudRow => ({
   id: k.id,
@@ -388,12 +549,25 @@ class SupabaseService {
     const config = storageService.getConfig();
     const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
     const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
-    const rawUrl = config.supabaseUrl || envUrl;
-    const parsed = parseSupabaseInput(rawUrl || '');
 
+    // Utamakan konfigurasi yang disimpan pengurus di tab Integrasi, TAPI hanya bila
+    // URL-nya benar-benar terparse jadi project Supabase (atau setidaknya sebuah URL
+    // https). Kalau nilai simpanan kosong/whitespace/rusak, jatuh ke environment
+    // variable — supaya sisa config lama yang tak valid tidak menutupi
+    // VITE_SUPABASE_URL yang sudah benar dan melumpuhkan seluruh koneksi.
+    const parsedConfig = parseSupabaseInput(config.supabaseUrl || '');
+    const configUsable =
+      !!parsedConfig.projectRef ||
+      (/^https:\/\/.+/i.test(parsedConfig.projectUrl || '') && !!config.supabaseAnonKey);
+    const parsed = configUsable ? parsedConfig : parseSupabaseInput(envUrl);
+
+    // URL dan kunci WAJIB berasal dari sumber yang sama. Kalau URL simpanan
+    // ditolak lalu kita pakai env, memakai kunci simpanan yang tertinggal akan
+    // memasangkan project env dengan kunci project lain — hasilnya token ditolak
+    // dengan pesan yang menyesatkan.
     return {
       url: parsed.projectUrl || '',
-      anonKey: config.supabaseAnonKey || envKey,
+      anonKey: configUsable ? config.supabaseAnonKey || envKey : envKey,
       projectRef: parsed.projectRef
     };
   }
@@ -558,6 +732,108 @@ class SupabaseService {
     }
   }
 
+  // ===================================================================
+  // Pengumuman — sisi PENGURUS. Tabel diakses langsung; policy RLS
+  // (baca: pengurus aktif, tulis/hapus: admin RT) yang menyaring.
+  // Warga tetap hanya lewat RPC pengumuman_publik().
+  // ===================================================================
+
+  /** Semua pengumuman termasuk draf, terbaru di atas. */
+  public async fetchPengumuman(): Promise<{ data: Pengumuman[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('pengumuman_rt004')
+        .select('*')
+        .order('tanggal_mulai', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      if (error) return { data: [], error: `Gagal memuat pengumuman: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromPengumumanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan pengumuman (tambah bila `input.id` kosong, ubah bila terisi).
+   * `dibuat_oleh` diisi dari sesi saat menambah agar jejak penulisnya ada.
+   */
+  public async simpanPengumuman(
+    input: PengumumanInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const payload: Record<string, unknown> = {
+        judul: input.judul.trim(),
+        isi: input.isi.trim(),
+        kategori: input.kategori,
+        dipublikasikan: input.dipublikasikan,
+        tanggal_mulai: input.tanggalMulai,
+        tanggal_selesai: input.tanggalSelesai || null,
+        updated_at: new Date().toISOString()
+      };
+
+      if (input.id) {
+        const { error } = await client.from('pengumuman_rt004').update(payload).eq('id', input.id);
+        if (error) return { success: false, error: `Gagal menyimpan pengumuman: ${error.message}` };
+        return { success: true, id: input.id };
+      }
+
+      const { data: sesi } = await client.auth.getUser();
+      payload.dibuat_oleh = sesi?.user?.id ?? null;
+
+      const { data, error } = await client
+        .from('pengumuman_rt004')
+        .insert(payload)
+        .select('id')
+        .single();
+      if (error) return { success: false, error: `Gagal menyimpan pengumuman: ${error.message}` };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Hapus satu pengumuman. Hanya admin RT yang lolos policy RLS. */
+  public async hapusPengumuman(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { error } = await client.from('pengumuman_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: `Gagal menghapus pengumuman: ${error.message}` };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Siarkan satu pengumuman sebagai notifikasi ke semua HP terdaftar.
+   *
+   * Hanya `id` yang dikirim — judul & isi dibaca ULANG di server oleh Edge
+   * Function memakai service role, jadi klien tidak bisa menyuntikkan teks
+   * notifikasi sembarangan. Fungsinya juga menolak pemanggil yang bukan
+   * pengurus aktif dan pengumuman yang belum dipublikasikan.
+   */
+  public async siarkanPengumuman(
+    id: string
+  ): Promise<{ success: boolean; terkirim?: number; total?: number; error?: string }> {
+    const res = await this.invokeFunction<{ sent?: number; total?: number }>(
+      'kirim-notif-pengumuman',
+      { pengumuman_id: id }
+    );
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, terkirim: res.data?.sent ?? 0, total: res.data?.total ?? 0 };
+  }
+
   /** Kirim laporan warga. Server membatasi 3 laporan per nomor per jam. */
   public async kirimPengaduan(
     input: PengaduanInput
@@ -579,6 +855,134 @@ class SupabaseService {
       return { success: true, tiket: typeof data === 'string' ? data : String(data || '') };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Laporan tidak dapat dikirim.' };
+    }
+  }
+
+  // ===================================================================
+  // Pengaduan — sisi PENGURUS (baca semua laporan + beri tanggapan).
+  // Akses tabel langsung; yang menyaring adalah policy RLS "Pengurus aktif
+  // boleh baca/tanggapi pengaduan" (scripts/setup-sapa-warga.sql), bukan
+  // kode ini. Warga sama sekali tidak punya SELECT ke tabel ini — jalurnya
+  // hanya RPC pengaduan_saya().
+  // ===================================================================
+
+  /**
+   * Seluruh pengaduan yang masuk, terbaru di atas. Hasil kosong (bukan error)
+   * bila pemanggilnya bukan pengurus aktif — RLS yang memutuskan.
+   */
+  public async fetchPengaduan(): Promise<{ data: PengaduanAdmin[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('pengaduan_rt004')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (error) return { data: [], error: `Gagal memuat pengaduan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromPengaduanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Ubah status dan/atau tulis tanggapan pengurus untuk satu pengaduan.
+   * Hanya dua kolom itu yang dikirim — isi laporan & identitas pelapor tidak
+   * pernah ditimpa dari sisi klien.
+   */
+  public async tanggapiPengaduan(
+    id: string,
+    status: string,
+    tanggapan: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const bersih = tanggapan.trim();
+      const { error } = await client
+        .from('pengaduan_rt004')
+        .update({
+          status,
+          tanggapan: bersih ? bersih : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) return { success: false, error: `Gagal menyimpan tanggapan: ${error.message}` };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  // ===================================================================
+  // Riwayat pribadi warga — RPC SECURITY DEFINER yang sudah di-scope ke
+  // pemanggil (tabel surat & pengaduan tetap tertutup untuk warga).
+  // Butuh scripts/fitur-riwayat-warga.sql.
+  // ===================================================================
+
+  /**
+   * Riwayat pengajuan surat MILIK warga yang sedang login. Server mencocokkan
+   * lewat NIK sesi; hasil kosong bila pemanggil bukan warga aktif.
+   */
+  public async fetchPengajuanSaya(): Promise<{ data: RiwayatSurat[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client.rpc('pengajuan_saya');
+      if (error) return { data: [], error: `Gagal memuat riwayat surat: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return {
+        data: data.map((row: any) => ({
+          nomorSurat: String(row.nomor_surat || ''),
+          jenisSurat: String(row.jenis_surat || ''),
+          judulSurat: String(row.judul_surat || ''),
+          keperluan: String(row.keperluan || ''),
+          status: String(row.status || 'PENDING'),
+          tanggalPengajuan: row.tanggal_pengajuan || null,
+          tanggalDisetujui: row.tanggal_disetujui || null,
+          alasanPenolakan: row.alasan_penolakan || null
+        }))
+      };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Riwayat pengaduan MILIK warga yang sedang login. Hanya laporan yang
+   * terstempel `warga_id` yang ikut — laporan sebelum fitur ini tidak punya
+   * pemilik sehingga memang tidak muncul.
+   */
+  public async fetchPengaduanSaya(): Promise<{ data: RiwayatPengaduan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client.rpc('pengaduan_saya');
+      if (error) return { data: [], error: `Gagal memuat riwayat pengaduan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return {
+        data: data.map((row: any) => ({
+          nomorTiket: String(row.nomor_tiket || ''),
+          kategori: String(row.kategori || 'LAINNYA'),
+          alamatKejadian: String(row.alamat_kejadian || ''),
+          isiLaporan: String(row.isi_laporan || ''),
+          status: String(row.status || 'BARU'),
+          tanggapan: row.tanggapan || null,
+          createdAt: String(row.created_at || '')
+        }))
+      };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
     }
   }
 
@@ -705,6 +1109,99 @@ class SupabaseService {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error?.message || 'Pengajuan gagal ditolak.' };
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Akun warga (Portal Warga Terpadu) — Edge Functions + RPC login.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Panggil Edge Function dan seragamkan penanganan error.
+   * functions.invoke mengembalikan FunctionsHttpError pada respons non-2xx;
+   * body JSON ({ error }) diambil dari error.context untuk pesan yang jelas.
+   */
+  private async invokeFunction<T = any>(
+    name: string,
+    body: unknown
+  ): Promise<{ data?: T; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { error: 'Layanan online belum dikonfigurasi.' };
+    try {
+      const { data, error } = await client.functions.invoke(name, { body });
+      if (error) {
+        let msg = error.message || 'Permintaan ke server gagal.';
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const payload = await ctx.json();
+            if (payload?.error) msg = payload.error;
+          } catch {
+            /* body bukan JSON */
+          }
+        }
+        return { error: msg };
+      }
+      if (data && typeof data === 'object' && 'success' in data && !(data as any).success) {
+        return { error: (data as any).error || 'Permintaan gagal diproses.' };
+      }
+      return { data: data as T };
+    } catch (e: any) {
+      return { error: e?.message || 'Tidak dapat menghubungi server.' };
+    }
+  }
+
+  /**
+   * Warga mendaftar akun (NIK + PIN 6 angka + data diri). Diproses Edge
+   * Function service-role: membuat auth user + baris PENDING (akun & pengajuan).
+   */
+  public async daftarAkunWarga(
+    input: DaftarAkunWargaInput
+  ): Promise<{ success: boolean; referensi?: string; error?: string }> {
+    const body = {
+      nik: input.nik,
+      pin: input.pin,
+      nomorKK: input.nomorKK,
+      nama: input.nama,
+      jenisKelamin: input.jenisKelamin,
+      tempatLahir: input.tempatLahir,
+      tanggalLahir: input.tanggalLahir || null,
+      agama: input.agama,
+      pekerjaan: input.pekerjaan,
+      statusPerkawinan: input.statusPerkawinan,
+      statusHubunganKK: input.statusHubunganKK,
+      golonganDarah: input.golonganDarah,
+      nomorHp: input.nomorHp,
+      statusTinggal: input.statusTinggal,
+      isYatim: Boolean(input.isYatim),
+      isDisabilitas: Boolean(input.isDisabilitas),
+      statusBansos: input.statusBansos,
+      keteranganBansos: input.keteranganBansos || '',
+      catatan: input.catatan || ''
+    };
+    const res = await this.invokeFunction<{ referensi?: string }>('daftar-akun-warga', body);
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, referensi: res.data?.referensi };
+  }
+
+  /** Pengurus mereset PIN warga (Edge Function pengurus-only). */
+  public async resetPinWarga(
+    nik: string,
+    newPin: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    const res = await this.invokeFunction<{ message?: string }>('reset-pin-warga', { nik, newPin });
+    if (res.error) return { success: false, error: res.error };
+    return { success: true, message: res.data?.message };
+  }
+
+  /** Catat waktu login warga (reset penghitung gagal login). Non-kritis. */
+  public async catatLoginWarga(): Promise<void> {
+    const client = this.getClient();
+    if (!client) return;
+    try {
+      await client.rpc('catat_login_warga');
+    } catch {
+      /* pencatatan login gagal tidak menghalangi akses */
     }
   }
 
@@ -1924,6 +2421,36 @@ ON CONFLICT (id) DO NOTHING;
     return `EWS-${tanggal}-${acak.toUpperCase()}`;
   }
 
+  /** Ambil satu laporan EWS by ID — dipakai popup detail saat notifikasi diklik. */
+  public async fetchLaporanEWSById(id: string): Promise<{ data: LaporanEWS | null; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: null, error: 'Aplikasi belum tersambung ke Supabase.' };
+    try {
+      const { data, error } = await client
+        .from('ews_laporan_rt004')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) return { data: null, error: error.message };
+      if (!data) return { data: null, error: 'Laporan tidak ditemukan.' };
+      return {
+        data: {
+          id: String(data.id || ''),
+          jenis_kejadian: data.jenis_kejadian || 'LAINNYA',
+          deskripsi: data.deskripsi || '',
+          nama_pelapor: data.nama_pelapor || '',
+          alamat: data.alamat || '',
+          foto_url: data.foto_url || null,
+          status: (data.status || 'BARU') as StatusEWS,
+          created_at: data.created_at || '',
+          updated_at: data.updated_at || '',
+        } as LaporanEWS,
+      };
+    } catch (err: any) {
+      return { data: null, error: err?.message || 'Gagal memuat detail laporan.' };
+    }
+  }
+
   /**
    * Kirim laporan darurat dari warga.
    * Bisa dipanggil tanpa login (anon) — RLS mengizinkan INSERT dari anon.
@@ -2221,6 +2748,899 @@ ON CONFLICT (id) DO NOTHING;
     return () => { void client.removeChannel(channel); };
   }
 
+  // =====================================================================
+  // KEGIATAN RT (Portal Warga Terpadu) — pengurus kelola, warga baca
+  // =====================================================================
+
+  /**
+   * Ambil daftar kegiatan RT. RLS otomatis memfilter: warga hanya menerima
+   * baris `dipublikasikan = true`, pengurus aktif menerima semua. Dipakai
+   * baik oleh panel admin maupun tab Kegiatan dashboard warga.
+   */
+  public async fetchKegiatan(): Promise<{ data: Kegiatan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('kegiatan_rt004')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat kegiatan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromKegiatanRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan kegiatan (tambah bila `input.id` kosong, ubah bila terisi).
+   * Bila ada `fotoFile`, unggah dulu ke bucket `kegiatan-foto` lalu simpan
+   * URL publiknya. Hanya pengurus aktif yang lolos policy RLS.
+   */
+  public async simpanKegiatan(
+    input: KegiatanInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      let fotoUrl: string | null = input.fotoUrl ?? null;
+
+      if (input.fotoFile) {
+        const ext = input.fotoFile.name.split('.').pop() || 'jpg';
+        const fileName = `keg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { data: uploadData, error: uploadError } = await client.storage
+          .from('kegiatan-foto')
+          .upload(fileName, input.fotoFile, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          return { success: false, error: `Gagal mengunggah foto: ${uploadError.message}` };
+        }
+        if (uploadData) {
+          const { data: urlData } = client.storage.from('kegiatan-foto').getPublicUrl(uploadData.path);
+          fotoUrl = urlData?.publicUrl || fotoUrl;
+        }
+      }
+
+      const payload = {
+        judul: input.judul.trim(),
+        deskripsi: (input.deskripsi || '').trim(),
+        tanggal: input.tanggal,
+        waktu: (input.waktu || '').trim(),
+        lokasi: (input.lokasi || '').trim(),
+        foto_url: fotoUrl,
+        dipublikasikan: input.dipublikasikan
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('kegiatan_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('kegiatan_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Kegiatan tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu kegiatan — hanya pengurus aktif (policy RLS). */
+  public async hapusKegiatan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      // Ambil foto_url dulu sebelum menghapus baris
+      const { data: existing } = await client
+        .from('kegiatan_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { error } = await client.from('kegiatan_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+
+      // Hapus foto dari Storage jika ada
+      if (existing?.foto_url) {
+        const path = existing.foto_url.split('/kegiatan-foto/').pop();
+        if (path) {
+          await client.storage.from('kegiatan-foto').remove([path]).catch(() => {});
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel kegiatan — dipakai panel admin agar daftar
+   * ikut ter-refresh saat ada perubahan. onChange dipanggil untuk setiap
+   * INSERT/UPDATE/DELETE (pemanggil cukup re-fetch). Mengembalikan unsubscribe.
+   */
+  public subscribeKegiatanRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('kegiatan-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'kegiatan_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // =====================================================================
+  // KEUANGAN RT (Portal Warga Terpadu) — pengurus keuangan kelola, warga baca
+  // =====================================================================
+
+  /**
+   * Ambil seluruh transaksi kas RT (urut tanggal terbaru). RLS mengizinkan
+   * semua pengguna login membaca (transparansi); hanya pengurus keuangan yang
+   * bisa menulis. Dipakai panel admin maupun tab Keuangan dashboard warga.
+   */
+  public async fetchKeuangan(): Promise<{ data: TransaksiKeuangan[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) {
+      return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+    }
+
+    try {
+      const { data, error } = await client
+        .from('keuangan_rt004')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data keuangan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromKeuanganRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan transaksi kas (tambah bila `input.id` kosong, ubah bila terisi).
+   * Hanya pengurus keuangan yang lolos policy RLS (is_pengurus_keuangan).
+   * Kolom `bulan_kas` di-set otomatis oleh trigger dari `tanggal`.
+   */
+  public async simpanKeuangan(
+    input: TransaksiKeuanganInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        tanggal: input.tanggal,
+        jenis: input.jenis === 'KELUAR' ? 'KELUAR' : 'MASUK',
+        kategori: (input.kategori || 'Lainnya').trim() || 'Lainnya',
+        jumlah: Math.max(0, Math.round(Number(input.jumlah) || 0)),
+        keterangan: (input.keterangan || '').trim()
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('keuangan_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('keuangan_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Transaksi tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu transaksi kas — hanya pengurus keuangan (policy RLS). */
+  public async hapusKeuangan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client.from('keuangan_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel keuangan — panel admin & tab warga ikut
+   * ter-refresh saat ada perubahan. Mengembalikan fungsi unsubscribe.
+   */
+  public subscribeKeuanganRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('keuangan-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'keuangan_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // ===================================================================
+  // IURAN / TAGIHAN WARGA — tagihan per-warga + verifikasi bukti transfer
+  //   Otorisasi ditegakkan RLS: pengurus keuangan menulis/verifikasi,
+  //   warga hanya melihat & melampirkan bukti pada tagihan miliknya.
+  // ===================================================================
+
+  /**
+   * Ambil SEMUA tagihan (sisi pengurus). RLS mengizinkan pengurus keuangan
+   * membaca seluruh baris; warga biasa akan otomatis tersaring ke miliknya.
+   * Diurut periode terbaru lalu waktu buat.
+   */
+  public async fetchIuranAdmin(): Promise<{ data: TagihanIuran[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .select('*')
+        .order('periode', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data tagihan: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromIuranRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Ambil tagihan MILIK warga yang sedang login. Tak perlu filter manual —
+   * policy RLS (warga_id = my_warga_id()) sudah menyaring otomatis.
+   */
+  public async fetchIuranSaya(): Promise<{ data: TagihanIuran[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .select('*')
+        .order('periode', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat tagihan Anda: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map(fromIuranRow) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan satu tagihan (tambah bila `input.id` kosong, ubah bila terisi).
+   * Hanya pengurus keuangan yang lolos policy RLS.
+   */
+  public async simpanTagihan(
+    input: TagihanIuranInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        warga_id: input.wargaId,
+        judul: (input.judul || 'Iuran Kas RT').trim() || 'Iuran Kas RT',
+        periode: (input.periode || '').trim(),
+        jumlah: Math.max(0, Math.round(Number(input.jumlah) || 0)),
+        jatuh_tempo: input.jatuhTempo || null
+      };
+
+      if (input.id) {
+        const { error } = await client
+          .from('iuran_rt004')
+          .update(payload)
+          .eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .insert({ ...payload, dibuat_oleh: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Tagihan tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus satu tagihan — hanya pengurus keuangan (policy RLS). */
+  public async hapusTagihan(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      // Ambil bukti_path dulu sebelum menghapus baris
+      const { data: existing } = await client
+        .from('iuran_rt004')
+        .select('bukti_path')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { error } = await client.from('iuran_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+
+      // Hapus file bukti dari Storage jika ada
+      if (existing?.bukti_path) {
+        await client.storage.from('bukti-bayar').remove([existing.bukti_path]).catch(() => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Generate tagihan massal untuk banyak warga sekaligus (satu periode & judul).
+   * Idempoten: `UNIQUE(warga_id, periode, judul)` + `ignoreDuplicates` menjaga
+   * klik berulang tidak menggandakan tagihan. Kembalikan perkiraan jumlah dibuat.
+   */
+  public async generateIuranMassal(params: {
+    periode: string;
+    judul: string;
+    jumlah: number;
+    jatuhTempo?: string | null;
+    wargaIds: string[];
+  }): Promise<{ success: boolean; dibuat?: number; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    const ids = Array.from(new Set((params.wargaIds || []).filter(Boolean)));
+    if (ids.length === 0) return { success: false, error: 'Tidak ada warga terpilih.' };
+
+    const periode = (params.periode || '').trim();
+    if (!periode) return { success: false, error: 'Periode wajib diisi.' };
+
+    try {
+      const uid = authState.getUserId();
+      const judul = (params.judul || 'Iuran Kas RT').trim() || 'Iuran Kas RT';
+      const jumlah = Math.max(0, Math.round(Number(params.jumlah) || 0));
+      const rows = ids.map((wargaId) => ({
+        warga_id: wargaId,
+        judul,
+        periode,
+        jumlah,
+        jatuh_tempo: params.jatuhTempo || null,
+        dibuat_oleh: uid
+      }));
+
+      const { data, error } = await client
+        .from('iuran_rt004')
+        .upsert(rows, { onConflict: 'warga_id,periode,judul', ignoreDuplicates: true })
+        .select('id');
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, dibuat: Array.isArray(data) ? data.length : 0 };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Gagal membuat tagihan massal.' };
+    }
+  }
+
+  /**
+   * Unggah bukti transfer (warga) → simpan ke bucket privat `bukti-bayar` lalu
+   * pindahkan status ke MENUNGGU_VERIFIKASI. Trigger DB men-stamp `dibayar_at`.
+   */
+  public async unggahBuktiIuran(
+    id: string,
+    file: File
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    if (!file) return { success: false, error: 'Berkas bukti belum dipilih.' };
+    if (file.size > 2 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran bukti maksimal 2 MB.' };
+    }
+
+    try {
+      // Hapus file bukti lama jika sudah ada (warga upload ulang)
+      const { data: existing } = await client
+        .from('iuran_rt004')
+        .select('bukti_path')
+        .eq('id', id)
+        .maybeSingle();
+      if (existing?.bukti_path) {
+        await client.storage.from('bukti-bayar').remove([existing.bukti_path]).catch(() => {});
+      }
+
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const objectPath = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await client.storage
+        .from('bukti-bayar')
+        .upload(objectPath, file, { cacheControl: '3600', upsert: false });
+      if (upErr) return { success: false, error: `Gagal mengunggah bukti: ${upErr.message}` };
+
+      const { error } = await client
+        .from('iuran_rt004')
+        .update({ bukti_path: objectPath, status: 'MENUNGGU_VERIFIKASI' })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Bukti tidak dapat dikirim.' };
+    }
+  }
+
+  /**
+   * Keputusan verifikasi pengurus: LUNAS (setujui) atau DITOLAK (+alasan).
+   * Trigger DB men-stamp `verified_by`/`verified_at`.
+   */
+  public async verifikasiIuran(
+    id: string,
+    keputusan: 'LUNAS' | 'DITOLAK',
+    catatan?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload: Record<string, unknown> = { status: keputusan };
+      if (keputusan === 'DITOLAK') payload.catatan = (catatan || '').trim();
+      const { error } = await client
+        .from('iuran_rt004')
+        .update(payload)
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Verifikasi gagal disimpan.' };
+    }
+  }
+
+  /**
+   * Buat signed URL sementara (1 jam) untuk melihat bukti di bucket privat.
+   * Kembalikan null bila path kosong / gagal.
+   */
+  public async buktiSignedUrl(path?: string | null): Promise<string | null> {
+    const client = this.getClient();
+    if (!client || !path) return null;
+    try {
+      const { data, error } = await client.storage
+        .from('bukti-bayar')
+        .createSignedUrl(path, 3600);
+      if (error) return null;
+      return data?.signedUrl || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Ambil setelan iuran (baris tunggal id=1) — info pembayaran & default. */
+  public async fetchPengaturanIuran(): Promise<{ data: PengaturanIuran | null; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: null, error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const { data, error } = await client
+        .from('pengaturan_iuran_rt004')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) return { data: null, error: `Gagal memuat setelan iuran: ${error.message}` };
+      return { data: data ? fromPengaturanIuranRow(data) : null };
+    } catch (err: any) {
+      return { data: null, error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Simpan setelan iuran (upsert baris tunggal id=1) — pengurus keuangan. */
+  public async simpanPengaturanIuran(
+    input: PengaturanIuran
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const payload = {
+        id: 1,
+        info_pembayaran: (input.infoPembayaran || '').trim(),
+        nominal_default: Math.max(0, Math.round(Number(input.nominalDefault) || 0)),
+        judul_default: (input.judulDefault || 'Iuran Kas RT').trim() || 'Iuran Kas RT',
+        metode_pembayaran: Array.isArray(input.metodePembayaran) ? input.metodePembayaran : [],
+        reminder_aktif: Boolean(input.reminderAktif),
+        hari_reminder: Math.min(28, Math.max(1, Number(input.hariReminder) || 1)),
+      };
+      const { error } = await client
+        .from('pengaturan_iuran_rt004')
+        .upsert(payload, { onConflict: 'id' });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Setelan tidak dapat disimpan.' };
+    }
+  }
+
+  /**
+   * Subscribe realtime tabel iuran — panel admin & tab warga ikut ter-refresh
+   * saat ada perubahan tagihan. Mengembalikan fungsi unsubscribe.
+   */
+  public subscribeIuranRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('iuran-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'iuran_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  // ===================================================================
+  // UMKM WARGA — mini-marketplace (etalase bersama + kelola milik sendiri)
+  // ===================================================================
+
+  private readonly UMKM_SELECT = '*, umkm_produk_rt004(*, umkm_varian_rt004(*))';
+
+  /**
+   * Etalase bersama: semua lapak berstatus VERIFIED beserta produk & varian.
+   * Terlihat oleh semua warga login (RLS). `milikSaya` ditandai untuk lapak
+   * milik pengguna aktif.
+   */
+  public async fetchUmkmEtalase(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const uid = authState.getUserId();
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .eq('status', 'VERIFIED')
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat etalase UMKM: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Lapak milik pengguna aktif (semua status) untuk panel "Toko Saya". */
+  public async fetchUmkmSaya(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    const uid = authState.getUserId();
+    if (!uid) return { data: [], error: 'Sesi login tidak ditemukan.' };
+
+    try {
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .eq('owner_uid', uid)
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat lapak Anda: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /** Semua lapak (semua status) untuk panel admin — RLS membuka akses admin. */
+  public async fetchUmkmAdmin(): Promise<{ data: UmkmToko[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Aplikasi belum tersambung ke Supabase.' };
+
+    try {
+      const uid = authState.getUserId();
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .select(this.UMKM_SELECT)
+        .order('created_at', { ascending: false });
+
+      if (error) return { data: [], error: `Gagal memuat data UMKM: ${error.message}` };
+      if (!Array.isArray(data)) return { data: [] };
+      return { data: data.map((r) => fromTokoRow(r, uid)) };
+    } catch (err: any) {
+      return { data: [], error: `Tidak dapat menghubungi server: ${err?.message || 'periksa koneksi.'}` };
+    }
+  }
+
+  /**
+   * Simpan lapak (tambah bila `input.id` kosong, ubah bila terisi). Foto
+   * diunggah ke bucket `umkm-foto`. Status verifikasi TIDAK dikirim dari sini
+   * — dikunci trigger `umkm_guard` (lapak baru non-admin selalu PENDING).
+   */
+  public async simpanToko(
+    input: UmkmTokoInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const fotoUrl = await this.uploadFotoUmkm(client, input.fotoFile, input.fotoUrl ?? null, 'toko');
+      if (fotoUrl.error) return { success: false, error: fotoUrl.error };
+
+      const payload = {
+        nama_usaha: input.namaUsaha.trim(),
+        kategori: input.kategori || 'Lainnya',
+        deskripsi: (input.deskripsi || '').trim(),
+        kontak_wa: (input.kontakWa || '').trim(),
+        alamat: (input.alamat || '').trim(),
+        foto_url: fotoUrl.url
+      };
+
+      if (input.id) {
+        const { error } = await client.from('umkm_rt004').update(payload).eq('id', input.id);
+        if (error) return { success: false, error: error.message };
+        return { success: true, id: input.id };
+      }
+
+      const { data, error } = await client
+        .from('umkm_rt004')
+        .insert({ ...payload, owner_uid: authState.getUserId() })
+        .select('id')
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Lapak tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus lapak (produk & varian ikut terhapus via ON DELETE CASCADE). */
+  public async hapusToko(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      // Kumpulkan semua foto produk milik lapak ini sebelum menghapus
+      const { data: produkList } = await client
+        .from('umkm_produk_rt004')
+        .select('foto_url')
+        .eq('umkm_id', id);
+
+      // Ambil foto lapak sendiri
+      const { data: toko } = await client
+        .from('umkm_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { error } = await client.from('umkm_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+
+      // Hapus foto toko dan semua foto produk dari Storage
+      const paths: string[] = [];
+      const extractPath = (url: string | null) => {
+        if (!url) return null;
+        const part = url.split('/umkm-foto/').pop();
+        return part ? part.split('?')[0] : null;
+      };
+
+      if (toko?.foto_url) {
+        const p = extractPath(toko.foto_url);
+        if (p) paths.push(p);
+      }
+      (produkList ?? []).forEach((pr: { foto_url: string | null }) => {
+        const p = extractPath(pr.foto_url);
+        if (p) paths.push(p);
+      });
+
+      if (paths.length > 0) {
+        await client.storage.from('umkm-foto').remove(paths).catch(() => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Verifikasi / tolak lapak (admin). Hanya admin yang lolos trigger
+   * `umkm_guard` untuk mengubah kolom status.
+   */
+  public async verifikasiToko(
+    id: string,
+    status: 'VERIFIED' | 'DITOLAK',
+    catatan?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const { error } = await client
+        .from('umkm_rt004')
+        .update({
+          status,
+          catatan_admin: catatan?.trim() || null,
+          reviewed_by: authState.getUserId(),
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /**
+   * Simpan produk beserta variannya sekaligus. Varian di-*replace* penuh
+   * (hapus semua varian lama produk → sisipkan daftar terbaru) agar sinkron
+   * dengan form tanpa perlu diffing.
+   */
+  public async simpanProduk(
+    input: UmkmProdukInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      const fotoUrl = await this.uploadFotoUmkm(client, input.fotoFile, input.fotoUrl ?? null, 'produk');
+      if (fotoUrl.error) return { success: false, error: fotoUrl.error };
+
+      const payload = {
+        umkm_id: input.umkmId,
+        nama_produk: input.namaProduk.trim(),
+        deskripsi: (input.deskripsi || '').trim(),
+        harga: Number(input.harga) || 0,
+        foto_url: fotoUrl.url,
+        tersedia: input.tersedia,
+        urutan: input.urutan ?? 0
+      };
+
+      let produkId = input.id;
+      if (produkId) {
+        const { error } = await client.from('umkm_produk_rt004').update(payload).eq('id', produkId);
+        if (error) return { success: false, error: error.message };
+      } else {
+        const { data, error } = await client
+          .from('umkm_produk_rt004')
+          .insert(payload)
+          .select('id')
+          .single();
+        if (error) return { success: false, error: error.message };
+        produkId = data?.id ? String(data.id) : undefined;
+      }
+      if (!produkId) return { success: false, error: 'ID produk tidak diperoleh.' };
+
+      // Replace penuh daftar varian.
+      const { error: delErr } = await client.from('umkm_varian_rt004').delete().eq('produk_id', produkId);
+      if (delErr) return { success: false, error: `Gagal memperbarui varian: ${delErr.message}` };
+
+      const varianBersih = (input.varian || []).filter((v) => v.namaVarian.trim());
+      if (varianBersih.length > 0) {
+        const rows = varianBersih.map((v, i) => ({
+          produk_id: produkId,
+          nama_varian: v.namaVarian.trim(),
+          harga: Number(v.harga) || 0,
+          tersedia: v.tersedia,
+          urutan: i
+        }));
+        const { error: insErr } = await client.from('umkm_varian_rt004').insert(rows);
+        if (insErr) return { success: false, error: `Gagal menyimpan varian: ${insErr.message}` };
+      }
+      return { success: true, id: produkId };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Produk tidak dapat disimpan.' };
+    }
+  }
+
+  /** Hapus produk (varian ikut terhapus via ON DELETE CASCADE). */
+  public async hapusProduk(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    try {
+      // Ambil foto_url sebelum hapus
+      const { data: existing } = await client
+        .from('umkm_produk_rt004')
+        .select('foto_url')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { error } = await client.from('umkm_produk_rt004').delete().eq('id', id);
+      if (error) return { success: false, error: error.message };
+
+      // Hapus foto dari Storage jika ada
+      if (existing?.foto_url) {
+        const path = existing.foto_url.split('/umkm-foto/').pop()?.split('?')[0];
+        if (path) await client.storage.from('umkm-foto').remove([path]).catch(() => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Subscribe realtime lapak UMKM — antrean verifikasi admin auto-refresh. */
+  public subscribeUmkmRealtime(onChange: () => void): () => void {
+    const client = this.getClient();
+    if (!client) return () => {};
+
+    const channel = client
+      .channel('umkm-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'umkm_rt004' },
+        () => onChange()
+      )
+      .subscribe();
+
+    return () => { void client.removeChannel(channel); };
+  }
+
+  /** Unggah satu foto ke bucket `umkm-foto`; kembalikan URL publik atau error. */
+  private async uploadFotoUmkm(
+    client: SupabaseClient,
+    file: File | null | undefined,
+    fallbackUrl: string | null,
+    prefix: 'toko' | 'produk'
+  ): Promise<{ url: string | null; error?: string }> {
+    if (!file) return { url: fallbackUrl };
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { data, error } = await client.storage
+      .from('umkm-foto')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+    if (error) return { url: fallbackUrl, error: `Gagal mengunggah foto: ${error.message}` };
+    if (data) {
+      const { data: urlData } = client.storage.from('umkm-foto').getPublicUrl(data.path);
+      return { url: urlData?.publicUrl || fallbackUrl };
+    }
+    return { url: fallbackUrl };
+  }
+
   public initAutoSyncListener() {
     storageService.onMutation(async (event) => {
       if (!this.isAutoSyncEnabled()) return;
@@ -2257,6 +3677,153 @@ ON CONFLICT (id) DO NOTHING;
       }
     });
   }
+  // ── Pengajuan Perubahan KK ──────────────────────────────────────────────────
+
+  /** Ambil semua pengajuan KK (admin). */
+  public async fetchPengajuanKK(): Promise<{ data: PengajuanKK[]; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { data: [], error: 'Supabase client tidak tersedia.' };
+    try {
+      const { data, error } = await client
+        .from('kk_pengajuan_rt004')
+        .select('*')
+        .order('diajukan_at', { ascending: false });
+      if (error) return { data: [], error: error.message };
+      return {
+        data: (data ?? []).map((r: Record<string, unknown>) => ({
+          id: String(r.id ?? ''),
+          wargaId: String(r.warga_id ?? ''),
+          namaPengaju: String(r.nama_pengaju ?? ''),
+          jenis: (r.jenis ?? 'UBAH_NOMOR_KK') as JenisPengajuanKK,
+          nomorKKBaru: r.nomor_kk_baru ? String(r.nomor_kk_baru) : null,
+          anggotaTargetId: r.anggota_target_id ? String(r.anggota_target_id) : null,
+          namaAnggotaTarget: r.nama_anggota_target ? String(r.nama_anggota_target) : undefined,
+          alasan: String(r.alasan ?? ''),
+          status: (r.status ?? 'PENDING') as StatusPengajuanKK,
+          ditambahkanOlehWargaId: r.ditambahkan_oleh_warga_id ? String(r.ditambahkan_oleh_warga_id) : null,
+          diajukanAt: String(r.diajukan_at ?? ''),
+          direviewAt: r.direview_at ? String(r.direview_at) : null,
+          direviewOleh: r.direview_oleh ? String(r.direview_oleh) : null,
+          catatanAdmin: r.catatan_admin ? String(r.catatan_admin) : null,
+        })) as PengajuanKK[],
+      };
+    } catch (err: any) {
+      return { data: [], error: err?.message };
+    }
+  }
+
+  /** Warga mengajukan perubahan KK. */
+  public async ajukanPerubahanKK(
+    input: PengajuanKKInput
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+
+    const userId = authState.getUserId();
+    if (!userId) return { success: false, error: 'Sesi tidak valid. Silakan login ulang.' };
+
+    // Ambil warga_id dari warga_akun
+    const { data: akun } = await client
+      .from('warga_akun')
+      .select('warga_id, nama')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!akun?.warga_id) return { success: false, error: 'Data warga tidak ditemukan. Hubungi pengurus.' };
+
+    try {
+      const payload = {
+        warga_id: akun.warga_id,
+        nama_pengaju: akun.nama,
+        jenis: input.jenis,
+        nomor_kk_baru: input.nomorKKBaru?.trim() || null,
+        anggota_target_id: input.anggotaTargetId || null,
+        alasan: input.alasan.trim(),
+        status: 'PENDING',
+        ditambahkan_oleh_warga_id: userId,
+        diajukan_at: new Date().toISOString(),
+      };
+      const { data, error } = await client
+        .from('kk_pengajuan_rt004')
+        .insert(payload)
+        .select('id')
+        .single();
+      if (error) return { success: false, error: error.message };
+      return { success: true, id: data?.id ? String(data.id) : undefined };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Admin: setujui pengajuan KK — terapkan perubahan ke tabel terkait. */
+  public async setujuiPengajuanKK(id: string): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    try {
+      // Baca detail pengajuan
+      const { data: p, error: pErr } = await client
+        .from('kk_pengajuan_rt004')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (pErr || !p) return { success: false, error: pErr?.message ?? 'Pengajuan tidak ditemukan.' };
+
+      if (p.jenis === 'UBAH_NOMOR_KK' && p.nomor_kk_baru) {
+        // Update nomor KK di warga_rt004
+        const { error: updErr } = await client
+          .from('warga_rt004')
+          .update({ nomor_kk: p.nomor_kk_baru })
+          .eq('id', p.warga_id);
+        if (updErr) return { success: false, error: `Gagal memperbarui KK: ${updErr.message}` };
+      } else if (p.jenis === 'HAPUS_ANGGOTA' && p.anggota_target_id) {
+        // Hapus anggota dari warga_rt004 (pengurus yang approve = yang mengeksekusi)
+        const { error: hapErr } = await client
+          .from('warga_rt004')
+          .delete()
+          .eq('id', p.anggota_target_id);
+        if (hapErr) return { success: false, error: `Gagal menghapus anggota: ${hapErr.message}` };
+      }
+
+      // Tandai pengajuan sebagai DISETUJUI
+      await client
+        .from('kk_pengajuan_rt004')
+        .update({
+          status: 'DISETUJUI',
+          direview_at: new Date().toISOString(),
+          direview_oleh: authState.getUserId(),
+        })
+        .eq('id', id);
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
+  /** Admin: tolak pengajuan KK. */
+  public async tolakPengajuanKK(
+    id: string,
+    catatan: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const client = this.getClient();
+    if (!client) return { success: false, error: 'Supabase client tidak tersedia.' };
+    try {
+      const { error } = await client
+        .from('kk_pengajuan_rt004')
+        .update({
+          status: 'DITOLAK',
+          catatan_admin: catatan.trim() || null,
+          direview_at: new Date().toISOString(),
+          direview_oleh: authState.getUserId(),
+        })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message };
+    }
+  }
+
 }
 
 export const supabaseService = new SupabaseService();

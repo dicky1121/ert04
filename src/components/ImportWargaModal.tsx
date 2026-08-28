@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  X, 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
+  X,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  RefreshCw,
   Check, 
   Layers, 
   UserCheck, 
@@ -49,7 +50,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
   const [updateExisting, setUpdateExisting] = useState(true);
   const [clearExistingBeforeImport, setClearExistingBeforeImport] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
-  const [filterMode, setFilterMode] = useState<'ALL' | 'TETAP' | 'KONTRAK' | 'LANSIA' | 'BALITA' | 'NO_NIK' | 'EXISTING'>('ALL');
+  const [filterMode, setFilterMode] = useState<'ALL' | 'TETAP' | 'KONTRAK' | 'LANSIA' | 'BALITA' | 'NO_NIK' | 'EXISTING' | 'BERMASALAH'>('ALL');
 
   // Sheet configuration overrides
   const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
@@ -85,13 +86,16 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
 
   if (!isOpen) return null;
 
-  const runAnalysisWithCustomConfig = (rawText: string, defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA', configs: typeof customSheetConfigs) => {
+  // `async` karena pustaka spreadsheet dimuat saat dipakai (dynamic import di
+  // storage.ts). Semua kesalahan sudah ditangkap di dalam, jadi pemanggilnya
+  // aman memakai `void` tanpa perlu ikut jadi async.
+  const runAnalysisWithCustomConfig = async (rawText: string, defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA', configs: typeof customSheetConfigs) => {
     setIsAnalyzing(true);
     setErrorMsg(null);
     try {
-      const result = storageService.analyzeRawTextData(
-        rawText, 
-        defaultRole, 
+      const result = await storageService.analyzeRawTextData(
+        rawText,
+        defaultRole,
         defaultRole === 'KONTRAK' ? 'Data Pengontrak' : defaultRole === 'LANSIA' ? 'Data Lansia RT 004' : 'Data Warga Tetap',
         configs
       );
@@ -129,7 +133,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     }
     setErrorMsg(null);
     setCustomSheetConfigs({});
-    runAnalysisWithCustomConfig(pastedPengontrakText, 'KONTRAK', {});
+    void runAnalysisWithCustomConfig(pastedPengontrakText, 'KONTRAK', {});
   };
 
   const handleAnalyzeWargaTetap = () => {
@@ -139,7 +143,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     }
     setErrorMsg(null);
     setCustomSheetConfigs({});
-    runAnalysisWithCustomConfig(pastedTetapText, 'TETAP', {});
+    void runAnalysisWithCustomConfig(pastedTetapText, 'TETAP', {});
   };
 
   const handleSheetRoleChange = (sheetName: string, newRole: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE') => {
@@ -153,7 +157,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -176,7 +180,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -192,7 +196,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     setCustomSheetConfigs(newConfigs);
     const activeText = activeImportTab === 'PENGONTRAK' ? pastedPengontrakText : pastedTetapText;
     if (activeText) {
-      runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
+      void runAnalysisWithCustomConfig(activeText, activeImportTab === 'PENGONTRAK' ? 'KONTRAK' : 'TETAP', newConfigs);
     }
   };
 
@@ -220,6 +224,22 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
 
   const currentSheetInfo: DetectedSheetInfo | undefined = analysis?.sheetsInfo?.[activeSheetIndex];
 
+  // Baris yang `errorMessages`-nya terisi. Sengaja dihitung dari daftar baris,
+  // bukan dijumlahkan dari penghitung per-jenis di `analysis`: satu baris bisa
+  // kena beberapa masalah sekaligus (mis. NIK 13 digit DAN nomor KK kosong),
+  // jadi menjumlahkan penghitungnya akan melebihkan cacah barisnya.
+  const barisBermasalah = analysis
+    ? analysis.parsedRows.filter(r => r.errorMessages.length > 0)
+    : [];
+
+  const rincianMasalah = analysis
+    ? [
+        analysis.invalidNikCount > 0 && `${analysis.invalidNikCount} NIK tidak 16 digit`,
+        analysis.duplicateInFileCount > 0 && `${analysis.duplicateInFileCount} NIK duplikat dalam berkas`,
+        analysis.invalidKkCount > 0 && `${analysis.invalidKkCount} nomor KK bermasalah`,
+      ].filter(Boolean).join(' · ')
+    : '';
+
   const filteredRows = analysis ? analysis.parsedRows.filter(r => {
     if (filterMode === 'TETAP') return r.sheetOrigin === 'Data Warga Tetap' || (r.statusTinggal === 'TETAP' && !r.isLansia && !r.isBalita);
     if (filterMode === 'KONTRAK') return r.sheetOrigin === 'Data Pengontrak' || r.statusTinggal === 'KONTRAK';
@@ -227,6 +247,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
     if (filterMode === 'BALITA') return r.isBalita;
     if (filterMode === 'NO_NIK') return r.tanpaNikKtp;
     if (filterMode === 'EXISTING') return r.isExistingInDb;
+    if (filterMode === 'BERMASALAH') return r.errorMessages.length > 0;
     return true;
   }) : [];
 
@@ -429,7 +450,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={() => storageService.downloadRT004TemplateExcel()}
+                        onClick={() => void storageService.downloadRT004TemplateExcel()}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
                         <Download className="w-4 h-4" />
@@ -783,6 +804,30 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                 </div>
               </div>
 
+              {/* Ringkasan baris bermasalah — hanya dirender kalau memang ada.
+                  Sengaja strip, bukan kartu ke-8 di grid di atas: grid itu
+                  `sm:grid-cols-7` sehingga kartu tambahan memaksa penataan ulang,
+                  dan ringkasan masalah adalah butir tindakan — bukan sepadan
+                  dengan hitungan demografis di sebelahnya. */}
+              {barisBermasalah.length > 0 && (
+                <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="flex-1 space-y-0.5">
+                    <div className="font-bold">{barisBermasalah.length} baris perlu diperiksa</div>
+                    {rincianMasalah && <div className="text-amber-800">{rincianMasalah}</div>}
+                    <div className="text-amber-700">
+                      Baris ini tetap ikut diimpor — periksa lalu lengkapi datanya setelah impor selesai.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFilterMode('BERMASALAH')}
+                    className="px-3 py-2 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 transition cursor-pointer shrink-0"
+                  >
+                    Lihat baris bermasalah
+                  </button>
+                </div>
+              )}
+
               {/* Informative Note for Non-NIK acceptance & Foreign Key Safety */}
               <div className="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
@@ -882,6 +927,17 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                   >
                     Sudah di DB ({analysis.existingInDbCount})
                   </button>
+                  {/* Selalu dirender, walau nol — sejajar dengan tab lain yang
+                      juga menampilkan (0), dan mencegah tab aktif menghilang
+                      saat berkas berikutnya ternyata bersih. */}
+                  <button
+                    onClick={() => setFilterMode('BERMASALAH')}
+                    className={`px-3 py-2 rounded-full font-semibold transition cursor-pointer inline-flex items-center gap-1 shrink-0 ${
+                      filterMode === 'BERMASALAH' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                    }`}
+                  >
+                    <AlertTriangle className="w-3 h-3" /> Bermasalah ({barisBermasalah.length})
+                  </button>
                 </div>
                 <span className="text-xs text-slate-500 shrink-0">
                   Menampilkan {filteredRows.length} baris
@@ -923,7 +979,19 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           </span>
                         </td>
                         <td className="p-2.5">
-                          {row.tanpaNikKtp ? (
+                          {/* Cabang paling atas: baris yang punya `errorMessages`
+                              tidak boleh lagi dilabeli "✓ Valid". Urutan di
+                              bawahnya dibiarkan apa adanya supaya "NIK Sementara"
+                              tetap menang untuk baris tanpa NIK yang memang
+                              sengaja diterima. */}
+                          {row.errorMessages.length > 0 ? (
+                            <span
+                              className="px-2 py-0.5 bg-amber-50 text-amber-800 font-bold rounded-full text-xs border border-amber-300 inline-flex items-center gap-1"
+                              title={row.errorMessages.join(' · ')}
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Perlu Diperiksa
+                            </span>
+                          ) : row.tanpaNikKtp ? (
                             <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded-full text-xs border border-blue-200 inline-flex items-center gap-1">
                               <Check className="w-3 h-3" /> NIK Sementara
                             </span>
@@ -960,6 +1028,11 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           {row.noKeluarga && (
                             <div className="text-xs text-slate-500 font-normal font-mono">
                               Kel #{row.noKeluarga}
+                            </div>
+                          )}
+                          {row.errorMessages.length > 0 && (
+                            <div className="text-xs text-rose-600 font-normal">
+                              {row.errorMessages.join(' · ')}
                             </div>
                           )}
                         </td>

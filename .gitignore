@@ -36,4 +36,7 @@ service-account*.json
 supabase/.temp/
 supabase/.branches/
 
+# Claude Code — izin & path lokal per-mesin (launch.json tetap di-commit)
+.claude/settings.local.json
+
 

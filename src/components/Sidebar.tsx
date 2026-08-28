@@ -9,9 +9,15 @@ import {
   CloudDownload, 
   Download, 
   Building2,
+  CalendarDays,
+  Store,
+  Wallet,
+  Coins,
   ChevronDown,
   ChevronRight,
   Database,
+  MessageSquareWarning,
+  Megaphone,
   Siren,
   X
 } from 'lucide-react';
@@ -167,6 +173,96 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {ewsBaruCount}
                 </span>
               )}
+            </button>
+          </div>
+
+          {/* Pengaduan Warga */}
+          <div>
+            <button
+              onClick={() => handleNavClick('pengaduan')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'pengaduan'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <MessageSquareWarning className={`w-4 h-4 shrink-0 ${activeTab === 'pengaduan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Pengaduan Warga</span>
+            </button>
+          </div>
+
+          {/* Pengumuman RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('pengumuman')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'pengumuman'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Megaphone className={`w-4 h-4 shrink-0 ${activeTab === 'pengumuman' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Pengumuman RT</span>
+            </button>
+          </div>
+
+          {/* Kegiatan RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('kegiatan')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'kegiatan'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <CalendarDays className={`w-4 h-4 shrink-0 ${activeTab === 'kegiatan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Kegiatan RT</span>
+            </button>
+          </div>
+
+          {/* UMKM Warga */}
+          <div>
+            <button
+              onClick={() => handleNavClick('umkm')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'umkm'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Store className={`w-4 h-4 shrink-0 ${activeTab === 'umkm' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">UMKM Warga</span>
+            </button>
+          </div>
+
+          {/* Keuangan RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('keuangan')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'keuangan'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'keuangan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Keuangan RT</span>
+            </button>
+          </div>
+
+          {/* Iuran RT */}
+          <div>
+            <button
+              onClick={() => handleNavClick('iuran')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
+                activeTab === 'iuran'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'iuran' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <span className="truncate">Iuran RT</span>
             </button>
           </div>
 

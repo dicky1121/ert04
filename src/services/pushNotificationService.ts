@@ -24,6 +24,16 @@ const CHANNEL_ID = 'ews_darurat';
 const CHANNEL_NAME = 'EWS Darurat RT 004';
 const CHANNEL_DESCRIPTION = 'Notifikasi darurat untuk warga RT 004 RW 007 Jatimulya';
 
+/**
+ * Channel terpisah untuk pengumuman rutin. Dipisah dari `ews_darurat` supaya
+ * warga bisa membisukan pengumuman biasa TANPA ikut membisukan notifikasi
+ * darurat — Android mengatur suara & prioritas per channel, bukan per aplikasi.
+ * ID-nya wajib sama dengan `channel_id` di Edge Function kirim-notif-pengumuman.
+ */
+const CHANNEL_PENGUMUMAN_ID = 'pengumuman_rt';
+const CHANNEL_PENGUMUMAN_NAME = 'Pengumuman RT 004';
+const CHANNEL_PENGUMUMAN_DESCRIPTION = 'Pengumuman lingkungan dari pengurus RT 004 RW 007';
+
 /** Token terakhir yang diberikan Firebase di perangkat ini. */
 const KUNCI_TOKEN = 'ert04.fcm.token';
 /** Token yang sudah TERBUKTI tersimpan di Supabase. */
@@ -69,6 +79,17 @@ function getarkanDarurat(): void {
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate([300, 150, 300, 150, 600]);
+    }
+  } catch {
+    /* perangkat tidak mendukung getar */
+  }
+}
+
+/** Getar tunggal singkat untuk notifikasi non-darurat (pengumuman). */
+function getarkanSingkat(): void {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(200);
     }
   } catch {
     /* perangkat tidak mendukung getar */
@@ -173,7 +194,8 @@ export const pushNotificationService = {
   },
 
   /**
-   * Setup Android Notification Channel dengan prioritas HIGH untuk EWS.
+   * Setup Android Notification Channel dengan prioritas HIGH untuk EWS,
+   * plus channel prioritas normal untuk pengumuman rutin.
    * Channel ini akan muncul di Android Settings > Notifications > App > Channels.
    *
    * ID channel harus sama dengan `channel_id` yang dikirim Edge Function
@@ -197,6 +219,24 @@ export const pushNotificationService = {
       console.log(`[PushNotif] Channel "${CHANNEL_ID}" siap`);
     } catch (error) {
       console.error('[PushNotif] Gagal membuat notification channel:', error);
+    }
+
+    // Channel pengumuman dibuat terpisah: kegagalannya tidak boleh menggagalkan
+    // channel darurat yang sudah terlanjur dibuat di atas.
+    try {
+      await PushNotifications.createChannel({
+        id: CHANNEL_PENGUMUMAN_ID,
+        name: CHANNEL_PENGUMUMAN_NAME,
+        description: CHANNEL_PENGUMUMAN_DESCRIPTION,
+        importance: 4, // IMPORTANCE_DEFAULT — berbunyi, tapi tanpa banner memaksa
+        sound: 'default',
+        vibration: true,
+        visibility: 1,
+      });
+
+      console.log(`[PushNotif] Channel "${CHANNEL_PENGUMUMAN_ID}" siap`);
+    } catch (error) {
+      console.error('[PushNotif] Gagal membuat channel pengumuman:', error);
     }
   },
 
@@ -237,14 +277,23 @@ export const pushNotificationService = {
 
       const title = notification?.title || notification?.data?.title || 'Notifikasi Baru';
       const body = notification?.body || notification?.data?.body || '';
+      const jenis = notification?.data?.type;
 
-      getarkanDarurat();
+      // Pola getar darurat khusus untuk EWS. Pengumuman rutin cukup satu
+      // ketukan singkat — memakai pola panik untuk info kerja bakti akan
+      // mengikis arti getaran itu sendiri saat benar-benar ada darurat.
+      if (jenis === 'PENGUMUMAN') {
+        getarkanSingkat();
+      } else {
+        getarkanDarurat();
+      }
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
-          new CustomEvent('ews-notification-foreground', {
-            detail: { title, body, data: notification?.data },
-          })
+          new CustomEvent(
+            jenis === 'PENGUMUMAN' ? 'pengumuman-notification-foreground' : 'ews-notification-foreground',
+            { detail: { title, body, data: notification?.data } }
+          )
         );
       }
     });
@@ -254,15 +303,20 @@ export const pushNotificationService = {
       console.log('[PushNotif] Notifikasi ditekan:', action);
 
       const data = action?.notification?.data;
+      if (!data || typeof window === 'undefined') return;
 
-      if (data && data.type === 'EWS') {
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(
-            new CustomEvent('ews-notification-tapped', {
-              detail: { laporan_id: data.laporan_id, data },
-            })
-          );
-        }
+      if (data.type === 'EWS') {
+        window.dispatchEvent(
+          new CustomEvent('ews-notification-tapped', {
+            detail: { laporan_id: data.laporan_id, data },
+          })
+        );
+      } else if (data.type === 'PENGUMUMAN') {
+        window.dispatchEvent(
+          new CustomEvent('pengumuman-notification-tapped', {
+            detail: { pengumuman_id: data.pengumuman_id, data },
+          })
+        );
       }
     });
 

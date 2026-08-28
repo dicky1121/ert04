@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
-import { 
+import type { WorkBook } from 'xlsx';
+import {
   KartuKeluarga, 
   Warga, 
   SuratPengantar, 
@@ -28,6 +28,26 @@ import {
   initialPengurusAccounts
 } from '../data/initialData';
 
+// ─── Pemuatan `xlsx` secara dinamis ──────────────────────────────────────────
+// Pustaka `xlsx` (±425 kB terminifikasi) HANYA dipakai fitur pengurus: ekspor
+// Excel, impor spreadsheet, dan unduh template. Dulu di-import statis di baris
+// pertama berkas ini, sehingga setiap warga yang membuka aplikasi ikut mengunduh
+// seluruh pustaka itu padahal tidak punya satu pun layar yang memakainya —
+// storage.ts sendiri tetap dibutuhkan warga (cache lokal, config, sesi).
+//
+// Sekarang modulnya diambil saat pertama kali benar-benar dipakai lalu disimpan
+// di `xlsxCache`, jadi klik kedua tidak mengunduh ulang. Tipe `WorkBook` tetap
+// di-import statis: `import type` dihapus saat kompilasi, jadi nol byte.
+type XlsxModule = typeof import('xlsx');
+let xlsxCache: XlsxModule | null = null;
+
+async function loadXlsx(): Promise<XlsxModule> {
+  if (!xlsxCache) {
+    xlsxCache = await import('xlsx');
+  }
+  return xlsxCache;
+}
+
 const STORAGE_KEYS = {
   KK: 'sip_rt004_kk_v1',
   WARGA: 'sip_rt004_warga_v1',
@@ -42,6 +62,18 @@ const STORAGE_KEYS = {
   LOGIN_ATTEMPTS: 'sip_rt004_login_attempts_v1',
   PRIVACY_MASK: 'sip_rt004_privacy_mask_v1'
 };
+
+/**
+ * Nomor KK cadangan untuk baris impor yang benar-benar tidak punya nomor KK —
+ * baik di kolomnya sendiri maupun warisan dari kepala keluarga di atasnya.
+ *
+ * Nilai ini WAJIB ada karena `kk_rt004` menjadi induk foreign key `warga_rt004`:
+ * baris tanpa KK akan gagal disinkronkan ke Supabase. Tapi ia tetap nomor
+ * fabrikasi, jadi `analyzeWorkbookData` menghitungnya sebagai "nomor KK
+ * bermasalah" supaya pengurus tahu ada baris yang KK-nya perlu dilengkapi
+ * manual, bukan diam-diam menganggapnya data sah.
+ */
+const KK_SEMENTARA = '3216060000000000';
 
 // Helper to mask sensitive data according to UU PDP No. 27/2022 (Indonesian Privacy Law)
 export function maskNik(nik: string | undefined | null): string {
@@ -69,7 +101,7 @@ export function maskPhone(phone: string | undefined | null): string {
 // Helper to convert any date string format to ISO YYYY-MM-DD
 export function parseDateToIso(dateStr: string | undefined | null): string {
   if (!dateStr || dateStr.trim() === '' || dateStr === '-') return '1990-01-01';
-  let clean = dateStr.trim();
+  const clean = dateStr.trim();
 
   // Excel serial number (e.g. 29372 or 36526)
   if (/^\d{4,5}$/.test(clean)) {
@@ -1142,7 +1174,10 @@ class StorageService {
   }
 
   // --- SPREADSHEET / EXCEL EXPORT & IMPORT ---
-  public exportToExcel() {
+  // Metode-metode di bagian ini `async` karena pustaka `xlsx` dimuat saat dipakai
+  // (lihat loadXlsx di atas), bukan karena ada I/O yang lambat.
+  public async exportToExcel(): Promise<void> {
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
 
     // 1. Sheet Data Warga
@@ -1244,85 +1279,6 @@ class StorageService {
     const dateStr = new Date().toISOString().split('T')[0];
     const fileName = `Data_Kependudukan_RT004_RW007_Jatimulya_${dateStr}.xlsx`;
     XLSX.writeFile(wb, fileName);
-  }
-
-  public importFromExcel(file: File): Promise<{ success: boolean; message: string; count: number }> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
-
-          if (!jsonData || jsonData.length === 0) {
-            resolve({ success: false, message: 'File kosong atau format tidak sesuai.', count: 0 });
-            return;
-          }
-
-          let addedCount = 0;
-          const currentWarga = this.getWargaList();
-
-          jsonData.forEach((row, i) => {
-            const rawNik = String(row['NIK'] || row['nik'] || '').replace(/'/g, '').trim();
-            const rawKK = String(row['Nomor KK'] || row['nomorKK'] || row['No KK'] || '').replace(/'/g, '').trim();
-            const rawNama = String(row['Nama Lengkap'] || row['nama'] || row['Nama'] || '').trim();
-
-            if (rawNama) {
-              const nik = rawNik || `321606${Date.now().toString().slice(-10)}`;
-              const nomorKK = rawKK || '3216060000000000';
-              const tglLahir = row['Tanggal Lahir'] || row['tanggalLahir'] || '1990-01-01';
-              const demo = calculateDemographics(tglLahir);
-
-              const newWarga: Warga = {
-                id: `w-imp-${Date.now()}-${i}`,
-                nik,
-                nomorKK,
-                nama: rawNama,
-                jenisKelamin: (row['Jenis Kelamin'] === 'Perempuan' || row['jenisKelamin'] === 'P') ? 'P' : 'L',
-                tempatLahir: row['Tempat Lahir'] || 'Bekasi',
-                tanggalLahir: tglLahir,
-                agama: (row['Agama'] || 'ISLAM').toUpperCase() as any,
-                pendidikan: row['Pendidikan'] || 'SLTA',
-                pekerjaan: row['Pekerjaan'] || 'Wiraswasta',
-                statusPerkawinan: (row['Status Perkawinan'] || 'KAWIN').toUpperCase() as any,
-                statusHubunganKK: (row['Status Hub KK'] || row['statusHubunganKK'] || 'KEPALA KELUARGA').toUpperCase() as any,
-                kewarganegaraan: 'WNI',
-                golonganDarah: row['Gol Darah'] || '-',
-                nomorHp: String(row['No WhatsApp/HP'] || row['nomorHp'] || '-'),
-                statusTinggal: (row['Status Domisili'] === 'KONTRAK' ? 'KONTRAK' : 'TETAP'),
-                isLansia: demo.isLansia,
-                isBalita: demo.isBalita,
-                isYatim: row['Kategori Yatim/Piatu'] === 'YA',
-                statusBansos: (row['Bantuan Sosial (Bansos)'] || 'TIDAK_ADA') as any,
-                tanggalInput: new Date().toISOString().split('T')[0]
-              };
-
-              const existingIdx = currentWarga.findIndex(w => w.nik === nik);
-              if (existingIdx >= 0) {
-                currentWarga[existingIdx] = { ...currentWarga[existingIdx], ...newWarga };
-              } else {
-                currentWarga.push(newWarga);
-              }
-              addedCount++;
-            }
-          });
-
-          this.saveWargaList(currentWarga);
-          resolve({
-            success: true,
-            message: `Berhasil mengimpor ${addedCount} data warga ke sistem RT 004!`,
-            count: addedCount
-          });
-        } catch (err: any) {
-          reject(err);
-        }
-      };
-      reader.onerror = (err) => reject(err);
-      reader.readAsArrayBuffer(file);
-    });
   }
 
   // --- TEMPLATES SURAT ---
@@ -1478,14 +1434,14 @@ class StorageService {
   }
 
   // --- ANALYZE WORKBOOK DATA (ROBUST MULTI-SHEET & CONTENT HEURISTIC PARSER) ---
-  public analyzeWorkbookData(
-    workbook: XLSX.WorkBook,
-    customSheetConfigs?: Record<string, { 
-      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE'; 
-      startRow?: number; 
-      columnMapping?: SheetColumnMapping 
+  public async analyzeWorkbookData(
+    workbook: WorkBook,
+    customSheetConfigs?: Record<string, {
+      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE';
+      startRow?: number;
+      columnMapping?: SheetColumnMapping
     }>
-  ): ImportAnalysisResult {
+  ): Promise<ImportAnalysisResult> {
     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
       return {
         totalRows: 0,
@@ -1504,6 +1460,7 @@ class StorageService {
       };
     }
 
+    const XLSX = await loadXlsx();
     const currentWarga = this.getWargaList();
     const existingNikSet = new Set(currentWarga.map(w => w.nik.trim()));
     const seenNikInFile = new Set<string>();
@@ -2080,6 +2037,12 @@ class StorageService {
           finalNik = `NONIK-${statusTinggal === 'KONTRAK' ? 'KONTRAK' : 'WARGA'}-${globalRowCounter.toString().padStart(3, '0')}-${Date.now().toString().slice(-4)}`;
         }
 
+        // Nomor KK final: kolomnya sendiri, kalau kosong warisi dari kepala
+        // keluarga di atasnya (`lastKK`), kalau itu pun tidak ada baru pakai
+        // nomor cadangan. Dideklarasikan di sini — bukan tepat sebelum dipakai —
+        // karena validasi di bawah perlu tahu hasil akhirnya.
+        const finalKK = rawKK || (lastKK || KK_SEMENTARA);
+
         const errorMessages: string[] = [];
         if (!rawNama) {
           errorMessages.push('Nama lengkap warga tidak boleh kosong');
@@ -2091,6 +2054,22 @@ class StorageService {
             errorMessages.push(`Format NIK ${rawNik.length} digit (standar KTP 16 digit)`);
             invalidNikCount++;
           }
+        }
+
+        // Nomor KK: dua masalah yang sama-sama perlu dilihat pengurus. Baris yang
+        // MEWARISI KK kepala keluarga tidak kena flag — `rawKK` sudah di-set ke
+        // `lastKK` di atas, jadi `finalKK` di sini bernilai KK keluarga yang sah.
+        // KK sementara (tidak ada di berkas) dicatat sebagai warning — baris tetap
+        // bisa di-commit, KK bisa dilengkapi pengurus kemudian.
+        if (finalKK === KK_SEMENTARA) {
+          errorMessages.push('Nomor KK tidak ada di berkas — akan diisi sementara (bisa dilengkapi kemudian)');
+          invalidKkCount++;
+        } else if (finalKK.length !== 16 || !/^\d+$/.test(finalKK)) {
+          // Umumnya KK terpotong karena Excel membuang angka nol di depan. Nomor
+          // seperti ini diwariskan ke seluruh anggota keluarga (ambang `>= 10` di
+          // atas), jadi satu sel rusak bisa mencemari beberapa baris sekaligus.
+          errorMessages.push(`Nomor KK ${finalKK.length} digit (standar 16 digit) — periksa dan perbaiki setelah impor`);
+          invalidKkCount++;
         }
 
         let isDuplicateInFile = false;
@@ -2112,7 +2091,10 @@ class StorageService {
         const isValid = Boolean(rawNama && rawNama.length > 0);
         if (isValid) validCount++;
 
-        let bansosStr = 'TIDAK_ADA';
+        // Status bansos memang TIDAK ditebak dari spreadsheet — kelayakan bansos
+        // adalah keputusan pengurus, bukan hasil inferensi baris impor. Semua baris
+        // masuk sebagai 'TIDAK_ADA' lalu ditetapkan manual di layar Prioritas Bansos.
+        const bansosStr = 'TIDAK_ADA';
         let ketKhusus = '';
         if (inferredRole === 'LANSIA') {
           ketKhusus = rawKeterangan || 'Data Lansia Prioritas RT 004';
@@ -2121,8 +2103,6 @@ class StorageService {
         } else if (rawKeterangan) {
           ketKhusus = rawKeterangan;
         }
-
-        const finalKK = rawKK || (lastKK || '3216060000000000');
 
         allParsedRows.push({
           rowNumber: globalRowCounter++,
@@ -2200,11 +2180,12 @@ class StorageService {
   ): Promise<ImportAnalysisResult> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await loadXlsx();
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          const result = this.analyzeWorkbookData(workbook, customSheetConfigs);
+          const result = await this.analyzeWorkbookData(workbook, customSheetConfigs);
           resolve(result);
         } catch (err) {
           reject(err);
@@ -2216,16 +2197,16 @@ class StorageService {
   }
 
   // --- DIRECT COPY-PASTE TABULAR DATA ANALYZER ---
-  public analyzeRawTextData(
-    rawText: string, 
+  public async analyzeRawTextData(
+    rawText: string,
     defaultRole: 'TETAP' | 'KONTRAK' | 'LANSIA' = 'TETAP',
     sheetName: string = 'Spreadsheet Salinan',
-    customSheetConfigs?: Record<string, { 
-      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE'; 
-      startRow?: number; 
-      columnMapping?: SheetColumnMapping 
+    customSheetConfigs?: Record<string, {
+      role?: 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE';
+      startRow?: number;
+      columnMapping?: SheetColumnMapping
     }>
-  ): ImportAnalysisResult {
+  ): Promise<ImportAnalysisResult> {
     if (!rawText || rawText.trim() === '') {
       return {
         totalRows: 0,
@@ -2268,8 +2249,9 @@ class StorageService {
       return line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
     });
 
+    const XLSX = await loadXlsx();
     const worksheet = XLSX.utils.aoa_to_sheet(gridData);
-    const workbook: XLSX.WorkBook = {
+    const workbook: WorkBook = {
       SheetNames: [sheetName],
       Sheets: { [sheetName]: worksheet }
     };
@@ -2412,8 +2394,8 @@ class StorageService {
     clearExistingBeforeImport: boolean = false,
     persist: boolean = true
   ): { added: number; updated: number; skipped: number; wargaList: Warga[]; kkList: KartuKeluarga[] } {
-    let currentWarga = clearExistingBeforeImport ? [] : this.getWargaList();
-    let currentKK = clearExistingBeforeImport ? [] : this.getKKList();
+    const currentWarga = clearExistingBeforeImport ? [] : this.getWargaList();
+    const currentKK = clearExistingBeforeImport ? [] : this.getKKList();
     
     let added = 0;
     let updated = 0;
@@ -2470,7 +2452,7 @@ class StorageService {
       }
 
       // Group for Kartu Keluarga synchronization (include ALL valid or generated KKs)
-      const targetKK = r.nomorKK || '3216060000000000';
+      const targetKK = r.nomorKK || KK_SEMENTARA;
       if (!kkMap.has(targetKK)) {
         kkMap.set(targetKK, []);
       }
@@ -2532,7 +2514,8 @@ class StorageService {
   }
 
     // Template hanya memuat data sintetis agar data warga tidak ikut tersebar.
-  public downloadRT004TemplateExcel() {
+  public async downloadRT004TemplateExcel(): Promise<void> {
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
 
     // 1. Sheet: Data Warga Tetap

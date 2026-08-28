@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabaseService } from './supabaseService';
 import { storageService } from './storage';
 import { authState, PengurusProfile } from './authState';
-import type { CurrentUser, UserRole } from '../types';
+import type { CurrentUser, UserRole, WargaProfile } from '../types';
 
 /**
  * Layanan autentikasi berbasis Supabase Auth.
@@ -35,6 +35,29 @@ export function hasFullAccess(role?: UserRole | null): boolean {
   return !!role && FULL_ACCESS_ROLES.includes(role);
 }
 
+/**
+ * Domain email sintetis untuk akun warga. Warga login dengan NIK + PIN;
+ * di balik layar NIK dipetakan ke email `<nik>@warga.rt004.id` dan PIN
+ * dipakai sebagai password Supabase Auth. Email ini tidak pernah dikirimi
+ * surel — hanya identitas internal Auth. HARUS sama dengan Edge Function
+ * `daftar-akun-warga`.
+ */
+const WARGA_EMAIL_DOMAIN = 'warga.rt004.id';
+
+/** Bentuk email sintetis dari NIK. */
+export function nikToWargaEmail(nik: string): string {
+  return `${nik.trim()}@${WARGA_EMAIL_DOMAIN}`;
+}
+
+/** PIN lemah: 6 digit identik, berurutan naik/turun, atau pola umum. */
+export function isWeakPin(pin: string): boolean {
+  if (/^(\d)\1{5}$/.test(pin)) return true; // 000000, 111111, ...
+  if ('0123456789'.includes(pin)) return true; // 012345, 123456, ...
+  if ('9876543210'.includes(pin)) return true; // 987654, 654321, ...
+  const common = ['112233', '121212', '123123', '696969', '112211', '102030'];
+  return common.includes(pin);
+}
+
 
 export interface AuthResult {
   success: boolean;
@@ -56,6 +79,12 @@ class AuthService {
     return authState.hasActiveSession();
   }
 
+  /** Role pengguna yang sedang login (dari cache lokal). Null bila belum login. */
+  public getCurrentUserRole(): UserRole | null {
+    const user = storageService.getCurrentUser();
+    return user?.isLoggedIn ? user.role : null;
+  }
+
   private toCurrentUser(profile: PengurusProfile, email: string | null): CurrentUser {
     return {
       role: profile.role,
@@ -63,6 +92,18 @@ class AuthService {
       username: profile.username,
       email: email || profile.email || '',
       nomorHp: profile.nomorHp,
+      isAuthenticated: true,
+      isLoggedIn: true
+    };
+  }
+
+  private toWargaUser(profile: WargaProfile, email: string | null): CurrentUser {
+    return {
+      role: 'WARGA',
+      nama: profile.nama || 'Warga RT 004',
+      nik: profile.nik,
+      nomorHp: profile.nomorHp,
+      email: email || nikToWargaEmail(profile.nik),
       isAuthenticated: true,
       isLoggedIn: true
     };
@@ -106,20 +147,67 @@ class AuthService {
     return profile;
   }
 
+  /**
+   * Ambil profil akun warga milik user yang sedang login (tabel warga_akun).
+   * RLS hanya mengizinkan warga membaca barisnya sendiri (id = auth.uid()).
+   */
+  public async fetchWargaProfile(): Promise<WargaProfile | null> {
+    const client = supabaseService.getClient();
+    const userId = authState.getUserId();
+    if (!client || !userId) return null;
+
+    const { data, error } = await client
+      .from('warga_akun')
+      .select('id, nik, warga_id, nama, nomor_hp, status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Gagal membaca akun warga:', error.message);
+      return null;
+    }
+    if (!data) return null;
+
+    const profile: WargaProfile = {
+      id: data.id,
+      nik: data.nik,
+      wargaId: data.warga_id ?? null,
+      nama: data.nama || 'Warga RT 004',
+      nomorHp: data.nomor_hp || undefined,
+      status: (data.status || 'PENDING') as WargaProfile['status']
+    };
+
+    authState.setWargaProfile(profile);
+    return profile;
+  }
+
   private async applySession(session: Session | null): Promise<CurrentUser | null> {
     authState.setSession(session);
     if (!session) return null;
 
+    // 1. Coba profil pengurus lebih dulu (jalur admin yang sudah ada).
     const profile = await this.fetchProfile();
-    if (!profile) return null;
-    if (!profile.isActive) {
-      await this.signOut();
-      return null;
+    if (profile) {
+      if (!profile.isActive) {
+        await this.signOut();
+        return null;
+      }
+      const user = this.toCurrentUser(profile, authState.getEmail());
+      storageService.setCurrentUser(user);
+      return user;
     }
 
-    const user = this.toCurrentUser(profile, authState.getEmail());
-    storageService.setCurrentUser(user);
-    return user;
+    // 2. Bukan pengurus → coba akun warga (harus berstatus AKTIF).
+    const warga = await this.fetchWargaProfile();
+    if (warga && warga.status === 'AKTIF') {
+      const user = this.toWargaUser(warga, authState.getEmail());
+      storageService.setCurrentUser(user);
+      return user;
+    }
+
+    // Tidak ada profil pengurus maupun akun warga aktif → tutup sesi.
+    await this.signOut();
+    return null;
   }
 
   /** Login pengurus memakai email + password Supabase Auth. */
@@ -170,6 +258,74 @@ class AuthService {
     return { success: true, message: `Selamat datang, ${user.nama}!`, user };
   }
 
+  /**
+   * Login warga memakai NIK + PIN 6 angka. NIK dipetakan ke email sintetis
+   * `<nik>@warga.rt004.id` dan PIN dipakai sebagai password Supabase Auth.
+   * Akun harus berstatus AKTIF (sudah di-ACC pengurus) untuk bisa masuk.
+   */
+  public async signInWarga(nik: string, pin: string): Promise<AuthResult> {
+    const client = supabaseService.getClient();
+    if (!client) {
+      return {
+        success: false,
+        message: 'Koneksi Supabase belum dikonfigurasi. Hubungi pengurus RT.'
+      };
+    }
+
+    const cleanNik = nik.trim();
+    const cleanPin = pin.trim();
+    if (!/^[0-9]{16}$/.test(cleanNik)) {
+      return { success: false, message: 'NIK harus 16 digit angka sesuai KTP.' };
+    }
+    if (!/^[0-9]{6}$/.test(cleanPin)) {
+      return { success: false, message: 'PIN harus tepat 6 angka.' };
+    }
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email: nikToWargaEmail(cleanNik),
+      password: cleanPin
+    });
+
+    if (error) {
+      const msg = /invalid login credentials/i.test(error.message)
+        ? 'NIK atau PIN salah. Silakan periksa kembali.'
+        : /email not confirmed/i.test(error.message)
+          ? 'Akun belum aktif. Tunggu persetujuan pengurus RT.'
+          : `Gagal login: ${error.message}`;
+      storageService.addAuditLog('Login Warga Gagal', 'Supabase Auth', `Percobaan login warga gagal untuk NIK ${cleanNik}`);
+      return { success: false, message: msg };
+    }
+
+    // Sesi aktif: baca status akun untuk memutuskan boleh masuk atau tidak.
+    authState.setSession(data.session);
+    const warga = await this.fetchWargaProfile();
+
+    if (!warga) {
+      await this.signOut();
+      return {
+        success: false,
+        message: 'Akun warga untuk NIK ini belum terdaftar. Silakan daftar akun terlebih dahulu.'
+      };
+    }
+
+    if (warga.status !== 'AKTIF') {
+      await this.signOut();
+      const pesan =
+        warga.status === 'PENDING'
+          ? 'Pendaftaran Anda masih menunggu persetujuan pengurus RT. Silakan coba lagi nanti.'
+          : warga.status === 'DITOLAK'
+            ? 'Pendaftaran Anda ditolak. Silakan hubungi pengurus RT atau ajukan pendaftaran ulang.'
+            : 'Akun Anda dinonaktifkan. Hubungi pengurus RT untuk mengaktifkan kembali.';
+      return { success: false, message: pesan };
+    }
+
+    const user = this.toWargaUser(warga, authState.getEmail());
+    storageService.setCurrentUser(user);
+    void supabaseService.catatLoginWarga();
+    storageService.addAuditLog('Login Warga', 'Supabase Auth', `${user.nama} (WARGA) masuk ke portal warga`);
+    return { success: true, message: `Selamat datang, ${user.nama}!`, user };
+  }
+
   /** Pulihkan sesi yang tersimpan (dipanggil saat aplikasi dibuka). */
   public async restoreSession(): Promise<CurrentUser | null> {
     const client = supabaseService.getClient();
@@ -214,6 +370,27 @@ class AuthService {
     }
     storageService.addAuditLog('Ganti Password', 'Supabase Auth', 'Password akun pengurus diperbarui');
     return { success: true, message: 'Password berhasil diperbarui.' };
+  }
+
+  /** Warga mengganti PIN sendiri (6 angka, tolak PIN lemah). */
+  public async changePin(newPin: string): Promise<{ success: boolean; message: string }> {
+    const client = supabaseService.getClient();
+    if (!client || !authState.hasActiveSession()) {
+      return { success: false, message: 'Anda harus login terlebih dahulu untuk mengganti PIN.' };
+    }
+    const pin = newPin.trim();
+    if (!/^[0-9]{6}$/.test(pin)) {
+      return { success: false, message: 'PIN baru harus tepat 6 angka.' };
+    }
+    if (isWeakPin(pin)) {
+      return { success: false, message: 'PIN terlalu mudah ditebak. Hindari angka berurutan/berulang.' };
+    }
+    const { error } = await client.auth.updateUser({ password: pin });
+    if (error) {
+      return { success: false, message: `Gagal mengganti PIN: ${error.message}` };
+    }
+    storageService.addAuditLog('Ganti PIN', 'Supabase Auth', 'PIN akun warga diperbarui');
+    return { success: true, message: 'PIN berhasil diperbarui.' };
   }
 
   public async sendPasswordReset(email: string): Promise<{ success: boolean; message: string }> {

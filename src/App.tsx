@@ -24,12 +24,20 @@ import { BansosPrioritasView } from './components/BansosPrioritasView';
 
 import { AuditLogView } from './components/AuditLogView';
 import { EWSAdminView } from './components/EWSAdminView';
+import { EWSDetailModal } from './components/EWSDetailModal';
+import { VerifikasiSurat } from './components/VerifikasiSurat';
+import { PengaduanAdminView } from './components/PengaduanAdminView';
+import { PengumumanAdminView } from './components/PengumumanAdminView';
+import { KegiatanAdminView } from './components/KegiatanAdminView';
+import { UmkmAdminView } from './components/UmkmAdminView';
+import { KeuanganAdminView } from './components/KeuanganAdminView';
+import { IuranAdminView } from './components/IuranAdminView';
 import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
 import { LoginPortal } from './components/LoginPortal';
-import { SapaWarga } from './components/SapaWarga';
+import { WargaLayout } from './components/warga/WargaLayout';
 import { authService } from './services/authService';
 import { CloudSyncState, supabaseService } from './services/supabaseService';
 import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
@@ -61,8 +69,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser>(storageService.getCurrentUser());
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [syncState, setSyncState] = useState<CloudSyncState>(supabaseService.getSyncState());
-  const [publicGatewayView, setPublicGatewayView] = useState<'welcome' | 'login'>('welcome');
   const [ewsBaruCount, setEwsBaruCount] = useState(0);
+  const [ewsDetailId, setEwsDetailId] = useState<string | null>(null);
+
+  // Deteksi URL parameter ?verifikasi= untuk halaman verifikasi surat QR
+  const [verifikasiKode, setVerifikasiKode] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('verifikasi') || null;
+  });
   const [pengajuanList, setPengajuanList] = useState<PengajuanWarga[]>([]);
   const [wargaSubTab, setWargaSubTab] = useState<'data' | 'pengajuan'>('data');
 
@@ -111,10 +125,14 @@ export default function App() {
       setEwsBaruCount(prev => prev + 1);
     });
 
-    // Listener: notification EWS di-tap, navigasi ke tab EWS
-    const handleEWSNotificationTapped = () => {
+    // Listener: notification EWS di-tap, navigasi ke tab EWS + buka popup detail
+    const handleEWSNotificationTapped = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
       setActiveTab('ews');
       setEwsBaruCount(0); // Reset badge
+      if (detail?.laporan_id) {
+        setEwsDetailId(String(detail.laporan_id));
+      }
     };
     window.addEventListener('ews-notification-tapped', handleEWSNotificationTapped);
 
@@ -124,6 +142,23 @@ export default function App() {
       showToast(`🚨 ${detail.title}: ${detail.body}`, 'info');
     };
     window.addEventListener('ews-notification-foreground', handleEWSNotificationForeground);
+
+    // Listener: notifikasi pengumuman di-tap. Untuk pengurus, buka tab Pengumuman.
+    // Sisi warga memakai state tab sendiri di WargaLayout, jadi setActiveTab di
+    // sini tidak berdampak pada mereka — pengumuman terbaru memang sudah tampil
+    // di Beranda warga, jadi membuka aplikasi saja sudah cukup.
+    const handlePengumumanNotificationTapped = () => {
+      setActiveTab('pengumuman');
+    };
+    window.addEventListener('pengumuman-notification-tapped', handlePengumumanNotificationTapped);
+
+    // Listener: pengumuman masuk saat app terbuka. Judulnya sudah berawalan 📢
+    // dari server, jadi jangan ditambahi emoji lagi di sini.
+    const handlePengumumanNotificationForeground = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      showToast(`${detail.title}${detail.body ? `: ${detail.body}` : ''}`, 'info');
+    };
+    window.addEventListener('pengumuman-notification-foreground', handlePengumumanNotificationForeground);
 
     // Keyboard shortcut for Search (Ctrl+K or Cmd+K)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -141,9 +176,11 @@ export default function App() {
       authService.initSessionListener((user) => {
         if (user) {
           setCurrentUser(user);
-          // Pull awal dijalankan oleh restoreSession() atau callback LoginPortal.
-          // Listener ini hanya menjaga lifecycle channel saat auth berubah.
-          supabaseService.startRealtimeSync();
+          // Warga TIDAK menarik data admin (RLS memblokir tabel admin); sinkronisasi
+          // realtime hanya untuk pengurus. Data warga dimuat oleh dashboard warga sendiri.
+          if (user.role !== 'WARGA') {
+            supabaseService.startRealtimeSync();
+          }
         } else {
           supabaseService.stopRealtimeSync();
           setCurrentUser(storageService.getCurrentUser());
@@ -151,11 +188,14 @@ export default function App() {
       });
 
       void authService.restoreSession().then(async (user) => {
-        if (user) {
+        if (user && user.role !== 'WARGA') {
           setCurrentUser(user);
           const bootstrap = await supabaseService.bootstrapFromSupabase();
           refreshAllData();
           if (bootstrap.pulled) supabaseService.startRealtimeSync();
+        } else if (user) {
+          // Sesi warga valid: cukup set user, tanpa bootstrap data admin.
+          setCurrentUser(user);
         } else {
           // Tidak ada sesi valid: pastikan aplikasi kembali ke halaman login.
           storageService.logout();
@@ -170,6 +210,8 @@ export default function App() {
 
     const handleOnline = async () => {
       if (!supabaseService.isCloudMode()) return;
+      // Jangan tarik data admin untuk sesi warga.
+      if (authService.getCurrentUserRole() === 'WARGA') return;
       const bootstrap = await supabaseService.bootstrapFromSupabase();
       refreshAllData();
       if (bootstrap.pulled) supabaseService.startRealtimeSync();
@@ -188,6 +230,8 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('ews-notification-tapped', handleEWSNotificationTapped);
       window.removeEventListener('ews-notification-foreground', handleEWSNotificationForeground);
+      window.removeEventListener('pengumuman-notification-tapped', handlePengumumanNotificationTapped);
+      window.removeEventListener('pengumuman-notification-foreground', handlePengumumanNotificationForeground);
     };
   }, []);
 
@@ -258,8 +302,16 @@ export default function App() {
 
   // Muat & pantau realtime pengajuan HANYA saat pengurus terautentikasi
   // (RLS mewajibkan sesi; tanpa sesi fetch mengembalikan daftar kosong).
+  //
+  // Peran WAJIB dicek, bukan cuma `isAuthenticated`: sesi warga juga
+  // terautentikasi, jadi tanpa cek ini setiap warga yang membuka aplikasi ikut
+  // menembak `warga_submissions_rt004` dan berlangganan realtime tabel itu.
+  // RLS memang menolaknya (balik daftar kosong, bukan kebocoran data), tapi
+  // permintaannya sia-sia dan langganan realtime-nya menahan koneksi. Ini
+  // menyelaraskan efek ini dengan guard peran yang sudah ada di bootstrap
+  // (baris 168, 178, 201).
   useEffect(() => {
-    if (!currentUser.isAuthenticated) {
+    if (!currentUser.isAuthenticated || currentUser.role === 'WARGA') {
       setPengajuanList([]);
       return;
     }
@@ -275,8 +327,7 @@ export default function App() {
       aktif = false;
       unsub();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser.isAuthenticated]);
+  }, [currentUser.isAuthenticated, currentUser.role]);
 
   const handleSetujuiPengajuan = async (id: string, fields?: string[] | null) => {
     const result = await supabaseService.setujuiPendaftaranWarga(id, fields ?? null);
@@ -446,8 +497,8 @@ export default function App() {
   };
 
   // Excel Handlers
-  const handleExportExcel = () => {
-    storageService.exportToExcel();
+  const handleExportExcel = async () => {
+    await storageService.exportToExcel();
     showToast('Berkas Excel kependudukan RT 004 berhasil diunduh!');
   };
 
@@ -491,8 +542,7 @@ export default function App() {
       storageService.logout();
     }
     setCurrentUser(storageService.getCurrentUser());
-    setPublicGatewayView('welcome');
-    showToast('Sesi administrasi telah ditutup. Silakan login kembali.', 'info');
+    showToast('Anda telah keluar dari portal. Silakan login kembali.', 'info');
   };
 
 
@@ -508,13 +558,10 @@ export default function App() {
     );
   }
 
-  // Public gateway: warga melihat portal layanan, sedangkan pengurus dapat
-  // membuka login. Sesi yang sudah valid tetap langsung menuju dashboard.
+  // Wajib login untuk semua: warga & pengurus masuk lewat satu portal terpadu
+  // (warga: NIK + PIN / daftar akun; pengurus: email + password). Tidak ada lagi
+  // landing publik anonim — peran pengguna menentukan tujuan setelah login.
   if (!currentUser?.isLoggedIn) {
-    if (publicGatewayView === 'welcome') {
-      return <SapaWarga config={rtConfig} onOpenLogin={() => setPublicGatewayView('login')} />;
-    }
-
     return (
       <div className="min-h-screen bg-slate-950 font-sans selection:bg-emerald-500 selection:text-white">
         {/* Toast Alert Banner */}
@@ -534,13 +581,14 @@ export default function App() {
           isFullPage={true}
           currentUser={currentUser}
           config={rtConfig}
-          onClose={() => setPublicGatewayView('welcome')}
           onLogin={(user) => {
             storageService.setCurrentUser(user);
             setCurrentUser(user);
-            showToast(`Selamat Datang, ${user.nama}! Berhasil masuk ke dashboard.`);
+            showToast(`Selamat Datang, ${user.nama}! Berhasil masuk.`);
             setActiveTab('dashboard');
-            if (authService.isCloudAuthAvailable()) {
+            // Warga TIDAK melakukan bootstrap tabel admin — RLS akan menolak
+            // dan memicu error. Data publik warga diambil oleh WargaLayout sendiri.
+            if (user.role !== 'WARGA' && authService.isCloudAuthAvailable()) {
               void supabaseService.bootstrapFromSupabase().then(() => {
                 refreshAllData();
                 supabaseService.startRealtimeSync();
@@ -549,6 +597,26 @@ export default function App() {
           }}
         />
       </div>
+    );
+  }
+
+  // Warga login → shell warga (mobile-first, bottom-nav). Pengurus → shell admin.
+  if (currentUser.role === 'WARGA') {
+    return (
+      <>
+        {toastMessage && (
+          <div className="fixed top-4 inset-x-3 sm:left-auto sm:right-4 sm:max-w-md z-[70] animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className={`px-4 py-3 rounded-full shadow-lg border text-xs font-semibold flex items-center gap-2 ${
+              toastMessage.type === 'success' ? 'bg-slate-900 text-white border-slate-800' :
+              toastMessage.type === 'info' ? 'bg-blue-900 text-blue-100 border-blue-800' :
+              'bg-rose-900 text-rose-100 border-rose-800'
+            }`}>
+              <span>{toastMessage.text}</span>
+            </div>
+          </div>
+        )}
+        <WargaLayout currentUser={currentUser} config={rtConfig} onLogout={handleLogout} />
+      </>
     );
   }
 
@@ -751,6 +819,43 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'pengaduan' && (
+          <PengaduanAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'pengumuman' && (
+          <PengumumanAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'kegiatan' && (
+          <KegiatanAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'umkm' && (
+          <UmkmAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'keuangan' && (
+          <KeuanganAdminView
+            currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'iuran' && (
+          <IuranAdminView
+            currentUser={currentUser}
+            wargaList={wargaList}
+          />
+        )}
+
         {activeTab === 'integrasi' && (
           <Suspense fallback={<ViewLoader />}>
             <IntegrasiView
@@ -807,6 +912,28 @@ export default function App() {
           showToast(`Berhasil beralih ke akun ${user.nama} (${user.role})`);
         }}
       />
+
+      {/* Popup detail laporan EWS — muncul saat notifikasi push EWS diklik */}
+      {ewsDetailId && (
+        <EWSDetailModal
+          laporanId={ewsDetailId}
+          onClose={() => setEwsDetailId(null)}
+        />
+      )}
+
+      {/* Halaman verifikasi keaslian surat QR — muncul saat URL punya ?verifikasi= */}
+      {verifikasiKode && (
+        <VerifikasiSurat
+          kode={verifikasiKode}
+          onTutup={() => {
+            setVerifikasiKode(null);
+            // Hapus parameter dari URL tanpa reload
+            const url = new URL(window.location.href);
+            url.searchParams.delete('verifikasi');
+            window.history.replaceState({}, '', url.toString());
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="no-print bg-white border-t border-slate-200 mt-auto py-5 text-center text-xs text-slate-500">

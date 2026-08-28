@@ -175,6 +175,38 @@ export interface PengumumanPublik {
   tanggalSelesai?: string | null;
 }
 
+/** Daftar kategori untuk pilihan di form pengurus. */
+export const KATEGORI_PENGUMUMAN_OPSI: KategoriPengumuman[] = [
+  'UMUM', 'KEGIATAN', 'KEAMANAN', 'KESEHATAN', 'IURAN', 'DARURAT',
+];
+
+/**
+ * Satu baris pengumuman sebagaimana dilihat PENGURUS — termasuk draf
+ * (`dipublikasikan = false`) yang tidak pernah keluar lewat RPC publik.
+ */
+export interface Pengumuman {
+  id: string;
+  judul: string;
+  isi: string;
+  kategori: KategoriPengumuman | string;
+  dipublikasikan: boolean;
+  tanggalMulai: string;
+  tanggalSelesai: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload simpan pengumuman; `id` kosong berarti tambah baru. */
+export interface PengumumanInput {
+  id?: string;
+  judul: string;
+  isi: string;
+  kategori: KategoriPengumuman | string;
+  dipublikasikan: boolean;
+  tanggalMulai: string;
+  tanggalSelesai: string | null;
+}
+
 export type KategoriPengaduan = 'KEAMANAN' | 'KEBERSIHAN' | 'INFRASTRUKTUR' | 'SOSIAL' | 'LAINNYA';
 
 /** Payload laporan warga yang dikirim lewat fungsi kirim_pengaduan. */
@@ -184,6 +216,74 @@ export interface PengaduanInput {
   kontakPelapor: string;
   alamatKejadian: string;
   isiLaporan: string;
+}
+
+/**
+ * Status penanganan pengaduan. Kolomnya di server VARCHAR(20) tanpa CHECK
+ * constraint, jadi tipe ini adalah kesepakatan sisi klien — selalu sediakan
+ * fallback saat membaca nilai dari server.
+ */
+export type StatusPengaduan = 'BARU' | 'DIPROSES' | 'SELESAI' | 'DITOLAK';
+
+/**
+ * Urutan tindak lanjut yang boleh dipilih pengurus di layar Pengaduan.
+ * Sengaja tanpa 'DITANGANI' (nilai lama yang bermakna sama dengan 'DIPROSES')
+ * — nilai itu masih bisa dibaca lewat PENGADUAN_LABEL dan tetap ditawarkan
+ * di modal bila baris yang dibuka memang berstatus demikian.
+ */
+export const STATUS_PENGADUAN_OPSI: StatusPengaduan[] = ['BARU', 'DIPROSES', 'SELESAI', 'DITOLAK'];
+
+/**
+ * Satu baris pengaduan sebagaimana dilihat PENGURUS — termasuk identitas
+ * pelapor (nama & kontak) yang sengaja TIDAK dikembalikan ke layar warga.
+ * Dibaca lewat tabel langsung; policy RLS "Pengurus aktif boleh baca
+ * pengaduan" yang menyaring, bukan kode ini.
+ */
+export interface PengaduanAdmin {
+  id: string;
+  nomorTiket: string;
+  kategori: KategoriPengaduan | string;
+  namaPelapor: string;
+  kontakPelapor: string;
+  alamatKejadian: string;
+  isiLaporan: string;
+  status: StatusPengaduan | string;
+  tanggapan: string | null;
+  wargaId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------
+// Riwayat pribadi warga (RPC pengajuan_saya / pengaduan_saya)
+// ---------------------------------------------------------------------
+
+export type StatusSurat = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+
+/** Satu baris riwayat pengajuan surat milik warga yang sedang login. */
+export interface RiwayatSurat {
+  nomorSurat: string;
+  jenisSurat: string;
+  judulSurat: string;
+  keperluan: string;
+  status: StatusSurat | string;
+  tanggalPengajuan: string | null;
+  tanggalDisetujui: string | null;
+  alasanPenolakan: string | null;
+}
+
+/**
+ * Satu baris riwayat pengaduan milik warga yang sedang login.
+ * `status` sengaja longgar: kolomnya di server tanpa CHECK constraint.
+ */
+export interface RiwayatPengaduan {
+  nomorTiket: string;
+  kategori: KategoriPengaduan | string;
+  alamatKejadian: string;
+  isiLaporan: string;
+  status: string;
+  tanggapan: string | null;
+  createdAt: string;
 }
 
 // ---------------------------------------------------------------------
@@ -240,6 +340,9 @@ export interface PengajuanWarga {
   jenisPengajuan: JenisPengajuanWarga;
   status: StatusPendaftaranWargaKode;
   matchedWargaId: string | null;
+  /** Terisi bila pengajuan berasal dari pendaftaran akun warga (login NIK+PIN).
+   *  Menyetujui pengajuan ini otomatis mengaktifkan akun login-nya. */
+  akunUserId?: string | null;
   catatanAdmin: string | null;
   submittedAt: string;
   reviewedAt: string | null;
@@ -298,16 +401,41 @@ export interface Notifikasi {
 
 export type AppNotification = Notifikasi;
 
-export type UserRole = 
-  | 'ADMIN_KETUA_RT' 
-  | 'ADMIN_SEKRETARIS' 
-  | 'BENDAHARA' 
+export type UserRole =
+  | 'ADMIN_KETUA_RT'
+  | 'ADMIN_SEKRETARIS'
+  | 'BENDAHARA'
   | 'SEKSI_KEAMANAN'
   | 'STAF_PELAYANAN'
   | 'ADMIN_SISTEM'
   | 'ADMIN_CUSTOM'
-
+  | 'WARGA'
   | string;
+
+// ---------------------------------------------------------------------
+// Akun warga (login NIK + PIN 6 angka) — Portal Warga Terpadu
+// ---------------------------------------------------------------------
+
+export type StatusAkunWarga = 'PENDING' | 'AKTIF' | 'DITOLAK' | 'NONAKTIF';
+
+/** Profil akun warga (baris tabel warga_akun) untuk sesi login warga. */
+export interface WargaProfile {
+  id: string; // = auth.users.id
+  nik: string;
+  wargaId: string | null; // id di warga_rt004 (diisi saat di-ACC)
+  nama: string;
+  nomorHp?: string;
+  status: StatusAkunWarga;
+}
+
+/**
+ * Payload pendaftaran akun warga (data diri + PIN 6 angka) yang dikirim ke
+ * Edge Function `daftar-akun-warga`. Memakai field yang sama dengan
+ * PendaftaranWargaInput, ditambah PIN.
+ */
+export interface DaftarAkunWargaInput extends PendaftaranWargaInput {
+  pin: string; // tepat 6 angka
+}
 
 export interface PengurusAccount {
   id: string;
@@ -451,6 +579,255 @@ export const EWS_JENIS_KEJADIAN: EWSJenisKejadianMeta[] = [
   { value: 'LAINNYA',    label: 'Lainnya',     emoji: '📢', warna: 'purple' },
 ];
 
+// =====================================================================
+// KEGIATAN RT (jadwal kegiatan & acara lingkungan) — Portal Warga Terpadu
+// =====================================================================
+
+/** Satu baris kegiatan RT (tabel kegiatan_rt004). */
+export interface Kegiatan {
+  id: string;
+  judul: string;
+  deskripsi: string;
+  tanggal: string;        // YYYY-MM-DD
+  waktu: string;          // jam / free text, mis. "08:00 WIB" (boleh kosong)
+  lokasi: string;
+  fotoUrl: string | null;
+  dipublikasikan: boolean;
+  createdAt: string;
+}
+
+/** Payload simpan kegiatan dari panel admin (tambah / edit). */
+export interface KegiatanInput {
+  id?: string;              // ada saat edit; kosong saat tambah (id dibuat server)
+  judul: string;
+  deskripsi: string;
+  tanggal: string;
+  waktu: string;
+  lokasi: string;
+  dipublikasikan: boolean;
+  fotoFile?: File | null;   // foto baru untuk diunggah (opsional)
+  fotoUrl?: string | null;  // foto lama dipertahankan saat edit
+}
+
+// =====================================================================
+// UMKM WARGA (mini-marketplace, checkout via WhatsApp) — Portal Warga Terpadu
+// =====================================================================
+
+export type StatusUmkm = 'PENDING' | 'VERIFIED' | 'DITOLAK';
+
+/** Kategori lapak UMKM (label bebas, dipakai untuk filter etalase). */
+export const UMKM_KATEGORI: string[] = [
+  'Makanan & Minuman',
+  'Sembako & Kebutuhan Harian',
+  'Jajanan & Kue',
+  'Fashion & Pakaian',
+  'Jasa & Layanan',
+  'Kesehatan & Kecantikan',
+  'Elektronik & Gadget',
+  'Lainnya',
+];
+
+/** Satu varian/pilihan produk (tabel umkm_varian_rt004), mis. "Es Coklat". */
+export interface UmkmVarian {
+  id: string;
+  produkId: string;
+  namaVarian: string;
+  harga: number;
+  tersedia: boolean;
+  urutan: number;
+}
+
+/** Satu produk pada sebuah lapak (tabel umkm_produk_rt004). */
+export interface UmkmProduk {
+  id: string;
+  umkmId: string;
+  namaProduk: string;
+  deskripsi: string;
+  harga: number;
+  fotoUrl: string | null;
+  tersedia: boolean;
+  urutan: number;
+  varian: UmkmVarian[];
+}
+
+/** Satu lapak/toko UMKM (tabel umkm_rt004) beserta produknya. */
+export interface UmkmToko {
+  id: string;
+  ownerUid: string;
+  namaUsaha: string;
+  kategori: string;
+  deskripsi: string;
+  fotoUrl: string | null;
+  kontakWa: string;
+  alamat: string;
+  status: StatusUmkm;
+  catatanAdmin: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  produk: UmkmProduk[];
+  /** true bila lapak ini milik pengguna yang sedang login (owner_uid = auth.uid()). */
+  milikSaya?: boolean;
+}
+
+/** Payload simpan lapak (tambah / edit) dari panel warga atau admin. */
+export interface UmkmTokoInput {
+  id?: string;
+  namaUsaha: string;
+  kategori: string;
+  deskripsi: string;
+  kontakWa: string;
+  alamat: string;
+  fotoFile?: File | null;
+  fotoUrl?: string | null;
+}
+
+/** Baris varian dalam form produk (id kosong = varian baru). */
+export interface UmkmVarianInput {
+  id?: string;
+  namaVarian: string;
+  harga: number;
+  tersedia: boolean;
+}
+
+/** Payload simpan produk + variannya sekaligus (varian di-replace penuh). */
+export interface UmkmProdukInput {
+  id?: string;
+  umkmId: string;
+  namaProduk: string;
+  deskripsi: string;
+  harga: number;
+  tersedia: boolean;
+  urutan?: number;
+  fotoFile?: File | null;
+  fotoUrl?: string | null;
+  varian: UmkmVarianInput[];
+}
+
+/** Data yang dibutuhkan untuk menyusun pesan WhatsApp checkout. */
+export interface PesananWaInput {
+  toko: UmkmToko;
+  produk: UmkmProduk;
+  varian: UmkmVarian | null;
+  qty: number;
+  namaPemesan: string;
+  alamatPemesan: string;
+  nomorHpPemesan: string;
+  catatan?: string;
+}
+
+// =====================================================================
+// KEUANGAN RT (ringkasan kas RT — transparansi warga) — Portal Warga Terpadu
+// =====================================================================
+
+export type JenisKeuangan = 'MASUK' | 'KELUAR';
+
+/** Kategori pemasukan kas RT (label untuk dropdown & filter). */
+export const KEUANGAN_KATEGORI_MASUK: string[] = [
+  'Iuran Warga',
+  'Sumbangan',
+  'Bantuan Pemerintah',
+  'Hasil Kegiatan',
+  'Lainnya',
+];
+
+/** Kategori pengeluaran kas RT. */
+export const KEUANGAN_KATEGORI_KELUAR: string[] = [
+  'Kebersihan',
+  'Keamanan',
+  'Kegiatan',
+  'Perawatan Fasilitas',
+  'Administrasi',
+  'Santunan',
+  'Lainnya',
+];
+
+/** Satu transaksi kas RT (tabel keuangan_rt004). */
+export interface TransaksiKeuangan {
+  id: string;
+  tanggal: string;      // YYYY-MM-DD
+  jenis: JenisKeuangan;
+  kategori: string;
+  jumlah: number;
+  keterangan: string;
+  bulanKas: string;     // 'YYYY-MM' (diisi server dari tanggal via trigger)
+  createdAt: string;
+}
+
+/** Payload simpan transaksi dari panel admin (tambah / edit). */
+export interface TransaksiKeuanganInput {
+  id?: string;          // ada saat edit; kosong saat tambah (id dibuat server)
+  tanggal: string;
+  jenis: JenisKeuangan;
+  kategori: string;
+  jumlah: number;
+  keterangan: string;
+}
+
+/** Ringkasan kas satu bulan (hasil agregasi client-side). */
+export interface RingkasanBulanKas {
+  bulan: string;        // 'YYYY-MM'
+  masuk: number;
+  keluar: number;
+  saldo: number;        // masuk - keluar (bulan itu saja)
+}
+
+/** Ringkasan kas keseluruhan untuk kartu saldo & rekap per bulan. */
+export interface RingkasanKeuangan {
+  totalMasuk: number;
+  totalKeluar: number;
+  saldo: number;                  // totalMasuk - totalKeluar (saldo berjalan)
+  perBulan: RingkasanBulanKas[];  // urut terbaru → terlama
+}
+
+// ── Iuran / Tagihan warga (tabel iuran_rt004) ──────────────────────────────
+export type StatusTagihan = 'BELUM_LUNAS' | 'MENUNGGU_VERIFIKASI' | 'LUNAS' | 'DITOLAK';
+
+/** Satu tagihan iuran milik seorang warga. */
+export interface TagihanIuran {
+  id: string;
+  wargaId: string;          // → warga_rt004.id (kunci penugasan)
+  judul: string;
+  periode: string;          // 'YYYY-MM'
+  jumlah: number;
+  status: StatusTagihan;
+  jatuhTempo?: string | null;   // YYYY-MM-DD
+  buktiPath?: string | null;    // path objek di bucket privat 'bukti-bayar'
+  dibayarAt?: string | null;    // saat warga mengirim bukti
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  catatan?: string | null;      // alasan tolak / catatan pengurus
+  dibuatOleh?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload simpan tagihan dari panel admin (tambah / edit satuan). */
+export interface TagihanIuranInput {
+  id?: string;              // ada saat edit; kosong saat tambah
+  wargaId: string;
+  judul: string;
+  periode: string;          // 'YYYY-MM'
+  jumlah: number;
+  jatuhTempo?: string | null;
+}
+
+/** Satu metode pembayaran iuran yang bisa di-set pengurus. */
+export interface MetodePembayaran {
+  id: string;       // uuid pendek, unik per metode
+  label: string;    // mis. "Transfer BCA"
+  detail: string;   // mis. "1234567 a/n Kas RT 004 RW 007"
+}
+
+/** Setelan iuran RT (baris tunggal) — info pembayaran & nilai default. */
+export interface PengaturanIuran {
+  infoPembayaran: string;
+  nominalDefault: number;
+  judulDefault: string;
+  metodePembayaran?: MetodePembayaran[]; // daftar metode bayar yang tampil ke warga
+  reminderAktif?: boolean;               // untuk Task 7 — reminder otomatis bulanan
+  hariReminder?: number;                 // tanggal kirim reminder (1-28, default 1)
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;
@@ -551,3 +928,36 @@ export interface ImportAnalysisResult {
 }
 
 
+
+// =====================================================================
+// PENGAJUAN PERUBAHAN KK — Warga mengajukan, pengurus approve
+// =====================================================================
+
+export type JenisPengajuanKK = 'UBAH_NOMOR_KK' | 'HAPUS_ANGGOTA';
+export type StatusPengajuanKK = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+
+/** Satu baris pengajuan perubahan KK (tabel kk_pengajuan_rt004). */
+export interface PengajuanKK {
+  id: string;
+  wargaId: string;              // id warga yang mengajukan (warga_rt004.id)
+  namaPengaju?: string;         // nama warga pengaju (join)
+  jenis: JenisPengajuanKK;
+  nomorKKBaru?: string | null;  // untuk UBAH_NOMOR_KK
+  anggotaTargetId?: string | null; // untuk HAPUS_ANGGOTA (warga_rt004.id)
+  namaAnggotaTarget?: string;   // nama anggota yang ingin dihapus (join)
+  alasan: string;
+  status: StatusPengajuanKK;
+  ditambahkanOlehWargaId?: string | null; // auth.uid warga yang menambahkan anggota tsb
+  diajukanAt: string;
+  direviewAt?: string | null;
+  direviewOleh?: string | null;
+  catatanAdmin?: string | null;
+}
+
+/** Input untuk mengajukan perubahan KK dari portal warga. */
+export interface PengajuanKKInput {
+  jenis: JenisPengajuanKK;
+  nomorKKBaru?: string;
+  anggotaTargetId?: string;
+  alasan: string;
+}

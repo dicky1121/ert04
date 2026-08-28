@@ -17,7 +17,6 @@ import {
 import { AuditLog, CurrentUser } from '../types';
 import { storageService } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
-import * as XLSX from 'xlsx';
 import { statusBadge } from '../utils/statusBadge';
 
 interface AuditLogViewProps {
@@ -72,7 +71,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ currentUser }) => {
     setLogs([]);
   };
 
-  const handleExportLogs = () => {
+  const handleExportLogs = async () => {
+    // Dynamic import: pustaka spreadsheet (±425 kB) hanya diunduh saat pengurus
+    // benar-benar menekan Ekspor, bukan saat halaman ini dibuka.
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const rows = logs.map((l, i) => ({
       No: i + 1,
