@@ -20,6 +20,7 @@ import {
 import { PendaftaranWargaInput, StatusPendaftaranWarga } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { isWeakPin } from '../services/authService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface DaftarWargaModalProps {
   onClose: () => void;
@@ -112,6 +113,7 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
   const [isChecking, setIsChecking] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   // Simpan draft setiap kali form berubah (agar tidak hilang bila HP mati / offline).
   useEffect(() => {
@@ -229,6 +231,7 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"

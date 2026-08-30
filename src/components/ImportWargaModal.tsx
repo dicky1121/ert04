@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { ImportAnalysisResult, DetectedSheetInfo, ImportPreviewRow, SheetColumnMapping } from '../types';
 import { storageService, formatDateDDMMYYYY } from '../services/storage';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface ImportWargaModalProps {
   isOpen: boolean;
@@ -67,6 +68,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
   // Warga Tetap Copy-Paste / Input State
   const [pastedTetapText, setPastedTetapText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose, isOpen);
 
   const samplePengontrak5Col = `NO\tNAMA LENGKAP\tNO NIK / KK\tTTL\tKETERANGAN
 1\tWARGA CONTOH 01\t\tKota Contoh, 01-01-1990\tKONTRAKAN CONTOH A
@@ -253,6 +255,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

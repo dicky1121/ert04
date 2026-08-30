@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertCircle, CheckCircle2, Copy, MegaphoneOff, Send, X } from 'lucide-react';
 import { KategoriPengaduan } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface PengaduanWargaModalProps {
   onClose: () => void;
@@ -30,6 +31,12 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
   const [error, setError] = useState('');
   const [tiket, setTiket] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+
+  // Dua overlay bergantian (form → bukti tiket). Masing-masing punya ref sendiri
+  // dengan penanda `aktif` supaya focus trap ikut berpindah saat tiket terbit —
+  // satu ref bersama akan menggantung ke elemen lama yang sudah dilepas DOM.
+  const formRef = useModalDismiss<HTMLDivElement>(onClose, !tiket);
+  const suksesRef = useModalDismiss<HTMLDivElement>(onClose, Boolean(tiket));
 
   const handleCopy = async () => {
     try {
@@ -87,6 +94,7 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
     return (
       <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center">
         <div
+          ref={suksesRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="pengaduan-sukses-title"
@@ -136,6 +144,7 @@ export const PengaduanWargaModal: React.FC<PengaduanWargaModalProps> = ({ onClos
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center">
       <div
+        ref={formRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pengaduan-title"

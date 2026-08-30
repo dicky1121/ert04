@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EWS_JENIS_KEJADIAN, JenisKejadianEWS, LaporanEWSInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSLaporanModalProps {
   isOpen: boolean;
@@ -94,12 +95,15 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
     onClose();
   };
 
+  const dialogRef = useModalDismiss<HTMLDivElement>(handleClose, isOpen);
+
   if (!isOpen) return null;
 
   const selectedJenis = EWS_JENIS_KEJADIAN.find(j => j.value === jenisKejadian);
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"

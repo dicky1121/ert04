@@ -693,7 +693,7 @@ export default function App() {
           <span>{syncState.message || 'Menghubungkan ke Supabase Cloud...'}</span>
         </div>
       )}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main id="konten-utama" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {activeTab === 'dashboard' && (
           <DashboardView
             wargaList={wargaList}

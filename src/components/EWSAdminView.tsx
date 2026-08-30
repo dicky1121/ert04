@@ -21,6 +21,7 @@ import {
   StatusEWS,
 } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSAdminViewProps {
   currentUser: CurrentUser;
@@ -63,28 +64,34 @@ const formatWaktu = (iso: string): string => {
 };
 
 // ── komponen foto lightbox ────────────────────────────────────────────────────
-const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    onClick={onClose}
-    role="dialog"
-    aria-label="Foto laporan"
-  >
-    <button
-      className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+  const ref = useModalDismiss<HTMLDivElement>(onClose);
+  return (
+    <div
+      ref={ref}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
-      aria-label="Tutup foto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto laporan"
     >
-      <X className="w-5 h-5" />
-    </button>
-    <img
-      src={url}
-      alt="Foto laporan EWS"
-      className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-);
+      <button
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        onClick={onClose}
+        aria-label="Tutup foto"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <img
+        src={url}
+        alt="Foto laporan EWS"
+        loading="lazy"
+        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
 
 // ── komponen utama ────────────────────────────────────────────────────────────
 export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {

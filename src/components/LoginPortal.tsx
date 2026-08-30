@@ -692,12 +692,12 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-3 sm:p-6 lg:p-8 relative selection:bg-emerald-500 selection:text-white">
         <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none"></div>
-        <div className="relative z-10 w-full flex flex-col items-center">
+        <main id="konten-utama" tabIndex={-1} className="relative z-10 w-full flex flex-col items-center">
           {cardContent}
           <p className="text-center text-slate-500 text-xs mt-6">
             &copy; {new Date().getFullYear()} Pemerintah Kelurahan Jatimulya &bull; Rukun Tetangga 004 Rukun Warga 007
           </p>
-        </div>
+        </main>
         {showDaftar && <DaftarWargaModal mode="akun" onClose={() => setShowDaftar(false)} />}
 
         {/* ── Popup Login (muncul saat tombol "Masuk ke Portal" di panel info RT diklik) ── */}

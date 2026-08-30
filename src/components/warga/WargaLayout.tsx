@@ -49,6 +49,7 @@ import {
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
 import { hitungRingkasan } from '../../utils/keuangan';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { BekasiLogo } from '../BekasiLogo';
 import { PublicSuratForm } from '../PublicSuratForm';
 import { LacakPengajuanModal } from '../LacakPengajuanModal';
@@ -210,9 +211,10 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const inputCls =
     'w-full p-2.5 border border-slate-300 rounded-xl text-sm text-slate-900 tracking-[0.3em] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 bg-emerald-600">
@@ -312,9 +314,10 @@ const PerbaruiKKModal: React.FC<{
   };
 
   const inputCls = 'w-full p-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 bg-slate-50 focus:bg-white transition';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
         <div className="flex items-center gap-3 px-5 py-4 bg-blue-600">
@@ -853,7 +856,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
       </header>
 
       {/* Konten */}
-      <main className="mx-auto max-w-2xl px-4 py-5 pb-28">{renderContent()}</main>
+      <main id="konten-utama" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-5 pb-28">{renderContent()}</main>
 
       {/* Bottom navigation — 4 tab + FAB "Surat" di slot tengah (tetap 5 kolom).
           `overflow-visible` wajib agar tonjolan FAB tidak terpotong. */}

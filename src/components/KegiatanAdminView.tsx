@@ -20,6 +20,7 @@ import {
 import { CurrentUser, Kegiatan, KegiatanInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface KegiatanAdminViewProps {
   currentUser: CurrentUser;
@@ -50,28 +51,34 @@ const kosongInput = (): KegiatanInput => ({
 });
 
 // ── modal foto (lightbox) ──────────────────────────────────────────────────────
-const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
-  <div
-    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    onClick={onClose}
-    role="dialog"
-    aria-label="Foto kegiatan"
-  >
-    <button
-      className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+  const ref = useModalDismiss<HTMLDivElement>(onClose);
+  return (
+    <div
+      ref={ref}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
-      aria-label="Tutup foto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto kegiatan"
     >
-      <X className="w-5 h-5" />
-    </button>
-    <img
-      src={url}
-      alt="Foto kegiatan"
-      className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-);
+      <button
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        onClick={onClose}
+        aria-label="Tutup foto"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <img
+        src={url}
+        alt="Foto kegiatan"
+        loading="lazy"
+        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
 
 // ── modal form tambah / edit ────────────────────────────────────────────────────
 const inputCls =

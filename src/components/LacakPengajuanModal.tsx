@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Clock3, Search, X, XCircle } from 'lucide-re
 import { StatusPengajuanPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface LacakPengajuanModalProps {
   onClose: () => void;
@@ -44,6 +45,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState('');
   const [hasil, setHasil] = useState<StatusPengajuanPublik | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +79,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="lacak-pengajuan-title"

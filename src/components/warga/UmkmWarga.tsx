@@ -36,6 +36,7 @@ import {
 } from '../umkm/UmkmForms';
 import { TokoKelolaCard, rentangHargaProduk } from '../umkm/TokoKelolaCard';
 import { buatPesananWa, formatRupiah, hargaEfektif, hitungSubtotal } from '../../utils/pesananWa';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 
 interface UmkmWargaProps {
   currentUser: CurrentUser;
@@ -91,9 +92,11 @@ const PesananModal: React.FC<{
   const inputCls =
     'w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition';
   const labelCls = 'block text-xs font-bold text-slate-600 mb-1.5';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
