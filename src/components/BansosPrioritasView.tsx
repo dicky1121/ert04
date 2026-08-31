@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Warga, RTConfig } from '../types';
 import { calculateDemographics } from '../services/storage';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface BansosPrioritasViewProps {
   wargaList: Warga[];
@@ -37,6 +38,9 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
   const [targetWarga, setTargetWarga] = useState<Warga | null>(null);
   const [newBansosStatus, setNewBansosStatus] = useState('PKH');
   const [newKeterangan, setNewKeterangan] = useState('');
+
+  // Escape, focus trap, dan pemulihan fokus untuk modal ubah status bansos.
+  const editDialogRef = useModalDismiss<HTMLDivElement>(() => setIsEditModalOpen(false), isEditModalOpen);
 
   // Statistics
   const stats = useMemo(() => {
@@ -365,6 +369,7 @@ export const BansosPrioritasView: React.FC<BansosPrioritasViewProps> = ({
       {/* EDIT BANSOS MODAL */}
       {isEditModalOpen && targetWarga && (
         <div
+      ref={editDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

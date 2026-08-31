@@ -21,6 +21,7 @@ import { DocUploadModal, getSavedDocTemplate, DocTemplateStructure } from './Doc
 import { formatDateDDMMYYYY } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 /**
  * Badge status pengajuan surat — dipakai di tabel (desktop) & kartu (mobile).
@@ -322,6 +323,10 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
   // Dialog konfirmasi & notifikasi bergaya aplikasi (pengganti confirm/alert bawaan browser)
   const { confirm: askConfirm, notify, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk dua overlay di view ini.
+  const rejectDialogRef = useModalDismiss<HTMLDivElement>(() => setIsRejectOpen(false), isRejectOpen);
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
 
   const handleDeleteSurat = async (surat: SuratPengantar) => {
     const setuju = await askConfirm({
@@ -644,6 +649,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       {/* REJECT MODAL */}
       {isRejectOpen && (
         <div
+      ref={rejectDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -683,6 +689,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       {/* ======================================================== */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">

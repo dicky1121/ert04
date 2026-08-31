@@ -23,6 +23,7 @@ import { BekasiLogo } from './BekasiLogo';
 import { storageService } from '../services/storage';
 import { authService } from '../services/authService';
 import { DaftarWargaModal } from './DaftarWargaModal';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 
 interface LoginPortalProps {
@@ -68,6 +69,12 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
   const [showPin, setShowPin] = useState(false);
   const [showDaftar, setShowDaftar] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  // Escape, focus trap, dan pemulihan fokus untuk popup login di halaman depan.
+  // Pembungkus `role="dialog"` di akhir berkas ini SENGAJA tidak memakai hook:
+  // itu layar login sendiri (bukan overlay di atas konten), jadi tidak ada
+  // pemicu untuk dikembalikan fokusnya dan tidak ada apa pun untuk ditutup.
+  const loginPopupRef = useModalDismiss<HTMLDivElement>(() => setShowLoginPopup(false), showLoginPopup);
 
   const switchMode = (mode: 'warga' | 'pengurus') => {
     setPortalMode(mode);
@@ -703,6 +710,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
         {/* ── Popup Login (muncul saat tombol "Masuk ke Portal" di panel info RT diklik) ── */}
         {showLoginPopup && (
           <div
+            ref={loginPopupRef}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-150"
             onClick={(e) => { if (e.target === e.currentTarget) setShowLoginPopup(false); }}
             role="dialog"

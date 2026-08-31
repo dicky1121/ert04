@@ -21,6 +21,7 @@ import {
 import { KartuKeluarga, Warga, RTConfig } from '../types';
 import { calculateDemographics, formatDateDDMMYYYY, maskNik, maskKK, storageService } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface DataKKViewProps {
   kkList: KartuKeluarga[];
@@ -73,6 +74,10 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
   // Dialog konfirmasi bergaya aplikasi (pengganti window.confirm)
   const { confirm: askConfirm, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk dua overlay di view ini.
+  const detailDialogRef = useModalDismiss<HTMLDivElement>(() => setIsDetailOpen(false), isDetailOpen);
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
 
   const handleDeleteKK = async (kk: KartuKeluarga) => {
     const setuju = await askConfirm({
@@ -475,6 +480,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       {/* DETAIL MODAL: LIHAT ANGGOTA KELUARGA */}
       {isDetailOpen && currentKK && (
         <div
+      ref={detailDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -611,6 +617,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       {/* FORM MODAL: INPUT / EDIT KARTU KELUARGA */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

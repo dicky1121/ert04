@@ -25,6 +25,7 @@ import {
 import { Warga, KartuKeluarga, RTConfig, ImportPreviewRow } from '../types';
 import { calculateDemographics, storageService, formatDateDDMMYYYY, maskNik, maskKK, maskPhone } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 // Lazy-load modal import warga (~1000 baris + parser Excel) — chunk hanya dimuat
 // saat modal import benar-benar dibuka pengguna.
@@ -100,6 +101,16 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
   // Dialog konfirmasi bergaya aplikasi (pengganti window.confirm)
   const { confirm: askConfirm, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk tiga overlay di view ini.
+  // Masing-masing punya ref sendiri dengan penanda `aktif` karena ketiganya bisa
+  // dibuka/tutup independen.
+  const detailDialogRef = useModalDismiss<HTMLDivElement>(() => setIsDetailOpen(false), isDetailOpen);
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
+  const clearDummyDialogRef = useModalDismiss<HTMLDivElement>(
+    () => setIsConfirmClearDummyOpen(false),
+    isConfirmClearDummyOpen
+  );
 
   const handleDeleteWarga = async (w: Warga) => {
     const setuju = await askConfirm({
@@ -618,6 +629,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       {/* DETAIL MODAL WARGA */}
       {isDetailOpen && currentWarga && (
         <div
+      ref={detailDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -742,6 +754,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       {/* FORM MODAL WARGA (TAMBAH / EDIT) */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -1057,6 +1070,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       {/* Confirmation Modal to Clear Dummy Data */}
       {isConfirmClearDummyOpen && (
         <div
+      ref={clearDummyDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

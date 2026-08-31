@@ -33,16 +33,29 @@ npm run lint && npm run build
 
 ## Fase 1 — Bug nyata & aksesibilitas
 
-- [ ] A1 — Skip-link rusak: `index.html:27` menunjuk `#konten-utama` yang tidak
+- [x] A1 — Skip-link rusak: `index.html:27` menunjuk `#konten-utama` yang tidak
       ada. Tambah `id="konten-utama"` + `tabIndex={-1}` ke `<main>` di
       `src/App.tsx:696` dan `src/components/warga/WargaLayout.tsx:856`
-- [ ] A2/A3 — Buat `src/hooks/useModalDismiss.ts` (Escape → close, autofocus,
+      → selesai, plus `LoginPortal.tsx:702`. Diuji di browser: klik skip-link
+      memindahkan fokus ke `<main id="konten-utama">`
+- [x] A2/A3 — Buat `src/hooks/useModalDismiss.ts` (Escape → close, autofocus,
       focus trap Tab/Shift+Tab, focus return ke pemicu). Ekstrak dari pola yang
       sudah terbukti di `ConfirmDialog.tsx:57-63`. Terapkan ke **25 berkas**
       modal — saat ini hanya `ConfirmDialog` & `SearchModal` yang tangani Escape.
       Scroll-lock JANGAN disentuh: aturan `:has()` di `index.css:113` sudah ada
-- [ ] A6 — Lengkapi `aria-modal="true"` pada 1 dialog yang belum punya (27
+      → selesai: hook dipasang di **35 dari 36 overlay** pada 27 berkas. Satu
+      yang dilewati sengaja: pembungkus `role="dialog"` layar login di
+      `LoginPortal.tsx` (itu layar penuh, bukan overlay — tidak ada pemicu untuk
+      dikembalikan fokusnya dan tidak ada apa pun untuk ditutup).
+      Hook juga menyimpan tumpukan modal aktif supaya modal bertumpuk
+      (`ConfirmDialog` di atas modal form) tidak tertutup dua-duanya oleh satu
+      Escape — semua listener ada di `document`, jadi `stopPropagation()` saja
+      tidak cukup.
+- [x] A6 — Lengkapi `aria-modal="true"` pada 1 dialog yang belum punya (27
       `role="dialog"` vs 26 `aria-modal`) agar aturan `:has()` berlaku penuh
+      → ternyata **3** yang kurang, bukan 1: `EWSAdminView`, `KegiatanAdminView`,
+      `umkm/UmkmForms` (`FotoLightbox`). Sekarang 36 `role="dialog"` = 36
+      `aria-modal`
 - [ ] A4 — **182 `<label>` tanpa `htmlFor`** → input tak bernama bagi screen
       reader. Pasangkan `id` + `htmlFor` per berkas. Urutan: `DataWargaView`
       (pola contoh di baris 770-782) → `DataKKView` → `DaftarWargaModal` →

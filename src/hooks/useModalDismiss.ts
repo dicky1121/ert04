@@ -41,6 +41,17 @@ const SELECTOR_FOKUSABEL = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+/**
+ * Tumpukan modal yang sedang aktif, urut dari terluar ke terdalam.
+ *
+ * Semua listener dipasang di `document`, jadi `stopPropagation()` tidak bisa
+ * melindungi modal luar dari modal dalam — listener pada node yang sama tetap
+ * jalan semua. Tanpa tumpukan ini, satu Escape saat `ConfirmDialog` terbuka di
+ * atas modal form akan menutup keduanya sekaligus. Hanya penanda terakhir
+ * (modal paling atas) yang boleh menanggapi Escape & Tab.
+ */
+const tumpukanModal: object[] = [];
+
 export function useModalDismiss<T extends HTMLElement = HTMLDivElement>(
   onClose: () => void,
   aktif: boolean = true
@@ -64,6 +75,10 @@ export function useModalDismiss<T extends HTMLElement = HTMLDivElement>(
     // Simpan pemicu SEBELUM fokus dipindah, supaya bisa dipulihkan saat tutup.
     const pemicu = document.activeElement as HTMLElement | null;
 
+    // Modal ini jadi yang paling atas selama terpasang.
+    const penanda = {};
+    tumpukanModal.push(penanda);
+
     const daftarFokusabel = () =>
       Array.from(container.querySelectorAll<HTMLElement>(SELECTOR_FOKUSABEL)).filter(
         // `offsetParent === null` menyaring elemen yang tersembunyi (mis. tab
@@ -82,6 +97,9 @@ export function useModalDismiss<T extends HTMLElement = HTMLDivElement>(
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Modal yang tertimpa modal lain diam saja.
+      if (tumpukanModal[tumpukanModal.length - 1] !== penanda) return;
+
       if (e.key === 'Escape') {
         e.stopPropagation();
         onCloseRef.current();
@@ -118,6 +136,8 @@ export function useModalDismiss<T extends HTMLElement = HTMLDivElement>(
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
+      const posisi = tumpukanModal.indexOf(penanda);
+      if (posisi !== -1) tumpukanModal.splice(posisi, 1);
       // Pulihkan fokus ke pemicu, tapi hanya bila elemennya masih ada di
       // dokumen — kalau modal ditutup bersamaan dengan hilangnya baris yang
       // membukanya, memaksa fokus ke elemen lepas akan melempar fokus ke <body>.

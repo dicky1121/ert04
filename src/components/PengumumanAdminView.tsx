@@ -19,6 +19,7 @@ import {
 import { CurrentUser, KATEGORI_PENGUMUMAN_OPSI, Pengumuman, PengumumanInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface PengumumanAdminViewProps {
   currentUser: CurrentUser;
@@ -126,8 +127,11 @@ const PengumumanFormModal: React.FC<{
     if (ok) onClose();
   };
 
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
+
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { MutasiPenduduk, Warga, RTConfig, JenisMutasi } from '../types';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface MutasiPendudukViewProps {
   mutasiList: MutasiPenduduk[];
@@ -52,6 +53,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
 
   // Dialog konfirmasi & notifikasi bergaya aplikasi (pengganti confirm/alert bawaan browser)
   const { confirm: askConfirm, notify, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk modal form mutasi.
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
 
   const handleDeleteMutasi = async (item: MutasiPenduduk) => {
     const setuju = await askConfirm({
@@ -368,6 +372,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
       {/* FORM MODAL: CATAT MUTASI */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
