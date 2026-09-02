@@ -1,25 +1,16 @@
 import React, { useMemo } from 'react';
 import { 
   Users, 
-  UserCheck, 
   Home, 
   FileText, 
-  HeartHandshake, 
   Baby, 
   UserPlus, 
-  PlusCircle, 
-  ShieldAlert, 
   FileSpreadsheet, 
-  TrendingUp, 
-  Sparkles,
   ArrowRight,
-  CheckCircle2,
-  Clock,
-  ArrowLeftRight
+  CheckCircle2
 } from 'lucide-react';
 import { KartuKeluarga, Warga, SuratPengantar, MutasiPenduduk, RTConfig, CurrentUser } from '../types';
 import { calculateDemographics } from '../services/storage';
-import { BekasiLogo } from './BekasiLogo';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
 
 interface DashboardViewProps {
@@ -43,7 +34,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   suratList,
   mutasiList,
   config,
-  currentUser,
+  currentUser: _currentUser,
   onNavigateTab,
   onQuickAddKK,
   onQuickAddWarga,

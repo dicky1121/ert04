@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, Loader2, Send, X } from 'lucide-react';
 import { JenisSurat, PengajuanSuratPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface PublicSuratFormProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ export const PublicSuratForm: React.FC<PublicSuratFormProps> = ({ onClose }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [reference, setReference] = useState('');
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
   const update = (field: keyof PengajuanSuratPublik, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
   const submit = async (event: React.FormEvent) => {
@@ -60,7 +62,7 @@ export const PublicSuratForm: React.FC<PublicSuratFormProps> = ({ onClose }) => 
   const inputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label="Form pengajuan surat warga">
+    <div ref={dialogRef} className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label="Form pengajuan surat warga">
       <div className="mx-auto my-3 w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-2xl sm:my-8">
         <header className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">

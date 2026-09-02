@@ -26,6 +26,7 @@ import { supabaseService } from '../services/supabaseService';
 import { formatRupiah, hitungRingkasan, namaBulan, formatTanggalRingkas } from '../utils/keuangan';
 import { ROLE_PENGURUS_KEUANGAN } from '../utils/roles';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface KeuanganAdminViewProps {
   currentUser: CurrentUser;
@@ -91,9 +92,11 @@ const KeuanganFormModal: React.FC<{
   };
 
   const isMasuk = form.jenis === 'MASUK';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
@@ -127,7 +130,7 @@ const KeuanganFormModal: React.FC<{
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
           {/* Jenis (segmented) */}
           <div>
-            <label className={labelCls}>Jenis transaksi *</label>
+            <p className={labelCls}>Jenis transaksi *</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -161,7 +164,7 @@ const KeuanganFormModal: React.FC<{
               id="keu-jumlah"
               type="text"
               inputMode="numeric"
-              value={form.jumlah ? form.jumlah.toLocaleString('id-ID') : ''}
+              value={form.jumlah ? formatRupiah(form.jumlah) : ''}
               onChange={e => handleJumlah(e.target.value)}
               placeholder="mis. 50.000"
               className={`${inputCls} font-bold`}

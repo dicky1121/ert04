@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, CheckCheck, Trash2, X, FileText, ArrowLeftRight, UserCheck, AlertCircle } from 'lucide-react';
 import { Notifikasi } from '../types';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onClearAll,
   onNavigateTab
 }) => {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose, isOpen);
+
   if (!isOpen) return null;
 
   const unreadList = notifikasiList.filter(n => !n.dibaca);
@@ -40,6 +43,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16 bg-slate-900/40 backdrop-blur-xs"

@@ -4,6 +4,7 @@ import { CurrentUser, UserRole } from '../types';
 import { BekasiLogo } from './BekasiLogo';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storage';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const cloudAuthAvailable = authService.isCloudAuthAvailable();
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose, isOpen);
 
   if (!isOpen) return null;
 
@@ -67,6 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
@@ -92,9 +95,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSwitch} className="p-5 space-y-4 overflow-y-auto">
           <div>
-            <label className="block text-xs font-bold text-slate-800 mb-2">
+            <p className="block text-xs font-bold text-slate-800 mb-2">
               Pilih Hak Akses Pengurus:
-            </label>
+            </p>
             <div className="space-y-2.5">
               {/* Role 1: Ketua RT */}
               <label
@@ -175,13 +178,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-bold text-slate-700">
+              <label htmlFor="auth-modal-password" className="block text-xs font-bold text-slate-700">
                 {cloudAuthAvailable ? 'Password akun tujuan' : 'PIN / password lokal'}
               </label>
             </div>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
+                id="auth-modal-password"
                 type="password"
                 autoComplete="current-password"
                 required

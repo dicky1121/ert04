@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { AlertTriangle, Info, Trash2, X } from 'lucide-react';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 export type ConfirmTone = 'danger' | 'warning' | 'info';
 
@@ -30,7 +31,7 @@ const toneStyles: Record<ConfirmTone, { icon: React.ReactNode; iconWrap: string;
   info: {
     icon: <Info className="w-5 h-5" />,
     iconWrap: 'bg-emerald-100 text-emerald-800',
-    action: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    action: 'bg-brand-600 hover:bg-brand-700 text-white'
   }
 };
 
@@ -50,22 +51,23 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const styles = toneStyles[tone];
   const actionRef = useRef<HTMLButtonElement>(null);
 
+  // Escape, focus trap, dan pemulihan fokus ditangani hook bersama.
+  const dialogRef = useModalDismiss<HTMLDivElement>(() => onResolve(false));
+
   // Fokus otomatis ke tombol aksi agar dialog bisa dioperasikan lewat keyboard.
+  // Effect ini dideklarasikan setelah hook di atas, jadi fokusnya menang atas
+  // fokus awal generik hook (yang akan mendarat di tombol tutup).
   React.useEffect(() => {
     actionRef.current?.focus();
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onResolve(false);
-  };
-
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-message"
-      onKeyDown={handleKeyDown}
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
     >
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150">

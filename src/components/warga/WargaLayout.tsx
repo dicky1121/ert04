@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   CurrentUser,
   Kegiatan,
@@ -49,6 +50,8 @@ import {
 import { supabaseService } from '../../services/supabaseService';
 import { authService, isWeakPin } from '../../services/authService';
 import { hitungRingkasan } from '../../utils/keuangan';
+import { formatTanggalPanjang } from '../../utils/tanggal';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 import { BekasiLogo } from '../BekasiLogo';
 import { PublicSuratForm } from '../PublicSuratForm';
 import { LacakPengajuanModal } from '../LacakPengajuanModal';
@@ -60,6 +63,7 @@ import { UmkmWarga } from './UmkmWarga';
 import { KeuanganWarga } from './KeuanganWarga';
 import { IuranWarga } from './IuranWarga';
 import { RiwayatWarga } from './RiwayatWarga';
+import { container, rise, fadeSlide, tapScale } from './motionPresets';
 
 interface WargaLayoutProps {
   currentUser: CurrentUser;
@@ -93,40 +97,41 @@ const maskNik = (nik?: string): string => {
   return `${nik.slice(0, 6)}${'•'.repeat(6)}${nik.slice(-4)}`;
 };
 
-const formatTanggalKegiatan = (ymd: string): string => {
-  if (!ymd) return '-';
-  const d = new Date(`${ymd}T00:00:00`);
-  if (isNaN(d.getTime())) return ymd;
-  return d.toLocaleDateString('id-ID', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-  });
-};
-
 /** Tab Kegiatan (warga) — daftar kegiatan yang dipublikasikan, read-only. */
-const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({ items, loading }) => (
-  <div className="space-y-3">
-    <div className="px-0.5">
-      <h1 className="text-lg font-black tracking-tight text-slate-900">Kegiatan RT</h1>
-      <p className="text-sm text-slate-500">Jadwal kegiatan, kerja bakti, dan acara lingkungan.</p>
-    </div>
+const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({ items, loading }) => {
+  const reduce = useReducedMotion() ?? false;
+  return (
+    <motion.div
+      variants={container}
+      initial={reduce ? false : 'hidden'}
+      animate="show"
+      className="space-y-3"
+    >
+      <motion.div variants={rise} className="px-0.5">
+        <h1 className="text-lg font-black tracking-tight text-slate-900">Kegiatan RT</h1>
+        <p className="text-sm text-slate-500">Jadwal kegiatan, kerja bakti, dan acara lingkungan.</p>
+      </motion.div>
 
-    {loading ? (
-      <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="text-sm font-medium">Memuat kegiatan…</span>
-      </div>
-    ) : items.length === 0 ? (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-          <CalendarDays className="h-7 w-7" />
-        </span>
-        <h3 className="text-base font-bold text-slate-800">Belum ada kegiatan</h3>
-        <p className="max-w-xs text-sm text-slate-500">Kegiatan yang dijadwalkan pengurus akan tampil di sini.</p>
-      </div>
-    ) : (
-      <div className="space-y-3">
+      {loading ? (
+        <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-sm font-medium">Memuat kegiatan…</span>
+        </div>
+      ) : items.length === 0 ? (
+        <motion.div
+          variants={rise}
+          className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <CalendarDays className="h-7 w-7" />
+          </span>
+          <h3 className="text-base font-bold text-slate-800">Belum ada kegiatan</h3>
+          <p className="max-w-xs text-sm text-slate-500">Kegiatan yang dijadwalkan pengurus akan tampil di sini.</p>
+        </motion.div>
+      ) : (
+        <div className="space-y-3">
         {items.map(k => (
-          <article key={k.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <motion.article key={k.id} variants={rise} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             {k.fotoUrl && (
               <div className="h-40 w-full overflow-hidden bg-slate-100">
                 <img src={k.fotoUrl} alt={k.judul} className="h-full w-full object-cover" loading="lazy" />
@@ -137,7 +142,7 @@ const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
                 <span className="flex items-center gap-1.5">
                   <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
-                  {formatTanggalKegiatan(k.tanggal)}
+                  {formatTanggalPanjang(k.tanggal)}
                 </span>
                 {k.waktu && (
                   <span className="flex items-center gap-1.5">
@@ -156,12 +161,13 @@ const KegiatanWargaPanel: React.FC<{ items: Kegiatan[]; loading: boolean }> = ({
                 <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">{k.deskripsi}</p>
               )}
             </div>
-          </article>
+          </motion.article>
         ))}
       </div>
     )}
-  </div>
-);
+  </motion.div>
+  );
+};
 
 /** Satu tab pada bottom nav (dipakai di kiri & kanan tombol FAB tengah). */
 const NavButton: React.FC<{
@@ -174,11 +180,26 @@ const NavButton: React.FC<{
     <button
       type="button"
       onClick={() => onSelect(item.key)}
-      className={`flex flex-col items-center gap-0.5 py-2.5 transition ${active ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+      className="relative flex flex-col items-center gap-0.5 py-2.5 transition"
       aria-current={active ? 'page' : undefined}
     >
-      <Icon className={`h-5 w-5 ${active ? 'scale-110' : ''} transition-transform`} />
-      <span className="text-[10px] font-bold leading-none">{item.label}</span>
+      {active && (
+        <motion.span
+          layoutId="nav-pill"
+          className="absolute inset-x-3 top-1.5 h-9 rounded-full bg-emerald-50"
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        />
+      )}
+      <motion.span
+        className="relative z-10"
+        animate={active ? { scale: 1.1 } : { scale: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      >
+        <Icon className={`h-5 w-5 ${active ? 'text-emerald-600' : 'text-slate-400'}`} />
+      </motion.span>
+      <span className={`relative z-10 text-[10px] font-bold leading-none ${active ? 'text-emerald-600' : 'text-slate-400'}`}>
+        {item.label}
+      </span>
     </button>
   );
 };
@@ -210,9 +231,10 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const inputCls =
     'w-full p-2.5 border border-slate-300 rounded-xl text-sm text-slate-900 tracking-[0.3em] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 bg-emerald-600">
@@ -227,9 +249,10 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <form onSubmit={submit} className="px-5 py-4 space-y-3">
           <p className="text-xs text-slate-500">Buat PIN baru 6 angka. Jangan gunakan angka berurutan/berulang.</p>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">PIN Baru</label>
+            <label htmlFor="warga-pin-baru" className="block text-xs font-semibold text-slate-700 mb-1">PIN Baru</label>
             <div className="relative">
               <input
+                id="warga-pin-baru"
                 type={show ? 'text' : 'password'}
                 inputMode="numeric"
                 value={pin}
@@ -243,8 +266,9 @@ const GantiPinModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Ulangi PIN Baru</label>
+            <label htmlFor="warga-pin-konfirmasi" className="block text-xs font-semibold text-slate-700 mb-1">Ulangi PIN Baru</label>
             <input
+              id="warga-pin-konfirmasi"
               type={show ? 'text' : 'password'}
               inputMode="numeric"
               value={pin2}
@@ -312,9 +336,10 @@ const PerbaruiKKModal: React.FC<{
   };
 
   const inputCls = 'w-full p-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 bg-slate-50 focus:bg-white transition';
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
         <div className="flex items-center gap-3 px-5 py-4 bg-blue-600">
@@ -331,7 +356,7 @@ const PerbaruiKKModal: React.FC<{
 
           {/* Jenis perubahan */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Jenis Perubahan</label>
+            <p className="block text-xs font-bold text-slate-700 mb-1.5">Jenis Perubahan</p>
             <div className="grid grid-cols-2 gap-2">
               {(['UBAH_NOMOR_KK', 'HAPUS_ANGGOTA'] as const).map(j => (
                 <button
@@ -361,8 +386,9 @@ const PerbaruiKKModal: React.FC<{
           {/* Field UBAH_NOMOR_KK */}
           {jenis === 'UBAH_NOMOR_KK' && (
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Nomor KK Baru (16 digit)</label>
+              <label htmlFor="warga-nomor-kk-baru" className="block text-xs font-bold text-slate-700 mb-1">Nomor KK Baru (16 digit)</label>
               <input
+                id="warga-nomor-kk-baru"
                 type="text"
                 inputMode="numeric"
                 value={nomorKKBaru}
@@ -384,8 +410,9 @@ const PerbaruiKKModal: React.FC<{
 
           {/* Alasan */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan</label>
+            <label htmlFor="warga-alasan-kk" className="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan</label>
             <textarea
+              id="warga-alasan-kk"
               value={alasan}
               onChange={e => setAlasan(e.target.value)}
               placeholder="Jelaskan alasan perubahan secara singkat…"
@@ -597,6 +624,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   }, [isNativeApp]);
 
   const renderContent = () => {
+    const reduce = useReducedMotion() ?? false;
     switch (tab) {
       case 'beranda':
         return (
@@ -624,19 +652,25 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
         );
       case 'layanan':
         return (
-          <div className="space-y-3">
-            <button
+          <motion.div
+            variants={container}
+            initial={reduce ? false : 'hidden'}
+            animate="show"
+            className="space-y-3"
+          >
+            <motion.button
               type="button"
               onClick={() => setTab('beranda')}
+              variants={rise}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
             >
               <ArrowLeft className="h-4 w-4" /> Beranda
-            </button>
-            <h1 className="text-lg font-black tracking-tight text-slate-900 px-0.5">Layanan Warga</h1>
+            </motion.button>
+            <motion.h1 variants={rise} className="text-lg font-black tracking-tight text-slate-900 px-0.5">Layanan Warga</motion.h1>
             {!whatsappNumber && (
-              <p className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-medium text-amber-800">
+              <motion.p variants={rise} className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-medium text-amber-800">
                 Nomor layanan belum tersedia. Beberapa aksi kontak mungkin nonaktif.
-              </p>
+              </motion.p>
             )}
             {services.map((svc) => {
               const Icon = svc.icon;
@@ -654,22 +688,22 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
               );
               const cls = 'group flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-slate-300 hover:shadow-md active:scale-[.99]';
               return svc.onClick ? (
-                <button key={svc.key} type="button" onClick={svc.onClick} className={cls}>
+                <motion.button key={svc.key} type="button" onClick={svc.onClick} variants={rise} whileTap={reduce ? undefined : tapScale} className={cls}>
                   {inner}
-                </button>
+                </motion.button>
               ) : svc.href ? (
-                <a key={svc.key} href={svc.href} target="_blank" rel="noreferrer" className={cls}>
+                <motion.a key={svc.key} href={svc.href} target="_blank" rel="noreferrer" variants={rise} className={cls}>
                   {inner}
-                </a>
+                </motion.a>
               ) : (
-                <div key={svc.key} className={cls + ' opacity-60'} title="Kontak belum tersedia">
+                <motion.div key={svc.key} variants={rise} className={cls + ' opacity-60'} title="Kontak belum tersedia">
                   {inner}
-                </div>
+                </motion.div>
               );
             })}
 
             {/* Kontak & Info Sekretariat (paritas Sapa Warga) */}
-            <section className="mt-2 rounded-3xl border border-slate-200 bg-white p-4">
+            <motion.section variants={rise} className="mt-2 rounded-3xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                   <Building2 className="h-4 w-4" />
@@ -708,8 +742,8 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
                   </div>
                 </div>
               </dl>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         );
       case 'kegiatan':
         return (
@@ -765,9 +799,14 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
         );
       case 'profil':
         return (
-          <div className="space-y-4">
-            <h1 className="text-lg font-black tracking-tight text-slate-900 px-0.5">Profil Saya</h1>
-            <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <motion.div
+            variants={container}
+            initial={reduce ? false : 'hidden'}
+            animate="show"
+            className="space-y-4"
+          >
+            <motion.h1 variants={rise} className="text-lg font-black tracking-tight text-slate-900 px-0.5">Profil Saya</motion.h1>
+            <motion.div variants={rise} className="rounded-3xl border border-slate-200 bg-white p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-xl font-black text-white">
                   {(currentUser.nama || 'W').charAt(0).toUpperCase()}
@@ -789,11 +828,13 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
                   <dd className="font-semibold text-slate-800">{currentUser.nomorHp || '-'}</dd>
                 </div>
               </dl>
-            </div>
+            </motion.div>
 
-            <button
+            <motion.button
               type="button"
               onClick={() => setOpenPerbaruiKK(true)}
+              variants={rise}
+              whileTap={reduce ? undefined : tapScale}
               className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:shadow-md"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
@@ -804,11 +845,13 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
                 <span className="text-xs text-slate-500">Ajukan perubahan nomor KK atau hapus anggota</span>
               </span>
               <ArrowRight className="h-4 w-4 text-slate-400" />
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               onClick={() => setOpenGantiPin(true)}
+              variants={rise}
+              whileTap={reduce ? undefined : tapScale}
               className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:shadow-md"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -819,20 +862,22 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
                 <span className="text-xs text-slate-500">Perbarui PIN 6 angka Anda</span>
               </span>
               <ArrowRight className="h-4 w-4 text-slate-400" />
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               onClick={onLogout}
+              variants={rise}
+              whileTap={reduce ? undefined : tapScale}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700 transition hover:bg-rose-100"
             >
               <LogOut className="h-4 w-4" /> Keluar
-            </button>
+            </motion.button>
 
-            <p className="pt-2 text-center text-[11px] text-slate-400">
+            <motion.p variants={rise} className="pt-2 text-center text-[11px] text-slate-400">
               Portal Warga RT {rt} RW {rw} · E-RT 2026
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
         );
     }
   };
@@ -840,7 +885,12 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-emerald-500 selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-lg pt-safe">
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-lg pt-safe"
+      >
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-1">
             <BekasiLogo className="h-7 w-7 object-contain" />
@@ -850,10 +900,22 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
             <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Kelurahan Jatimulya</p>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Konten */}
-      <main className="mx-auto max-w-2xl px-4 py-5 pb-28">{renderContent()}</main>
+      <main id="konten-utama" tabIndex={-1} className="mx-auto max-w-2xl px-4 py-5 pb-28">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            variants={fadeSlide}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
 
       {/* Bottom navigation — 4 tab + FAB "Surat" di slot tengah (tetap 5 kolom).
           `overflow-visible` wajib agar tonjolan FAB tidak terpotong. */}
@@ -865,14 +927,16 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
 
           {/* Slot tengah: tombol menonjol untuk aksi paling sering — ajukan surat */}
           <div className="flex flex-col items-center justify-end">
-            <button
+            <motion.button
               type="button"
               onClick={() => setOpenSurat(true)}
               aria-label="Ajukan Surat Pengantar"
-              className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-white transition active:scale-95 hover:bg-emerald-700"
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-white transition hover:bg-emerald-700"
             >
               <FileText className="h-6 w-6" />
-            </button>
+            </motion.button>
             <span className="pb-2.5 pt-1 text-[10px] font-bold leading-none text-slate-500">Surat</span>
           </div>
 

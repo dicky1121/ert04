@@ -16,23 +16,52 @@ import {
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
-import { DataWargaView } from './components/DataWargaView';
-import { DataKKView } from './components/DataKKView';
-import { LayananSuratView } from './components/LayananSuratView';
-import { MutasiPendudukView } from './components/MutasiPendudukView';
-import { BansosPrioritasView } from './components/BansosPrioritasView';
-
-import { AuditLogView } from './components/AuditLogView';
-import { EWSAdminView } from './components/EWSAdminView';
 import { EWSDetailModal } from './components/EWSDetailModal';
 import { VerifikasiSurat } from './components/VerifikasiSurat';
-import { PengaduanAdminView } from './components/PengaduanAdminView';
-import { PengumumanAdminView } from './components/PengumumanAdminView';
-import { KegiatanAdminView } from './components/KegiatanAdminView';
-import { UmkmAdminView } from './components/UmkmAdminView';
-import { KeuanganAdminView } from './components/KeuanganAdminView';
-import { IuranAdminView } from './components/IuranAdminView';
-import { PengajuanWargaAdminView } from './components/PengajuanWargaAdminView';
+
+// Lazy-load view berat — hanya dimuat saat tab pertama kali dibuka.
+const DataWargaView = lazy(() =>
+  import('./components/DataWargaView').then((m) => ({ default: m.DataWargaView }))
+);
+const DataKKView = lazy(() =>
+  import('./components/DataKKView').then((m) => ({ default: m.DataKKView }))
+);
+const LayananSuratView = lazy(() =>
+  import('./components/LayananSuratView').then((m) => ({ default: m.LayananSuratView }))
+);
+const MutasiPendudukView = lazy(() =>
+  import('./components/MutasiPendudukView').then((m) => ({ default: m.MutasiPendudukView }))
+);
+const BansosPrioritasView = lazy(() =>
+  import('./components/BansosPrioritasView').then((m) => ({ default: m.BansosPrioritasView }))
+);
+const AuditLogView = lazy(() =>
+  import('./components/AuditLogView').then((m) => ({ default: m.AuditLogView }))
+);
+const EWSAdminView = lazy(() =>
+  import('./components/EWSAdminView').then((m) => ({ default: m.EWSAdminView }))
+);
+const PengaduanAdminView = lazy(() =>
+  import('./components/PengaduanAdminView').then((m) => ({ default: m.PengaduanAdminView }))
+);
+const PengumumanAdminView = lazy(() =>
+  import('./components/PengumumanAdminView').then((m) => ({ default: m.PengumumanAdminView }))
+);
+const KegiatanAdminView = lazy(() =>
+  import('./components/KegiatanAdminView').then((m) => ({ default: m.KegiatanAdminView }))
+);
+const UmkmAdminView = lazy(() =>
+  import('./components/UmkmAdminView').then((m) => ({ default: m.UmkmAdminView }))
+);
+const KeuanganAdminView = lazy(() =>
+  import('./components/KeuanganAdminView').then((m) => ({ default: m.KeuanganAdminView }))
+);
+const IuranAdminView = lazy(() =>
+  import('./components/IuranAdminView').then((m) => ({ default: m.IuranAdminView }))
+);
+const PengajuanWargaAdminView = lazy(() =>
+  import('./components/PengajuanWargaAdminView').then((m) => ({ default: m.PengajuanWargaAdminView }))
+);
 import { SearchModal } from './components/SearchModal';
 import { NotificationModal } from './components/NotificationModal';
 import { AuthModal } from './components/AuthModal';
@@ -42,8 +71,6 @@ import { authService } from './services/authService';
 import { CloudSyncState, supabaseService } from './services/supabaseService';
 import { AlertTriangle, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 
-// Lazy-load view berat (code-splitting): IntegrasiView (~800 baris) hanya dimuat
-// saat tab "Integrasi" pertama kali dibuka — mengecilkan bundle awal.
 const IntegrasiView = lazy(() =>
   import('./components/IntegrasiView').then((m) => ({ default: m.IntegrasiView }))
 );
@@ -693,7 +720,7 @@ export default function App() {
           <span>{syncState.message || 'Menghubungkan ke Supabase Cloud...'}</span>
         </div>
       )}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main id="konten-utama" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {activeTab === 'dashboard' && (
           <DashboardView
             wargaList={wargaList}
@@ -740,120 +767,146 @@ export default function App() {
               </button>
             </div>
 
-            {wargaSubTab === 'data' ? (
-              <DataWargaView
-                wargaList={wargaList}
-                kkList={kkList}
-                config={rtConfig}
-                onSaveWarga={handleSaveWarga}
-                onDeleteWarga={handleDeleteWarga}
-                onImportWarga={handleImportWarga}
-                onCreateSurat={handleCreateSuratForWarga}
-                selectedWargaId={selectedWargaId}
-              />
-            ) : (
-              <PengajuanWargaAdminView
-                pengajuanList={pengajuanList}
-                wargaList={wargaList}
-                onSetujui={handleSetujuiPengajuan}
-                onTolak={handleTolakPengajuan}
-              />
-            )}
+            <Suspense fallback={<ViewLoader />}>
+              {wargaSubTab === 'data' ? (
+                <DataWargaView
+                  wargaList={wargaList}
+                  kkList={kkList}
+                  config={rtConfig}
+                  onSaveWarga={handleSaveWarga}
+                  onDeleteWarga={handleDeleteWarga}
+                  onImportWarga={handleImportWarga}
+                  onCreateSurat={handleCreateSuratForWarga}
+                  selectedWargaId={selectedWargaId}
+                />
+              ) : (
+                <PengajuanWargaAdminView
+                  pengajuanList={pengajuanList}
+                  wargaList={wargaList}
+                  onSetujui={handleSetujuiPengajuan}
+                  onTolak={handleTolakPengajuan}
+                />
+              )}
+            </Suspense>
           </div>
         )}
 
         {activeTab === 'kk' && (
-          <DataKKView
-            kkList={kkList}
-            wargaList={wargaList}
-            config={rtConfig}
-            onSaveKK={handleSaveKK}
-            onDeleteKK={handleDeleteKK}
-            onCreateSuratForWarga={handleCreateSuratForWarga}
-            selectedKKId={selectedKKId}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <DataKKView
+              kkList={kkList}
+              wargaList={wargaList}
+              config={rtConfig}
+              onSaveKK={handleSaveKK}
+              onDeleteKK={handleDeleteKK}
+              onCreateSuratForWarga={handleCreateSuratForWarga}
+              selectedKKId={selectedKKId}
+            />
+          </Suspense>
         )}
 
         {(activeTab === 'surat' || activeTab === 'template-pengantar') && (
-          <LayananSuratView
-            config={rtConfig}
-            wargaList={wargaList}
-            suratList={suratList}
-            onSaveConfig={handleUpdateConfig}
-            onAddSurat={handleAddSurat}
-            onUpdateStatus={handleUpdateSuratStatus}
-            onDeleteSurat={handleDeleteSurat}
-            selectedSuratId={selectedSuratId}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <LayananSuratView
+              config={rtConfig}
+              wargaList={wargaList}
+              suratList={suratList}
+              onSaveConfig={handleUpdateConfig}
+              onAddSurat={handleAddSurat}
+              onUpdateStatus={handleUpdateSuratStatus}
+              onDeleteSurat={handleDeleteSurat}
+              selectedSuratId={selectedSuratId}
+            />
+          </Suspense>
         )}
 
 
         {activeTab === 'mutasi' && (
-          <MutasiPendudukView
-            mutasiList={mutasiList}
-            wargaList={wargaList}
-            config={rtConfig}
-            onAddMutasi={handleAddMutasi}
-            onDeleteMutasi={handleDeleteMutasi}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <MutasiPendudukView
+              mutasiList={mutasiList}
+              wargaList={wargaList}
+              config={rtConfig}
+              onAddMutasi={handleAddMutasi}
+              onDeleteMutasi={handleDeleteMutasi}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'bansos' && (
-          <BansosPrioritasView
-            wargaList={wargaList}
-            config={rtConfig}
-            onUpdateBansosStatus={handleUpdateBansos}
-            onExportExcel={handleExportExcel}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <BansosPrioritasView
+              wargaList={wargaList}
+              config={rtConfig}
+              onUpdateBansosStatus={handleUpdateBansos}
+              onExportExcel={handleExportExcel}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'audit' && (
-          <AuditLogView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <AuditLogView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'ews' && (
-          <EWSAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <EWSAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'pengaduan' && (
-          <PengaduanAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <PengaduanAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'pengumuman' && (
-          <PengumumanAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <PengumumanAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'kegiatan' && (
-          <KegiatanAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <KegiatanAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'umkm' && (
-          <UmkmAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <UmkmAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'keuangan' && (
-          <KeuanganAdminView
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <KeuanganAdminView
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'iuran' && (
-          <IuranAdminView
-            currentUser={currentUser}
-            wargaList={wargaList}
-          />
+          <Suspense fallback={<ViewLoader />}>
+            <IuranAdminView
+              currentUser={currentUser}
+              wargaList={wargaList}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'integrasi' && (

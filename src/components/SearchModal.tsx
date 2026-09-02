@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, Users, User, FileText, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Search, X, Users, User, FileText, ArrowRight, ShieldAlert } from 'lucide-react';
 import { KartuKeluarga, Warga, SuratPengantar } from '../types';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -25,14 +26,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 }) => {
   const [query, setQuery] = useState('');
 
-  // Keyboard shortcut listener
+  // Escape, focus trap, dan pemulihan fokus ditangani hook bersama.
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose, isOpen);
+
+  // Pintasan Ctrl/Cmd+K untuk menutup kembali panel pencarian.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (isOpen) onClose();
-      } else if (e.key === 'Escape' && isOpen) {
-        onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -77,6 +79,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150">

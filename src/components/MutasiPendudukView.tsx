@@ -9,14 +9,11 @@ import {
   Baby, 
   HeartCrack, 
   Trash2, 
-  X, 
-  FileText, 
-  Calendar,
-  Building,
-  CheckCircle
+  X
 } from 'lucide-react';
 import { MutasiPenduduk, Warga, RTConfig, JenisMutasi } from '../types';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface MutasiPendudukViewProps {
   mutasiList: MutasiPenduduk[];
@@ -43,15 +40,18 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
   const [namaWarga, setNamaWarga] = useState('');
   const [nomorKK, setNomorKK] = useState('');
   const [tanggalPeristiwa, setTanggalPeristiwa] = useState(new Date().toISOString().split('T')[0]);
-  const [tanggalLapor, setTanggalLapor] = useState(new Date().toISOString().split('T')[0]);
+  const [tanggalLapor] = useState(new Date().toISOString().split('T')[0]);
   const [alamatAsal, setAlamatAsal] = useState('');
   const [alamatTujuan, setAlamatTujuan] = useState('');
   const [alasanMutasi, setAlasanMutasi] = useState('Pekerjaan / Domisili Baru');
   const [nomorSuratPindah, setNomorSuratPindah] = useState('');
-  const [keterangan, setKeterangan] = useState('');
+  const [keterangan] = useState('');
 
   // Dialog konfirmasi & notifikasi bergaya aplikasi (pengganti confirm/alert bawaan browser)
   const { confirm: askConfirm, notify, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk modal form mutasi.
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
 
   const handleDeleteMutasi = async (item: MutasiPenduduk) => {
     const setuju = await askConfirm({
@@ -368,6 +368,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
       {/* FORM MODAL: CATAT MUTASI */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -390,7 +391,7 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
             <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
               {/* Jenis Mutasi Selection */}
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Jenis Peristiwa Mutasi</label>
+                <p className="block font-semibold text-slate-700 mb-1">Jenis Peristiwa Mutasi</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { id: 'PINDAH_MASUK', label: 'Pindah Masuk', icon: UserPlus },
@@ -418,8 +419,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
               {/* Quick select existing citizen if Pindah Keluar or Kematian */}
               {(jenisMutasi === 'PINDAH_KELUAR' || jenisMutasi === 'KEMATIAN') && wargaList.length > 0 && (
                 <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
-                  <label className="block font-bold text-amber-900 mb-1">Pilih dari Warga RT 004:</label>
+                  <label htmlFor="mutasi-pilih-warga" className="block font-bold text-amber-900 mb-1">Pilih dari Warga RT 004:</label>
                   <select
+                    id="mutasi-pilih-warga"
                     value={nikWarga}
                     onChange={(e) => handleSelectExistingCitizen(e.target.value)}
                     className="w-full p-2 border border-amber-300 rounded-lg text-xs bg-white"
@@ -434,10 +436,11 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="mutasi-nama-warga" className="block font-semibold text-slate-700 mb-1">
                     Nama Warga <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="mutasi-nama-warga"
                     type="text"
                     placeholder="Nama Lengkap"
                     value={namaWarga}
@@ -448,10 +451,11 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="mutasi-nik-warga" className="block font-semibold text-slate-700 mb-1">
                     NIK Warga (16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="mutasi-nik-warga"
                     type="text"
                     maxLength={16}
                     placeholder="Nomor Induk Kependudukan"
@@ -463,8 +467,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nomor Kartu Keluarga (KK)</label>
+                  <label htmlFor="mutasi-nomor-kk" className="block font-semibold text-slate-700 mb-1">Nomor Kartu Keluarga (KK)</label>
                   <input
+                    id="mutasi-nomor-kk"
                     type="text"
                     maxLength={16}
                     placeholder="Nomor KK 16 Digit"
@@ -475,8 +480,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tanggal Peristiwa</label>
+                  <label htmlFor="mutasi-tanggal" className="block font-semibold text-slate-700 mb-1">Tanggal Peristiwa</label>
                   <input
+                    id="mutasi-tanggal"
                     type="date"
                     value={tanggalPeristiwa}
                     onChange={(e) => setTanggalPeristiwa(e.target.value)}
@@ -488,8 +494,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Alamat Asal</label>
+                  <label htmlFor="mutasi-alamat-asal" className="block font-semibold text-slate-700 mb-1">Alamat Asal</label>
                   <input
+                    id="mutasi-alamat-asal"
                     type="text"
                     placeholder="Contoh: Jl. Kemang RT 01 RW 02 Kel. Margahayu"
                     value={alamatAsal}
@@ -499,8 +506,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Alamat Tujuan</label>
+                  <label htmlFor="mutasi-alamat-tujuan" className="block font-semibold text-slate-700 mb-1">Alamat Tujuan</label>
                   <input
+                    id="mutasi-alamat-tujuan"
                     type="text"
                     placeholder="Contoh: Jl. Mawar No. 15 RT 004 RW 007 Jatimulya"
                     value={alamatTujuan}
@@ -512,8 +520,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Alasan Mutasi / Keterangan</label>
+                  <label htmlFor="mutasi-alasan" className="block font-semibold text-slate-700 mb-1">Alasan Mutasi / Keterangan</label>
                   <input
+                    id="mutasi-alasan"
                     type="text"
                     placeholder="Contoh: Mengikuti Suami / Pindah Tugas / Melahirkan"
                     value={alasanMutasi}
@@ -523,8 +532,9 @@ export const MutasiPendudukView: React.FC<MutasiPendudukViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nomor Surat Pindah / SKPWNI (Jika Ada)</label>
+                  <label htmlFor="mutasi-nomor-surat" className="block font-semibold text-slate-700 mb-1">Nomor Surat Pindah / SKPWNI (Jika Ada)</label>
                   <input
+                    id="mutasi-nomor-surat"
                     type="text"
                     placeholder="Contoh: 471.2/105-Kel.JTM/2025"
                     value={nomorSuratPindah}

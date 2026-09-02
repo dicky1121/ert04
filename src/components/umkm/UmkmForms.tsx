@@ -23,6 +23,7 @@ import {
   UmkmVarianInput,
 } from '../../types';
 import { formatRupiah } from '../../utils/pesananWa';
+import { useModalDismiss } from '../../hooks/useModalDismiss';
 
 // ── CSS bersama ────────────────────────────────────────────────────────────────
 export const umkmInputCls =
@@ -52,28 +53,34 @@ export const StatusUmkmBadge: React.FC<{ status: StatusUmkm }> = ({ status }) =>
 };
 
 // ── foto lightbox ────────────────────────────────────────────────────────────────
-export const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
-  <div
-    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    onClick={onClose}
-    role="dialog"
-    aria-label="Foto"
-  >
-    <button
-      className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+export const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
+  return (
+    <div
+      ref={dialogRef}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
-      aria-label="Tutup foto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto"
     >
-      <X className="w-5 h-5" />
-    </button>
-    <img
-      src={url}
-      alt="Foto"
-      className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-);
+      <button
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        onClick={onClose}
+        aria-label="Tutup foto"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <img
+        src={url}
+        alt="Foto"
+        loading="lazy"
+        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
 
 // ── input foto dengan pratinjau ──────────────────────────────────────────────────
 const FotoPicker: React.FC<{
@@ -83,7 +90,7 @@ const FotoPicker: React.FC<{
   hint?: string;
 }> = ({ preview, onPick, onRemove, hint }) => (
   <div>
-    <label className={umkmLabelCls}>{hint || 'Foto (opsional, maks 2MB)'}</label>
+    <p className={umkmLabelCls}>{hint || 'Foto (opsional, maks 2MB)'}</p>
     {preview ? (
       <div className="relative rounded-xl overflow-hidden border border-slate-200">
         <img src={preview} alt="Pratinjau" className="w-full max-h-52 object-cover" />
@@ -115,8 +122,11 @@ const ModalShell: React.FC<{
   submitLabel: string;
   children: React.ReactNode;
   ariaLabel: string;
-}> = ({ title, Icon, onClose, onSubmit, saving, submitLabel, children, ariaLabel }) => (
+}> = ({ title, Icon, onClose, onSubmit, saving, submitLabel, children, ariaLabel }) => {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
+  return (
   <div
+    ref={dialogRef}
     className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
     role="dialog"
     aria-modal="true"
@@ -164,7 +174,8 @@ const ModalShell: React.FC<{
       </div>
     </form>
   </div>
-);
+  );
+};
 
 // ====================================================================
 // FORM LAPAK / TOKO
@@ -496,7 +507,7 @@ export const ProdukFormModal: React.FC<{
       {/* Editor varian */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className={`${umkmLabelCls} mb-0`}>Varian / pilihan (opsional)</label>
+          <p className={`${umkmLabelCls} mb-0`}>Varian / pilihan (opsional)</p>
           <button
             type="button"
             onClick={tambahVarian}

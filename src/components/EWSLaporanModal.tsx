@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EWS_JENIS_KEJADIAN, JenisKejadianEWS, LaporanEWSInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSLaporanModalProps {
   isOpen: boolean;
@@ -94,12 +95,15 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
     onClose();
   };
 
+  const dialogRef = useModalDismiss<HTMLDivElement>(handleClose, isOpen);
+
   if (!isOpen) return null;
 
   const selectedJenis = EWS_JENIS_KEJADIAN.find(j => j.value === jenisKejadian);
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
@@ -177,9 +181,9 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
 
               {/* Jenis Kejadian */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                <p className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                   Jenis Kejadian <span className="text-rose-400">*</span>
-                </label>
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {EWS_JENIS_KEJADIAN.map((jenis) => (
                     <button
@@ -254,9 +258,9 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
 
               {/* Foto Opsional */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                <p className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Foto Kejadian <span className="text-slate-600 font-normal normal-case">(opsional, max 2MB)</span>
-                </label>
+                </p>
                 {fotoPreview ? (
                   <div className="relative">
                     <img

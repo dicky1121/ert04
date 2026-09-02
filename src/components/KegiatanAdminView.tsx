@@ -20,23 +20,14 @@ import {
 import { CurrentUser, Kegiatan, KegiatanInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { useConfirm } from './ConfirmDialog';
+import { useModalDismiss } from '../hooks/useModalDismiss';
+import { formatTanggalPanjang } from '../utils/tanggal';
 
 interface KegiatanAdminViewProps {
   currentUser: CurrentUser;
 }
 
 type FilterPublikasi = 'SEMUA' | 'TERBIT' | 'TERSEMBUNYI';
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-const formatTanggal = (ymd: string): string => {
-  if (!ymd) return '-';
-  // Tambahkan waktu lokal agar tidak bergeser hari karena zona waktu.
-  const d = new Date(`${ymd}T00:00:00`);
-  if (isNaN(d.getTime())) return ymd;
-  return d.toLocaleDateString('id-ID', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-  });
-};
 
 const kosongInput = (): KegiatanInput => ({
   judul: '',
@@ -50,28 +41,34 @@ const kosongInput = (): KegiatanInput => ({
 });
 
 // ── modal foto (lightbox) ──────────────────────────────────────────────────────
-const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
-  <div
-    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    onClick={onClose}
-    role="dialog"
-    aria-label="Foto kegiatan"
-  >
-    <button
-      className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+  const ref = useModalDismiss<HTMLDivElement>(onClose);
+  return (
+    <div
+      ref={ref}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
-      aria-label="Tutup foto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto kegiatan"
     >
-      <X className="w-5 h-5" />
-    </button>
-    <img
-      src={url}
-      alt="Foto kegiatan"
-      className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-);
+      <button
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        onClick={onClose}
+        aria-label="Tutup foto"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <img
+        src={url}
+        alt="Foto kegiatan"
+        loading="lazy"
+        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
 
 // ── modal form tambah / edit ────────────────────────────────────────────────────
 const inputCls =
@@ -133,8 +130,11 @@ const KegiatanFormModal: React.FC<{
     if (ok) onClose();
   };
 
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
+
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
@@ -233,7 +233,7 @@ const KegiatanFormModal: React.FC<{
 
           {/* Foto */}
           <div>
-            <label className={labelCls}>Foto / poster (opsional, maks 2MB)</label>
+            <p className={labelCls}>Foto / poster (opsional, maks 2MB)</p>
             {preview ? (
               <div className="relative rounded-xl overflow-hidden border border-slate-200">
                 <img src={preview} alt="Pratinjau foto" className="w-full max-h-52 object-cover" />
@@ -588,7 +588,7 @@ export const KegiatanAdminView: React.FC<KegiatanAdminViewProps> = ({ currentUse
                     className="block w-full h-36 bg-slate-100 overflow-hidden"
                     aria-label="Lihat foto kegiatan"
                   >
-                    <img src={k.fotoUrl} alt={k.judul} className="w-full h-full object-cover hover:scale-105 transition" />
+                    <img src={k.fotoUrl} alt={k.judul} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition" />
                   </button>
                 )}
                 <div className="px-4 py-3 space-y-2.5 flex-1">
@@ -607,7 +607,7 @@ export const KegiatanAdminView: React.FC<KegiatanAdminViewProps> = ({ currentUse
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                     <span className="flex items-center gap-1.5">
                       <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                      {formatTanggal(k.tanggal)}
+                      {formatTanggalPanjang(k.tanggal)}
                     </span>
                     {k.waktu && (
                       <span className="flex items-center gap-1.5">

@@ -119,9 +119,14 @@
 }
 
 
-/* Hormati preferensi pengguna yang mengurangi animasi */
+/* Nonaktifkan animasi untuk aksesibilitas */
 @media (prefers-reduced-motion: reduce) {
   .animate-in {
+    animation: none !important;
+  }
+  
+  .animate-spin,
+  .animate-pulse {
     animation: none !important;
   }
 }

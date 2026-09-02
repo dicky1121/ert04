@@ -21,6 +21,8 @@ import {
   StatusEWS,
 } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { statusBadge, statusDot, EWS_TONE } from '../utils/statusBadge';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSAdminViewProps {
   currentUser: CurrentUser;
@@ -37,18 +39,18 @@ const DAFTAR_JENIS = Array.isArray(EWS_JENIS_KEJADIAN) ? EWS_JENIS_KEJADIAN : []
 const STATUS_META: Record<StatusEWS, { label: string; badgeClass: string; dotClass: string }> = {
   BARU: {
     label: 'Baru',
-    badgeClass: 'bg-rose-100 text-rose-700 border-rose-200',
-    dotClass: 'bg-rose-500 animate-pulse',
+    badgeClass: statusBadge(EWS_TONE.BARU),
+    dotClass: statusDot(EWS_TONE.BARU) + ' animate-pulse',
   },
   DITANGANI: {
     label: 'Ditangani',
-    badgeClass: 'bg-amber-100 text-amber-700 border-amber-200',
-    dotClass: 'bg-amber-400',
+    badgeClass: statusBadge(EWS_TONE.DITANGANI),
+    dotClass: statusDot(EWS_TONE.DITANGANI),
   },
   SELESAI: {
     label: 'Selesai',
-    badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    dotClass: 'bg-emerald-500',
+    badgeClass: statusBadge(EWS_TONE.SELESAI),
+    dotClass: statusDot(EWS_TONE.SELESAI),
   },
 };
 
@@ -63,28 +65,34 @@ const formatWaktu = (iso: string): string => {
 };
 
 // ── komponen foto lightbox ────────────────────────────────────────────────────
-const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    onClick={onClose}
-    role="dialog"
-    aria-label="Foto laporan"
-  >
-    <button
-      className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+const FotoLightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+  const ref = useModalDismiss<HTMLDivElement>(onClose);
+  return (
+    <div
+      ref={ref}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
-      aria-label="Tutup foto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto laporan"
     >
-      <X className="w-5 h-5" />
-    </button>
-    <img
-      src={url}
-      alt="Foto laporan EWS"
-      className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    />
-  </div>
-);
+      <button
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        onClick={onClose}
+        aria-label="Tutup foto"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      <img
+        src={url}
+        alt="Foto laporan EWS"
+        loading="lazy"
+        className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
 
 // ── komponen utama ────────────────────────────────────────────────────────────
 export const EWSAdminView: React.FC<EWSAdminViewProps> = ({ currentUser }) => {

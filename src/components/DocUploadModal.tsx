@@ -1,22 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { 
   Upload, 
-  FileText, 
   CheckCircle2, 
   AlertCircle, 
-  Sparkles, 
-  Eye, 
-  RefreshCw, 
-  HelpCircle,
+  Sparkles,
   FileCheck,
   FileType,
-  ArrowRight,
   ShieldCheck,
   X
 } from 'lucide-react';
 // mammoth di-import dinamis saat parsing .docx (lihat handleFileUpload) — code-splitting
-import { RTConfig, SuratPengantar } from '../types';
-import { BekasiLogo } from './BekasiLogo';
+import { RTConfig } from '../types';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 export interface DocTemplateStructure {
   fileName: string;
@@ -79,15 +74,16 @@ interface DocUploadModalProps {
 export const DocUploadModal: React.FC<DocUploadModalProps> = ({
   isOpen,
   onClose,
-  config,
+  config: _config,
   onTemplateApplied
 }) => {
-  const [file, setFile] = useState<File | null>(null);
+  const [_file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedResult, setExtractedResult] = useState<DocTemplateStructure | null>(getSavedDocTemplate());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose, isOpen);
 
   if (!isOpen) return null;
 
@@ -232,6 +228,7 @@ export const DocUploadModal: React.FC<DocUploadModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

@@ -2,17 +2,12 @@ import React, { useState } from 'react';
 import { 
   ShieldCheck, 
   Search, 
-  Filter, 
   Trash2, 
   Download, 
   CheckCircle2, 
   AlertTriangle, 
   XCircle, 
-  Clock, 
-  User, 
-  Activity,
-  Calendar,
-  FileSpreadsheet
+  Clock
 } from 'lucide-react';
 import { AuditLog, CurrentUser } from '../types';
 import { storageService } from '../services/storage';

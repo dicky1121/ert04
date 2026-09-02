@@ -7,13 +7,8 @@ import {
   CheckCircle2, 
   XCircle, 
   Clock, 
-  ShieldCheck, 
   X, 
-  User, 
-  Edit3,
-  Check,
-  Upload,
-  FileType
+  Upload
 } from 'lucide-react';
 import { SuratPengantar, Warga, RTConfig, JenisSurat } from '../types';
 import { SuratPrintTemplate } from './SuratPrintTemplate';
@@ -21,6 +16,7 @@ import { DocUploadModal, getSavedDocTemplate, DocTemplateStructure } from './Doc
 import { formatDateDDMMYYYY } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 
 /**
  * Badge status pengajuan surat — dipakai di tabel (desktop) & kartu (mobile).
@@ -77,7 +73,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
   const [selectedNik, setSelectedNik] = useState('');
   const [nomorSurat, setNomorSurat] = useState('184 / RT 004 RW 007 / SP / 2026');
   const [jenisSurat, setJenisSurat] = useState<JenisSurat>('LAINNYA');
-  const [judulSurat, setJudulSurat] = useState('Surat Pengantar RT');
+  const [_judulSurat, setJudulSurat] = useState('Surat Pengantar RT');
   
   const [namaPemohon, setNamaPemohon] = useState('');
   const [tempatTglLahir, setTempatTglLahir] = useState('');
@@ -322,6 +318,10 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
   // Dialog konfirmasi & notifikasi bergaya aplikasi (pengganti confirm/alert bawaan browser)
   const { confirm: askConfirm, notify, dialog } = useConfirm();
+
+  // Escape, focus trap, dan pemulihan fokus untuk dua overlay di view ini.
+  const rejectDialogRef = useModalDismiss<HTMLDivElement>(() => setIsRejectOpen(false), isRejectOpen);
+  const formDialogRef = useModalDismiss<HTMLDivElement>(() => setIsFormOpen(false), isFormOpen);
 
   const handleDeleteSurat = async (surat: SuratPengantar) => {
     const setuju = await askConfirm({
@@ -644,6 +644,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       {/* REJECT MODAL */}
       {isRejectOpen && (
         <div
+      ref={rejectDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -683,6 +684,7 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
       {/* ======================================================== */}
       {isFormOpen && (
         <div
+      ref={formDialogRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
@@ -718,12 +720,13 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
               {/* Citizen Auto-fill Selector */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="block font-bold text-slate-800 text-xs">
+                  <label htmlFor="surat-autofill-warga" className="block font-bold text-slate-800 text-xs">
                     Pilih Data Warga untuk Auto-Fill Isian:
                   </label>
                   <span className="text-xs text-emerald-700 font-medium">Auto-Isi Otomatis</span>
                 </div>
                 <select
+                  id="surat-autofill-warga"
                   value={selectedNik}
                   onChange={(e) => handleSelectCitizen(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white font-medium"
@@ -747,10 +750,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Nomor Surat */}
                   <div className="sm:col-span-2">
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-nomor-surat" className="block font-semibold text-slate-700 mb-1">
                       Nomor Surat <span className="text-slate-500 font-normal">(Contoh: 184 / RT 004 RW 007 / SP / 2026)</span>
                     </label>
                     <input
+                      id="surat-nomor-surat"
                       type="text"
                       value={nomorSurat}
                       onChange={(e) => setNomorSurat(e.target.value)}
@@ -760,10 +764,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Nama */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-nama" className="block font-semibold text-slate-700 mb-1">
                       Nama <span className="text-rose-500">*</span>
                     </label>
                     <input
+                      id="surat-nama"
                       type="text"
                       placeholder="Contoh: Nama lengkap pemohon"
                       value={namaPemohon}
@@ -775,10 +780,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Tempat Tgl Lahir */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-tempat-tgl-lahir" className="block font-semibold text-slate-700 mb-1">
                       Tempat Tgl Lahir <span className="text-slate-500 font-normal">(Contoh: Solo, 04-05-1962)</span>
                     </label>
                     <input
+                      id="surat-tempat-tgl-lahir"
                       type="text"
                       placeholder="Solo, 04-05-1962"
                       value={tempatTglLahir}
@@ -789,8 +795,9 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Jenis Kelamin */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
+                    <label htmlFor="surat-jenis-kelamin" className="block font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
                     <select
+                      id="surat-jenis-kelamin"
                       value={jenisKelamin}
                       onChange={(e) => setJenisKelamin(e.target.value as 'L' | 'P')}
                       className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white font-medium"
@@ -802,10 +809,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Status Perkawinan */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-status-perkawinan" className="block font-semibold text-slate-700 mb-1">
                       Status Perkawinan <span className="text-slate-500 font-normal">(Cerai Mati / Kawin / Belum Kawin / Cerai Hidup)</span>
                     </label>
                     <input
+                      id="surat-status-perkawinan"
                       type="text"
                       placeholder="Contoh: Cerai Mati"
                       value={statusKawin}
@@ -816,8 +824,9 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Agama */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Agama</label>
+                    <label htmlFor="surat-agama" className="block font-semibold text-slate-700 mb-1">Agama</label>
                     <input
+                      id="surat-agama"
                       type="text"
                       placeholder="Contoh: Islam"
                       value={agama}
@@ -828,10 +837,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* No Ktp / No Nik */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-nik" className="block font-semibold text-slate-700 mb-1">
                       No Ktp / No Nik <span className="text-rose-500">*</span>
                     </label>
                     <input
+                      id="surat-nik"
                       type="text"
                       placeholder="Contoh: 3216064405620011"
                       value={nikPemohon}
@@ -843,8 +853,9 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Pekerjaan */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Pekerjaan</label>
+                    <label htmlFor="surat-pekerjaan" className="block font-semibold text-slate-700 mb-1">Pekerjaan</label>
                     <input
+                      id="surat-pekerjaan"
                       type="text"
                       placeholder="Contoh: Mengurus Rumah Tangga"
                       value={pekerjaan}
@@ -855,10 +866,11 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                   {/* Telepon / Hp */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
+                    <label htmlFor="surat-telepon" className="block font-semibold text-slate-700 mb-1">
                       Telepon / Hp <span className="text-slate-500 font-normal">(Default: -)</span>
                     </label>
                     <input
+                      id="surat-telepon"
                       type="text"
                       placeholder="-"
                       value={telepon}
@@ -871,9 +883,9 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
                 {/* ALAMAT LENGKAP (AUTO INPUT ATAU BISA DIUBAH) */}
                 <div className="pt-3 border-t border-slate-100 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block font-bold text-slate-800 text-xs">
-                      Alamat Lengkap (Auto Input & Dapat Diubah):
-                    </label>
+                    <p className="block font-bold text-slate-800 text-xs">
+                      Alamat Lengkap (Auto Input &amp; Dapat Diubah):
+                    </p>
                     <button
                       type="button"
                       onClick={handleResetAlamat}
@@ -907,9 +919,25 @@ export const SuratPengantarView: React.FC<SuratPengantarViewProps> = ({
 
                 {/* KEPERLUAN */}
                 <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <label className="block font-bold text-slate-800 text-xs">
-                    Keperluan <span className="text-rose-500">*</span>:
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <p className="block font-bold text-slate-800 text-xs">
+                      Keperluan <span className="text-rose-500">*</span>:
+                    </p>
+                  </div>
+
+                  {/* Preset keperluan cepat */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {letterPresets.map((p) => (
+                      <button
+                        key={p.type}
+                        type="button"
+                        onClick={() => handleSelectPreset(p)}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition cursor-pointer"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>

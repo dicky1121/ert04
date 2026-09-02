@@ -3,6 +3,8 @@ import { AlertCircle, CheckCircle2, Clock3, Search, X, XCircle } from 'lucide-re
 import { StatusPengajuanPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
+import { useModalDismiss } from '../hooks/useModalDismiss';
+import { formatTanggalSedang } from '../utils/tanggal';
 
 interface LacakPengajuanModalProps {
   onClose: () => void;
@@ -26,13 +28,6 @@ const statusMeta: Record<string, { label: string; className: string; Icon: typeo
   }
 };
 
-const formatTanggal = (value?: string | null): string => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-};
-
 /**
  * Pelacakan pengajuan surat untuk warga.
  * Nomor referensi harus dipasangkan dengan NIK pemohon supaya orang lain
@@ -44,6 +39,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState('');
   const [hasil, setHasil] = useState<StatusPengajuanPublik | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +73,7 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="lacak-pengajuan-title"
@@ -181,12 +178,12 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="font-semibold text-slate-500">Tanggal Pengajuan</dt>
-                  <dd className="text-right font-bold text-slate-900">{formatTanggal(hasil.tanggalPengajuan)}</dd>
+                  <dd className="text-right font-bold text-slate-900">{formatTanggalSedang(hasil.tanggalPengajuan)}</dd>
                 </div>
                 {hasil.status === 'DISETUJUI' && (
                   <div className="flex justify-between gap-3">
                     <dt className="font-semibold text-slate-500">Tanggal Disetujui</dt>
-                    <dd className="text-right font-bold text-slate-900">{formatTanggal(hasil.tanggalDisetujui)}</dd>
+                    <dd className="text-right font-bold text-slate-900">{formatTanggalSedang(hasil.tanggalDisetujui)}</dd>
                   </div>
                 )}
                 {hasil.status === 'DITOLAK' && hasil.alasanPenolakan && (

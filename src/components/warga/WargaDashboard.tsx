@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -18,9 +18,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { motion, useReducedMotion, animate, type Variants } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Kegiatan, PengumumanPublik } from '../../types';
 import { formatRupiah } from '../../utils/keuangan';
+import { container, rise, tapScale, useCountUp } from './motionPresets';
 
 export interface WargaQuickAction {
   key: string;
@@ -81,34 +82,6 @@ const chipTanggal = (ymd: string): { dd: string; mon: string } => {
     dd: d.toLocaleDateString('id-ID', { day: '2-digit' }),
     mon: d.toLocaleDateString('id-ID', { month: 'short' }),
   };
-};
-
-// ── Animasi masuk: kontainer men-stagger anak; tiap anak "naik" halus ──────
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
-};
-const rise: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 22, mass: 0.7 } },
-};
-
-/** Angka menghitung naik dari 0 → target saat pertama tampil. */
-const useCountUp = (target: number, enabled: boolean): number => {
-  const [val, setVal] = useState(enabled ? 0 : target);
-  useEffect(() => {
-    if (!enabled) {
-      setVal(target);
-      return;
-    }
-    const controls = animate(0, target, {
-      duration: 1.1,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setVal(v),
-    });
-    return () => controls.stop();
-  }, [target, enabled]);
-  return val;
 };
 
 const SectionHeader: React.FC<{
@@ -269,7 +242,7 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
                 key={s.key}
                 type="button"
                 onClick={s.onClick}
-                whileTap={reduce ? undefined : { scale: 0.95 }}
+                whileTap={reduce ? undefined : tapScale}
                 className="flex flex-col items-center gap-1.5 px-2 py-3.5 transition hover:bg-slate-50"
               >
                 <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${s.bg} ${s.tone}`}>
@@ -305,7 +278,7 @@ export const WargaDashboard: React.FC<WargaDashboardProps> = ({
             <motion.button
               type="button"
               onClick={onLihatIuran}
-              whileTap={reduce ? undefined : { scale: 0.95 }}
+              whileTap={reduce ? undefined : tapScale}
               className="shrink-0 rounded-full bg-amber-500 px-4 py-2 text-xs font-black text-white shadow-sm shadow-amber-500/30 transition hover:bg-amber-600"
             >
               Bayar

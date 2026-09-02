@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
   try {
     // 1. Baca setelan iuran — cek reminder_aktif dan hari_reminder
     const { data: setelan, error: setelanErr } = await admin
-      .from('iuran_pengaturan_rt004')
+      .from('pengaturan_iuran_rt004')
       .select('reminder_aktif, hari_reminder')
       .eq('id', 1)
       .maybeSingle();
