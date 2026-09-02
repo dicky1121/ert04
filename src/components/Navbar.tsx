@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="bg-slate-950 text-slate-300 px-4 sm:px-6 py-1.5 text-xs font-medium border-b border-slate-800">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
             <span className="font-semibold text-white tracking-tight">
               RT {config.namaRT || '004'} / RW {config.namaRW || '007'} Kel. {config.kelurahan || 'Jatimulya'}
             </span>
@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             
             {/* Auto-Sync Live Status indicator in micro bar */}
             <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300 font-mono text-xs">
-              <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-brand-500 animate-pulse' : 'bg-slate-500'}`}></span>
               {isAutoSync ? 'Auto-Sync Cloud: Aktif' : hasCloudSession ? 'Cloud: Manual' : 'Penyimpanan Lokal'}
               {config.terakhirSinkron && (
                 <span className="text-slate-400 font-normal hidden lg:inline">({config.terakhirSinkron.split(',')[1] || config.terakhirSinkron})</span>
@@ -112,12 +112,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Floating Auto-Sync Notification Toast */}
       {syncToast && (
-        <div className="fixed top-20 right-4 z-40 bg-slate-900 text-white px-3.5 py-2 rounded-xl shadow-lg border border-emerald-500/40 flex items-center gap-2.5 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+        <div className="fixed top-20 right-4 z-40 bg-slate-900 text-white px-3.5 py-2 rounded-xl shadow-lg border border-brand-500/40 flex items-center gap-2.5 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-500 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-bold text-xs text-emerald-300 flex items-center gap-1">
+            <div className="font-bold text-xs text-brand-500 flex items-center gap-1">
               <span>{syncToast.title}</span>
             </div>
             {syncToast.detail && (
@@ -162,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="text"
                 readOnly
                 placeholder="Cari NIK, Nama Warga, No. KK, atau Surat... (Ctrl+K)"
-                className="w-full pl-9 pr-11 py-1.5 border border-slate-200 rounded-xl bg-slate-50 text-xs text-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-all hover:bg-white hover:border-slate-300 shadow-2xs"
+                className="w-full pl-9 pr-11 py-1.5 border border-slate-200 rounded-xl bg-slate-50 text-xs text-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer transition-all hover:bg-white hover:border-slate-300 shadow-2xs"
               />
               <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
                 <kbd className="bg-white text-slate-400 px-1 py-0.5 rounded text-xs font-mono border border-slate-200 shadow-2xs">
@@ -191,7 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Database className="w-3 h-3 text-slate-400" />
               <span className="font-medium">{isAutoSync ? 'Auto-Sync Supabase' : 'Lokal / Cloud'}</span>
-              <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${isAutoSync ? 'bg-brand-500' : 'bg-amber-500'}`}></span>
             </div>
 
             {/* Notification Bell */}
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <div className={`w-6 h-6 rounded-md text-white flex items-center justify-center text-xs font-bold ${
                 currentUser.role === 'ADMIN_KETUA_RT'
-                  ? 'bg-emerald-700'
+                  ? 'bg-brand-700'
                   : currentUser.role === 'ADMIN_SISTEM'
                     ? 'bg-indigo-700'
                     : 'bg-slate-800'

@@ -21,23 +21,13 @@ import { CurrentUser, Kegiatan, KegiatanInput } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { useConfirm } from './ConfirmDialog';
 import { useModalDismiss } from '../hooks/useModalDismiss';
+import { formatTanggalPanjang } from '../utils/tanggal';
 
 interface KegiatanAdminViewProps {
   currentUser: CurrentUser;
 }
 
 type FilterPublikasi = 'SEMUA' | 'TERBIT' | 'TERSEMBUNYI';
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-const formatTanggal = (ymd: string): string => {
-  if (!ymd) return '-';
-  // Tambahkan waktu lokal agar tidak bergeser hari karena zona waktu.
-  const d = new Date(`${ymd}T00:00:00`);
-  if (isNaN(d.getTime())) return ymd;
-  return d.toLocaleDateString('id-ID', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-  });
-};
 
 const kosongInput = (): KegiatanInput => ({
   judul: '',
@@ -243,7 +233,7 @@ const KegiatanFormModal: React.FC<{
 
           {/* Foto */}
           <div>
-            <label className={labelCls}>Foto / poster (opsional, maks 2MB)</label>
+            <p className={labelCls}>Foto / poster (opsional, maks 2MB)</p>
             {preview ? (
               <div className="relative rounded-xl overflow-hidden border border-slate-200">
                 <img src={preview} alt="Pratinjau foto" className="w-full max-h-52 object-cover" />
@@ -598,7 +588,7 @@ export const KegiatanAdminView: React.FC<KegiatanAdminViewProps> = ({ currentUse
                     className="block w-full h-36 bg-slate-100 overflow-hidden"
                     aria-label="Lihat foto kegiatan"
                   >
-                    <img src={k.fotoUrl} alt={k.judul} className="w-full h-full object-cover hover:scale-105 transition" />
+                    <img src={k.fotoUrl} alt={k.judul} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition" />
                   </button>
                 )}
                 <div className="px-4 py-3 space-y-2.5 flex-1">
@@ -617,7 +607,7 @@ export const KegiatanAdminView: React.FC<KegiatanAdminViewProps> = ({ currentUse
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                     <span className="flex items-center gap-1.5">
                       <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                      {formatTanggal(k.tanggal)}
+                      {formatTanggalPanjang(k.tanggal)}
                     </span>
                     {k.waktu && (
                       <span className="flex items-center gap-1.5">

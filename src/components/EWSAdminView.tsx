@@ -21,6 +21,7 @@ import {
   StatusEWS,
 } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { statusBadge, statusDot, EWS_TONE } from '../utils/statusBadge';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSAdminViewProps {
@@ -38,18 +39,18 @@ const DAFTAR_JENIS = Array.isArray(EWS_JENIS_KEJADIAN) ? EWS_JENIS_KEJADIAN : []
 const STATUS_META: Record<StatusEWS, { label: string; badgeClass: string; dotClass: string }> = {
   BARU: {
     label: 'Baru',
-    badgeClass: 'bg-rose-100 text-rose-700 border-rose-200',
-    dotClass: 'bg-rose-500 animate-pulse',
+    badgeClass: statusBadge(EWS_TONE.BARU),
+    dotClass: statusDot(EWS_TONE.BARU) + ' animate-pulse',
   },
   DITANGANI: {
     label: 'Ditangani',
-    badgeClass: 'bg-amber-100 text-amber-700 border-amber-200',
-    dotClass: 'bg-amber-400',
+    badgeClass: statusBadge(EWS_TONE.DITANGANI),
+    dotClass: statusDot(EWS_TONE.DITANGANI),
   },
   SELESAI: {
     label: 'Selesai',
-    badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    dotClass: 'bg-emerald-500',
+    badgeClass: statusBadge(EWS_TONE.SELESAI),
+    dotClass: statusDot(EWS_TONE.SELESAI),
   },
 };
 

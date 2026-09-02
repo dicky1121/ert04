@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -85,8 +85,8 @@ const fmtWaktu = (iso?: string | null): string => {
 
 const rawVal = (obj: PengajuanWarga | Warga | undefined, f: FieldDef): string | boolean => {
   if (!obj) return f.type === 'bool' ? false : '';
-  const v = (obj as any)[f.prop];
-  return f.type === 'bool' ? Boolean(v) : v ?? '';
+  const v = (obj as unknown as Record<string, unknown>)[f.prop];
+  return f.type === 'bool' ? Boolean(v) : (v as string) ?? '';
 };
 
 const displayVal = (obj: PengajuanWarga | Warga | undefined, f: FieldDef): string => {

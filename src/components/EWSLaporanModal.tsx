@@ -181,9 +181,9 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
 
               {/* Jenis Kejadian */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                <p className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                   Jenis Kejadian <span className="text-rose-400">*</span>
-                </label>
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {EWS_JENIS_KEJADIAN.map((jenis) => (
                     <button
@@ -258,9 +258,9 @@ export const EWSLaporanModal: React.FC<EWSLaporanModalProps> = ({ isOpen, onClos
 
               {/* Foto Opsional */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                <p className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                   Foto Kejadian <span className="text-slate-600 font-normal normal-case">(opsional, max 2MB)</span>
-                </label>
+                </p>
                 {fotoPreview ? (
                   <div className="relative">
                     <img

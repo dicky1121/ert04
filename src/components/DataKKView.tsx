@@ -6,22 +6,16 @@ import {
   Home, 
   Edit, 
   Trash2, 
-  Eye, 
-  EyeOff,
+  Eye,
   FileText, 
-  UserPlus, 
   X, 
-  Check, 
-  Download,
-  AlertCircle,
-  Building,
-  User,
   ShieldCheck
 } from 'lucide-react';
 import { KartuKeluarga, Warga, RTConfig } from '../types';
 import { calculateDemographics, formatDateDDMMYYYY, maskNik, maskKK, storageService } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 import { useModalDismiss } from '../hooks/useModalDismiss';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 
 interface DataKKViewProps {
   kkList: KartuKeluarga[];
@@ -35,7 +29,7 @@ interface DataKKViewProps {
 
 export const DataKKView: React.FC<DataKKViewProps> = ({
   kkList,
-  wargaList,
+  wargaList: _wargaList,
   config,
   onSaveKK,
   onDeleteKK,
@@ -45,6 +39,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDomisili, setFilterDomisili] = useState<'ALL' | 'TETAP' | 'KONTRAK' | 'KOS'>('ALL');
   const [isPrivacyMasked, setIsPrivacyMasked] = useState(storageService.isPrivacyMaskEnabled());
+  const isDesktop = useIsDesktop();
   
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -113,7 +108,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       const matchDomisili = filterDomisili === 'ALL' || k.statusDomisili === filterDomisili;
 
       return matchQuery && matchDomisili;
-    });
+    }).slice(0, 50);
   }, [kkList, searchTerm, filterDomisili]);
 
   const handleOpenCreate = () => {
@@ -214,7 +209,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
       kabupatenKota: formData.kabupatenKota || config.kabupatenKota,
       provinsi: formData.provinsi || config.provinsi,
       kodePos: formData.kodePos || config.kodePos,
-      statusDomisili: formData.statusDomisili as any || 'TETAP',
+      statusDomisili: (formData.statusDomisili || 'TETAP') as 'TETAP' | 'KONTRAK' | 'KOS',
       blokRumah: formData.blokRumah || '',
       tanggalTerbit: formData.tanggalTerbit || new Date().toISOString().split('T')[0],
       anggota: updatedMembers,
@@ -275,6 +270,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
+            aria-label="Cari kartu keluarga"
             placeholder="Cari Nomor KK 16 digit, Kepala Keluarga, NIK, atau Alamat Blok..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -299,8 +295,9 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
         </div>
       </div>
 
-      {/* Data KK — tabel (tampil ≥ md) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Data KK — tabel (desktop) atau kartu (mobile) */}
+      {isDesktop ? (
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -373,6 +370,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                             onClick={() => handleOpenDetail(kk)}
                             className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
                             title="Lihat Anggota Keluarga"
+                            aria-label={`Lihat anggota keluarga ${kk.kepalaKeluargaNama}`}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -380,6 +378,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                             onClick={() => handleOpenEdit(kk)}
                             className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
                             title="Edit KK"
+                            aria-label={`Edit KK ${kk.kepalaKeluargaNama}`}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -388,6 +387,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
                             className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                             title="Hapus KK"
+                            aria-label={`Hapus KK ${kk.kepalaKeluargaNama}`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -401,9 +401,8 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
           </table>
         </div>
       </div>
-
-      {/* Data KK — kartu (mobile, tampil < md) */}
-      <div className="md:hidden space-y-3">
+      ) : (
+      <div className="space-y-3">
         {filteredKK.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
             <Users className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
@@ -464,10 +463,10 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                   <button onClick={() => handleOpenDetail(kk)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-slate-200 text-xs font-semibold cursor-pointer" title="Lihat Anggota Keluarga">
                     <Eye className="w-4 h-4" /> Anggota
                   </button>
-                  <button onClick={() => handleOpenEdit(kk)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit KK" aria-label="Edit KK">
+                  <button onClick={() => handleOpenEdit(kk)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit KK" aria-label={`Edit KK ${kk.kepalaKeluargaNama}`}>
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDeleteKK(kk)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus KK" aria-label="Hapus KK">
+                  <button onClick={() => handleDeleteKK(kk)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus KK" aria-label={`Hapus KK ${kk.kepalaKeluargaNama}`}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -476,6 +475,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
           })
         )}
       </div>
+      )}
 
       {/* DETAIL MODAL: LIHAT ANGGOTA KELUARGA */}
       {isDetailOpen && currentKK && (
@@ -500,7 +500,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                   </p>
                 </div>
               </div>
-              <button onClick={() => setIsDetailOpen(false)} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => setIsDetailOpen(false)} aria-label="Tutup detail kartu keluarga" className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -635,7 +635,7 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                   <p className="text-xs text-slate-300">RT {config.namaRT} RW {config.namaRW} Kelurahan {config.kelurahan}</p>
                 </div>
               </div>
-              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => setIsFormOpen(false)} aria-label="Tutup formulir kartu keluarga" className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -645,30 +645,34 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Nomor KK */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="kk-nomor" className="block font-semibold text-slate-700 mb-1">
                     Nomor Kartu Keluarga (16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="kk-nomor"
                     type="text"
                     maxLength={16}
                     placeholder="Contoh: 3216060101150001"
                     value={formData.nomorKK || ''}
                     onChange={(e) => setFormData({ ...formData, nomorKK: e.target.value.replace(/\D/g, '') })}
+                    aria-invalid={Boolean(formErrors.nomorKK)}
+                    aria-describedby={formErrors.nomorKK ? 'kk-nomor-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl font-mono text-xs ${
                       formErrors.nomorKK ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nomorKK && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
+                  {formErrors.nomorKK && <p id="kk-nomor-error" className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
                 </div>
 
                 {/* Status Domisili */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="kk-status-domisili" className="block font-semibold text-slate-700 mb-1">
                     Status Domisili Tempat Tinggal <span className="text-rose-500">*</span>
                   </label>
                   <select
+                    id="kk-status-domisili"
                     value={formData.statusDomisili || 'TETAP'}
-                    onChange={(e) => setFormData({ ...formData, statusDomisili: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, statusDomisili: e.target.value as 'TETAP' | 'KONTRAK' | 'KOS' })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="TETAP">Warga Tetap (Rumah Pribadi)</option>
@@ -679,46 +683,53 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
                 {/* Nama Kepala Keluarga */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="kk-kepala-nama" className="block font-semibold text-slate-700 mb-1">
                     Nama Kepala Keluarga <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="kk-kepala-nama"
                     type="text"
                     placeholder="Nama Lengkap sesuai KTP"
                     value={formData.kepalaKeluargaNama || ''}
                     onChange={(e) => setFormData({ ...formData, kepalaKeluargaNama: e.target.value })}
+                    aria-invalid={Boolean(formErrors.kepalaKeluargaNama)}
+                    aria-describedby={formErrors.kepalaKeluargaNama ? 'kk-kepala-nama-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl text-xs ${
                       formErrors.kepalaKeluargaNama ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.kepalaKeluargaNama && <p className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNama}</p>}
+                  {formErrors.kepalaKeluargaNama && <p id="kk-kepala-nama-error" className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNama}</p>}
                 </div>
 
                 {/* NIK Kepala Keluarga */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="kk-kepala-nik" className="block font-semibold text-slate-700 mb-1">
                     NIK Kepala Keluarga (16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="kk-kepala-nik"
                     type="text"
                     maxLength={16}
                     placeholder="Contoh: 3216061205750001"
                     value={formData.kepalaKeluargaNik || ''}
                     onChange={(e) => setFormData({ ...formData, kepalaKeluargaNik: e.target.value.replace(/\D/g, '') })}
+                    aria-invalid={Boolean(formErrors.kepalaKeluargaNik)}
+                    aria-describedby={formErrors.kepalaKeluargaNik ? 'kk-kepala-nik-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl font-mono text-xs ${
                       formErrors.kepalaKeluargaNik ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.kepalaKeluargaNik && <p className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNik}</p>}
+                  {formErrors.kepalaKeluargaNik && <p id="kk-kepala-nik-error" className="text-xs text-rose-600 mt-0.5">{formErrors.kepalaKeluargaNik}</p>}
                 </div>
               </div>
 
               {/* Alamat Lengkap */}
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label htmlFor="kk-alamat" className="block font-semibold text-slate-700 mb-1">
                   Alamat Lengkap di RT 004 RW 007 <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="kk-alamat"
                   type="text"
                   placeholder="Contoh: Jl. Mawar No. 12 RT 004 RW 007 Kel. Jatimulya"
                   value={formData.alamat || ''}
@@ -729,8 +740,9 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Blok / Nomor Rumah</label>
+                  <label htmlFor="kk-blok-rumah" className="block font-semibold text-slate-700 mb-1">Blok / Nomor Rumah</label>
                   <input
+                    id="kk-blok-rumah"
                     type="text"
                     placeholder="Contoh: Blok A1 No. 12"
                     value={formData.blokRumah || ''}
@@ -739,8 +751,9 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">RT / RW</label>
+                  <label htmlFor="kk-rt-rw" className="block font-semibold text-slate-700 mb-1">RT / RW</label>
                   <input
+                    id="kk-rt-rw"
                     type="text"
                     disabled
                     value={`${config.namaRT} / ${config.namaRW}`}
@@ -748,8 +761,9 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tanggal Terbit KK</label>
+                  <label htmlFor="kk-tanggal-terbit" className="block font-semibold text-slate-700 mb-1">Tanggal Terbit KK</label>
                   <input
+                    id="kk-tanggal-terbit"
                     type="date"
                     value={formData.tanggalTerbit || ''}
                     onChange={(e) => setFormData({ ...formData, tanggalTerbit: e.target.value })}
@@ -760,8 +774,9 @@ export const DataKKView: React.FC<DataKKViewProps> = ({
 
               {/* Catatan Khusus */}
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                <label htmlFor="kk-catatan" className="block font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
                 <textarea
+                  id="kk-catatan"
                   rows={2}
                   placeholder="Contoh: Pemilik rumah kontrakan, kontak darurat, dll."
                   value={formData.catatan || ''}

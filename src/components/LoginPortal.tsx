@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Shield,
   Lock,
@@ -108,8 +108,8 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
     switch (role) {
       case 'ADMIN_KETUA_RT':
         return {
-          badge: 'bg-emerald-600 text-white',
-          borderActive: 'border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/50'
+          badge: 'bg-brand-600 text-white',
+          borderActive: 'border-brand-600 ring-2 ring-brand-500/20 bg-emerald-50/50'
         };
       case 'ADMIN_SEKRETARIS':
         return {
@@ -261,7 +261,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
       {/* Left Side: Official Identity Branding */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white p-5 sm:p-8 md:w-5/12 flex flex-col justify-between relative overflow-hidden">
         {/* Subtle glow background */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
         
         <div>
           {/* Logo Lambang Kabupaten Bekasi */}
@@ -278,7 +278,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
           {/* Title */}
           <div className="space-y-2 mt-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/15 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Portal Resmi Warga &amp; Pengurus RT</span>
             </div>
@@ -317,7 +317,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
         <button
           type="button"
           onClick={() => setShowLoginPopup(true)}
-          className="md:hidden w-full mt-5 py-3 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[.98] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition"
+          className="md:hidden w-full mt-5 py-3 px-4 bg-brand-500 hover:bg-emerald-400 active:scale-[.98] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition"
         >
           <LogIn className="w-4 h-4" /> Masuk ke Portal
         </button>
@@ -368,7 +368,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 onClick={() => switchMode('warga')}
                 className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   effectiveMode === 'warga'
-                    ? 'bg-white text-emerald-700 shadow-sm'
+                    ? 'bg-white text-brand-700 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -379,7 +379,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 onClick={() => switchMode('pengurus')}
                 className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   effectiveMode === 'pengurus'
-                    ? 'bg-white text-emerald-700 shadow-sm'
+                    ? 'bg-white text-brand-700 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -392,7 +392,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           {effectiveMode === 'warga' && (
             <>
               <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-brand-600" />
                 <span>
                   Masuk dengan <b>NIK</b> + <b>PIN 6 angka</b>. Belum punya akun? Tekan <b>Daftar Akun Warga</b> di
                   bawah — akun aktif setelah disetujui pengurus.
@@ -402,19 +402,20 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               <form onSubmit={handleWargaSubmit} className="space-y-3.5">
                 {/* NIK */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
+                  <label htmlFor="login-warga-nik" className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       <Fingerprint className="w-4 h-4" />
                     </div>
                     <input
                       type="text"
+                      id="login-warga-nik"
                       inputMode="numeric"
                       autoComplete="username"
                       placeholder="16 digit sesuai KTP"
                       value={nik}
                       onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                      className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono transition"
+                      className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono transition"
                     />
                   </div>
                   <p className="text-xs text-slate-400 mt-1">{nik.length}/16 digit</p>
@@ -422,19 +423,20 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
                 {/* PIN */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
+                  <label htmlFor="login-warga-pin" className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       <KeyRound className="w-4 h-4" />
                     </div>
                     <input
                       type={showPin ? 'text' : 'password'}
+                      id="login-warga-pin"
                       inputMode="numeric"
                       autoComplete="current-password"
                       placeholder="••••••"
                       value={pin}
                       onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-[0.3em] transition"
+                      className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono tracking-[0.3em] transition"
                     />
                     <button
                       type="button"
@@ -459,8 +461,8 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   </div>
                 )}
                 {successMessage && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold animate-in fade-in duration-200">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-brand-700 text-xs flex items-center gap-2 font-semibold animate-in fade-in duration-200">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-brand-600" />
                     <span>{successMessage}</span>
                   </div>
                 )}
@@ -469,7 +471,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <BadgeCheck className="w-4 h-4" />
                     <span>{isLoading ? 'Memverifikasi...' : 'Masuk ke Portal Warga'}</span>
@@ -484,7 +486,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowDaftar(true)}
-                  className="w-full py-2.5 px-4 border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 px-4 border-2 border-brand-600 text-brand-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" /> Daftar Akun Warga
                 </button>
@@ -498,7 +500,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           {/* Info mode login */}
           {cloudAuthAvailable ? (
             <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
-              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-brand-600" />
               <span>
                 Login terverifikasi server (Supabase Auth). Peran/jabatan Anda diambil otomatis dari data
                 pengurus, sehingga tidak perlu dipilih manual.
@@ -563,7 +565,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
           {/* Form Login with Password */}
           <form onSubmit={handleFormSubmit} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label htmlFor="login-admin-email" className="block text-xs font-bold text-slate-700 mb-1">
                 {cloudAuthAvailable ? 'Email Akun Pengurus:' : 'Username / Akun Pengurus:'}
               </label>
               <div className="relative">
@@ -572,20 +574,22 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 </div>
                 {cloudAuthAvailable ? (
                   <input
+                    id="login-admin-email"
                     type="email"
                     autoComplete="username"
                     placeholder="nama@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition"
                   />
                 ) : (
                   <input
+                    id="login-admin-email"
                     type="text"
                     placeholder={`Username: ${selectedAccount.username}`}
                     value={username || selectedAccount.username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition"
                   />
                 )}
               </div>
@@ -593,14 +597,14 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label htmlFor="login-admin-password" className="block text-xs font-bold text-slate-700">
                   {cloudAuthAvailable ? 'Password Akun:' : 'Password / PIN Keamanan:'}
                 </label>
                 {cloudAuthAvailable ? (
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-brand-700 hover:text-emerald-800 hover:underline cursor-pointer"
                   >
                     Lupa password?
                   </button>
@@ -611,12 +615,13 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
+                  id="login-admin-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder={cloudAuthAvailable ? 'Masukkan password akun' : 'Masukkan PIN / Password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono transition"
+                  className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono transition"
                 />
 
                 <button
@@ -635,7 +640,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
+                  className="rounded text-brand-600 focus:ring-brand-500"
                 />
                 <span>Ingat sesi di perangkat ini</span>
               </label>
@@ -658,8 +663,8 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
             )}
 
             {successMessage && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold animate-in fade-in duration-200">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-brand-700 text-xs flex items-center gap-2 font-semibold animate-in fade-in duration-200">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-brand-600" />
                 <span>{successMessage}</span>
               </div>
             )}
@@ -668,7 +673,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <BadgeCheck className="w-4 h-4" />
                 <span>
@@ -697,7 +702,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
 
   if (isStandalone) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-3 sm:p-6 lg:p-8 relative selection:bg-emerald-500 selection:text-white">
+      <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-3 sm:p-6 lg:p-8 relative selection:bg-brand-500 selection:text-white">
         <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none"></div>
         <main id="konten-utama" tabIndex={-1} className="relative z-10 w-full flex flex-col items-center">
           {cardContent}
@@ -721,7 +726,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
               {/* Header popup */}
               <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-brand-500/20 flex items-center justify-center">
                     <LogIn className="w-4 h-4 text-emerald-300" />
                   </div>
                   <div>
@@ -748,7 +753,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                       onClick={() => switchMode('warga')}
                       className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                         effectiveMode === 'warga'
-                          ? 'bg-white text-emerald-700 shadow-sm'
+                          ? 'bg-white text-brand-700 shadow-sm'
                           : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
@@ -759,7 +764,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                       onClick={() => switchMode('pengurus')}
                       className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                         effectiveMode === 'pengurus'
-                          ? 'bg-white text-emerald-700 shadow-sm'
+                          ? 'bg-white text-brand-700 shadow-sm'
                           : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
@@ -772,41 +777,43 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                 {effectiveMode === 'warga' && (
                   <form onSubmit={handleWargaSubmit} className="space-y-3.5">
                     <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
-                      <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                      <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-brand-600" />
                       <span>Masuk dengan <b>NIK</b> + <b>PIN 6 angka</b>.</span>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
+                      <label htmlFor="login-warga-nik-2" className="block text-xs font-bold text-slate-700 mb-1">NIK (Nomor KTP):</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                           <Fingerprint className="w-4 h-4" />
                         </div>
                         <input
+                          id="login-warga-nik-2"
                           type="text"
                           inputMode="numeric"
                           autoComplete="username"
                           placeholder="16 digit sesuai KTP"
                           value={nik}
                           onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                          className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono transition"
+                          className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono transition"
                         />
                       </div>
                       <p className="text-xs text-slate-400 mt-1">{nik.length}/16 digit</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
+                      <label htmlFor="login-warga-pin-2" className="block text-xs font-bold text-slate-700 mb-1">PIN (6 angka):</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                           <KeyRound className="w-4 h-4" />
                         </div>
                         <input
+                          id="login-warga-pin-2"
                           type={showPin ? 'text' : 'password'}
                           inputMode="numeric"
                           autoComplete="current-password"
                           placeholder="••••••"
                           value={pin}
                           onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-[0.3em] transition"
+                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono tracking-[0.3em] transition"
                         />
                         <button type="button" onClick={() => setShowPin(!showPin)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer">
                           {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -819,14 +826,14 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                       </div>
                     )}
                     {successMessage && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold">
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-brand-700 text-xs flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="w-4 h-4 shrink-0" /> <span>{successMessage}</span>
                       </div>
                     )}
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <BadgeCheck className="w-4 h-4" />
                       {isLoading ? 'Memverifikasi...' : 'Masuk ke Portal Warga'}
@@ -837,7 +844,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                       <button
                         type="button"
                         onClick={() => { setShowLoginPopup(false); setShowDaftar(true); }}
-                        className="w-full py-2.5 px-4 border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+                        className="w-full py-2.5 px-4 border-2 border-brand-600 text-brand-700 hover:bg-emerald-50 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
                       >
                         <UserPlus className="w-4 h-4" /> Daftar Akun Warga
                       </button>
@@ -854,27 +861,29 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                     </div>
                     {cloudAuthAvailable && (
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">Email:</label>
+                        <label htmlFor="login-admin-email-2" className="block text-xs font-bold text-slate-700 mb-1">Email:</label>
                         <input
+                          id="login-admin-email-2"
                           type="email"
                           autoComplete="email"
                           placeholder="email@pengurus.rt004.id"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition"
                         />
                       </div>
                     )}
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Password:</label>
+                      <label htmlFor="login-admin-password-2" className="block text-xs font-bold text-slate-700 mb-1">Password:</label>
                       <div className="relative">
                         <input
+                          id="login-admin-password-2"
                           type={showPassword ? 'text' : 'password'}
                           autoComplete="current-password"
                           placeholder="••••••••"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-3 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                          className="w-full pl-3 pr-10 py-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition"
                         />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition">
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -887,7 +896,7 @@ export const LoginPortal: React.FC<LoginPortalProps> = ({
                       </div>
                     )}
                     {successMessage && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2 font-semibold">
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-brand-700 text-xs flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="w-4 h-4 shrink-0" /> <span>{successMessage}</span>
                       </div>
                     )}

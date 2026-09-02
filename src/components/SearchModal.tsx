@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, Users, User, FileText, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Search, X, Users, User, FileText, ArrowRight, ShieldAlert } from 'lucide-react';
 import { KartuKeluarga, Warga, SuratPengantar } from '../types';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 

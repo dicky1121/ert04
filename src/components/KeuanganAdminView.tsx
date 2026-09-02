@@ -130,7 +130,7 @@ const KeuanganFormModal: React.FC<{
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
           {/* Jenis (segmented) */}
           <div>
-            <label className={labelCls}>Jenis transaksi *</label>
+            <p className={labelCls}>Jenis transaksi *</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -164,7 +164,7 @@ const KeuanganFormModal: React.FC<{
               id="keu-jumlah"
               type="text"
               inputMode="numeric"
-              value={form.jumlah ? form.jumlah.toLocaleString('id-ID') : ''}
+              value={form.jumlah ? formatRupiah(form.jumlah) : ''}
               onChange={e => handleJumlah(e.target.value)}
               placeholder="mis. 50.000"
               className={`${inputCls} font-bold`}

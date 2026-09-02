@@ -90,7 +90,7 @@ const FotoPicker: React.FC<{
   hint?: string;
 }> = ({ preview, onPick, onRemove, hint }) => (
   <div>
-    <label className={umkmLabelCls}>{hint || 'Foto (opsional, maks 2MB)'}</label>
+    <p className={umkmLabelCls}>{hint || 'Foto (opsional, maks 2MB)'}</p>
     {preview ? (
       <div className="relative rounded-xl overflow-hidden border border-slate-200">
         <img src={preview} alt="Pratinjau" className="w-full max-h-52 object-cover" />
@@ -507,7 +507,7 @@ export const ProdukFormModal: React.FC<{
       {/* Editor varian */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className={`${umkmLabelCls} mb-0`}>Varian / pilihan (opsional)</label>
+          <p className={`${umkmLabelCls} mb-0`}>Varian / pilihan (opsional)</p>
           <button
             type="button"
             onClick={tambahVarian}

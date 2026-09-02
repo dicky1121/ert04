@@ -4,6 +4,7 @@ import { StatusPengajuanPublik } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { statusBadge, SURAT_TONE } from '../utils/statusBadge';
 import { useModalDismiss } from '../hooks/useModalDismiss';
+import { formatTanggalSedang } from '../utils/tanggal';
 
 interface LacakPengajuanModalProps {
   onClose: () => void;
@@ -25,13 +26,6 @@ const statusMeta: Record<string, { label: string; className: string; Icon: typeo
     className: statusBadge(SURAT_TONE.DITOLAK),
     Icon: XCircle
   }
-};
-
-const formatTanggal = (value?: string | null): string => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 /**
@@ -184,12 +178,12 @@ export const LacakPengajuanModal: React.FC<LacakPengajuanModalProps> = ({ onClos
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="font-semibold text-slate-500">Tanggal Pengajuan</dt>
-                  <dd className="text-right font-bold text-slate-900">{formatTanggal(hasil.tanggalPengajuan)}</dd>
+                  <dd className="text-right font-bold text-slate-900">{formatTanggalSedang(hasil.tanggalPengajuan)}</dd>
                 </div>
                 {hasil.status === 'DISETUJUI' && (
                   <div className="flex justify-between gap-3">
                     <dt className="font-semibold text-slate-500">Tanggal Disetujui</dt>
-                    <dd className="text-right font-bold text-slate-900">{formatTanggal(hasil.tanggalDisetujui)}</dd>
+                    <dd className="text-right font-bold text-slate-900">{formatTanggalSedang(hasil.tanggalDisetujui)}</dd>
                   </div>
                 )}
                 {hasil.status === 'DITOLAK' && hasil.alasanPenolakan && (

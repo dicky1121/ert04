@@ -63,7 +63,7 @@ export const TokoKelolaCard: React.FC<TokoKelolaCardProps> = ({
             className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0"
             aria-label="Lihat foto lapak"
           >
-            <img src={toko.fotoUrl} alt={toko.namaUsaha} className="w-full h-full object-cover" />
+            <img src={toko.fotoUrl} alt={toko.namaUsaha} loading="lazy" className="w-full h-full object-cover" />
           </button>
         ) : (
           <div className="w-16 h-16 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
@@ -150,7 +150,7 @@ export const TokoKelolaCard: React.FC<TokoKelolaCardProps> = ({
                     className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 shrink-0"
                     aria-label="Lihat foto produk"
                   >
-                    <img src={p.fotoUrl} alt={p.namaProduk} className="w-full h-full object-cover" />
+                    <img src={p.fotoUrl} alt={p.namaProduk} loading="lazy" className="w-full h-full object-cover" />
                   </button>
                 ) : (
                   <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">

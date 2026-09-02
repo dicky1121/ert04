@@ -129,7 +129,6 @@ function setStatus(pesan: string, tambahan: Partial<StatusNotifikasi> = {}): voi
   status.pesan = pesan;
   status.waktuTerakhir = new Date().toISOString();
   Object.assign(status, tambahan);
-  console.log(`[PushNotif] ${pesan}`);
 }
 
 export const pushNotificationService = {
@@ -215,8 +214,6 @@ export const pushNotificationService = {
         vibration: true,
         visibility: 1, // Public — tampil di layar terkunci
       });
-
-      console.log(`[PushNotif] Channel "${CHANNEL_ID}" siap`);
     } catch (error) {
       console.error('[PushNotif] Gagal membuat notification channel:', error);
     }
@@ -233,8 +230,6 @@ export const pushNotificationService = {
         vibration: true,
         visibility: 1,
       });
-
-      console.log(`[PushNotif] Channel "${CHANNEL_PENGUMUMAN_ID}" siap`);
     } catch (error) {
       console.error('[PushNotif] Gagal membuat channel pengumuman:', error);
     }
@@ -273,8 +268,6 @@ export const pushNotificationService = {
     // Di Android, notifikasi TIDAK otomatis tampil di status bar saat app
     // terbuka, jadi kita bunyikan getar + kirim event ke UI untuk toast.
     void PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('[PushNotif] Diterima (foreground):', notification);
-
       const title = notification?.title || notification?.data?.title || 'Notifikasi Baru';
       const body = notification?.body || notification?.data?.body || '';
       const jenis = notification?.data?.type;
@@ -300,8 +293,6 @@ export const pushNotificationService = {
 
     // Event: user menekan notifikasi (app di background/tertutup).
     void PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('[PushNotif] Notifikasi ditekan:', action);
-
       const data = action?.notification?.data;
       if (!data || typeof window === 'undefined') return;
 
@@ -320,7 +311,7 @@ export const pushNotificationService = {
       }
     });
 
-    console.log('[PushNotif] Semua listener terpasang (sebelum register)');
+    // Semua listener terpasang (sebelum register).
   },
 
   /**

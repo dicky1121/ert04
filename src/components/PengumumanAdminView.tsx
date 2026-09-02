@@ -20,6 +20,7 @@ import { CurrentUser, KATEGORI_PENGUMUMAN_OPSI, Pengumuman, PengumumanInput } fr
 import { supabaseService } from '../services/supabaseService';
 import { useConfirm } from './ConfirmDialog';
 import { useModalDismiss } from '../hooks/useModalDismiss';
+import { formatTanggalSedang } from '../utils/tanggal';
 
 interface PengumumanAdminViewProps {
   currentUser: CurrentUser;
@@ -45,14 +46,6 @@ const KATEGORI_TONE: Record<string, { bar: string; chip: string }> = {
 
 const toneKategori = (kategori: string) =>
   KATEGORI_TONE[String(kategori).toUpperCase()] ?? KATEGORI_TONE.UMUM;
-
-const formatTanggal = (ymd: string): string => {
-  if (!ymd) return '-';
-  // Tambahkan waktu lokal agar tidak bergeser hari karena zona waktu.
-  const d = new Date(`${ymd}T00:00:00`);
-  if (isNaN(d.getTime())) return ymd;
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-};
 
 const hariIniYmd = (): string => {
   const d = new Date();
@@ -598,8 +591,8 @@ export const PengumumanAdminView: React.FC<PengumumanAdminViewProps> = ({ curren
                       </span>
                       <span className="flex items-center gap-1.5">
                         <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-                        {formatTanggal(p.tanggalMulai)}
-                        {p.tanggalSelesai ? ` – ${formatTanggal(p.tanggalSelesai)}` : ''}
+                        {formatTanggalSedang(p.tanggalMulai)}
+                        {p.tanggalSelesai ? ` – ${formatTanggalSedang(p.tanggalSelesai)}` : ''}
                       </span>
                     </div>
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
-  FileText,
   Loader2,
   Shield,
   XCircle,
@@ -10,24 +9,12 @@ import {
 import { SuratPengantar } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { BekasiLogo } from './BekasiLogo';
+import { formatTanggalSedang } from '../utils/tanggal';
 
 interface VerifikasiSuratProps {
   kode: string;
   onTutup: () => void;
 }
-
-const formatTanggal = (isoStr?: string | null): string => {
-  if (!isoStr) return '-';
-  try {
-    return new Date(isoStr).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  } catch {
-    return isoStr;
-  }
-};
 
 /**
  * Halaman/overlay verifikasi keaslian surat pengantar.
@@ -158,7 +145,7 @@ export const VerifikasiSurat: React.FC<VerifikasiSuratProps> = ({ kode, onTutup 
                   </p>
                   <p className="text-[11px] mt-0.5">
                     {isValid
-                      ? `Diterbitkan ${formatTanggal(surat.tanggalDisetujui)}`
+                      ? `Diterbitkan ${formatTanggalSedang(surat.tanggalDisetujui)}`
                       : `Status: ${surat.status}`}
                   </p>
                 </div>

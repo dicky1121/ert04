@@ -359,20 +359,23 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
 
               {/* NIK */}
               <div>
-                <label className={labelCls}>
+                <label htmlFor="daftar-nik" className={labelCls}>
                   NIK <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="daftar-nik"
                   inputMode="numeric"
                   value={form.nik}
                   onChange={(e) => setField('nik', onlyDigits(e.target.value).slice(0, 16))}
                   placeholder="16 digit sesuai KTP"
                   className={inputCls}
+                  aria-invalid={Boolean(errors.nik)}
+                  aria-describedby="daftar-nik-bantuan"
                 />
                 {errors.nik ? (
-                  <p className="text-xs text-rose-600 mt-1">{errors.nik}</p>
+                  <p id="daftar-nik-bantuan" className="text-xs text-rose-600 mt-1">{errors.nik}</p>
                 ) : (
-                  <p className="text-xs text-slate-400 mt-1">{form.nik.length}/16 digit</p>
+                  <p id="daftar-nik-bantuan" className="text-xs text-slate-400 mt-1">{form.nik.length}/16 digit</p>
                 )}
               </div>
 
@@ -390,11 +393,12 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
                   <div className="grid grid-cols-2 gap-3">
                     {/* PIN */}
                     <div>
-                      <label className={labelCls}>
+                      <label htmlFor="daftar-pin" className={labelCls}>
                         PIN <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <input
+                          id="daftar-pin"
                           type={showPin ? 'text' : 'password'}
                           inputMode="numeric"
                           autoComplete="new-password"
@@ -402,6 +406,8 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
                           onChange={(e) => setPin(onlyDigits(e.target.value).slice(0, 6))}
                           placeholder="••••••"
                           className={inputCls + ' pr-10 tracking-[0.3em]'}
+                          aria-invalid={Boolean(errors.pin)}
+                          aria-describedby={errors.pin ? 'daftar-pin-error' : undefined}
                         />
                         <button
                           type="button"
@@ -415,10 +421,11 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
                     </div>
                     {/* Konfirmasi PIN */}
                     <div>
-                      <label className={labelCls}>
+                      <label htmlFor="daftar-pin2" className={labelCls}>
                         Ulangi PIN <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        id="daftar-pin2"
                         type={showPin ? 'text' : 'password'}
                         inputMode="numeric"
                         autoComplete="new-password"
@@ -426,59 +433,67 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
                         onChange={(e) => setPin2(onlyDigits(e.target.value).slice(0, 6))}
                         placeholder="••••••"
                         className={inputCls + ' tracking-[0.3em]'}
+                        aria-invalid={Boolean(errors.pin2)}
+                        aria-describedby={errors.pin2 ? 'daftar-pin2-error' : undefined}
                       />
                     </div>
                   </div>
-                  {errors.pin && <p className="text-xs text-rose-600">{errors.pin}</p>}
-                  {errors.pin2 && <p className="text-xs text-rose-600">{errors.pin2}</p>}
+                  {errors.pin && <p id="daftar-pin-error" className="text-xs text-rose-600">{errors.pin}</p>}
+                  {errors.pin2 && <p id="daftar-pin2-error" className="text-xs text-rose-600">{errors.pin2}</p>}
                 </div>
               )}
 
               {/* Nomor KK */}
               <div>
-                <label className={labelCls}>
+                <label htmlFor="daftar-nomor-kk" className={labelCls}>
                   Nomor Kartu Keluarga <span className="text-slate-400 font-normal text-[11px]">(opsional)</span>
                 </label>
                 <input
+                  id="daftar-nomor-kk"
                   inputMode="numeric"
                   value={form.nomorKK}
                   onChange={(e) => setField('nomorKK', onlyDigits(e.target.value).slice(0, 16))}
                   placeholder="16 digit sesuai KK (kosongkan jika belum ada)"
                   className={inputCls}
+                  aria-invalid={Boolean(errors.nomorKK)}
+                  aria-describedby="daftar-nomor-kk-bantuan"
                 />
-                {errors.nomorKK && <p className="text-xs text-rose-600 mt-1">{errors.nomorKK}</p>}
+                {errors.nomorKK && <p id="daftar-nomor-kk-bantuan" className="text-xs text-rose-600 mt-1">{errors.nomorKK}</p>}
                 {!errors.nomorKK && (
-                  <p className="text-[11px] text-slate-400 mt-1">Kosongkan jika belum memiliki KK atau belum tahu nomornya.</p>
+                  <p id="daftar-nomor-kk-bantuan" className="text-[11px] text-slate-400 mt-1">Kosongkan jika belum memiliki KK atau belum tahu nomornya.</p>
                 )}
               </div>
 
               {/* Nama */}
               <div>
-                <label className={labelCls}>
+                <label htmlFor="daftar-nama" className={labelCls}>
                   Nama Lengkap <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="daftar-nama"
                   value={form.nama}
                   onChange={(e) => setField('nama', e.target.value)}
                   placeholder="Sesuai KTP"
                   className={inputCls}
+                  aria-invalid={Boolean(errors.nama)}
+                  aria-describedby={errors.nama ? 'daftar-nama-error' : undefined}
                 />
-                {errors.nama && <p className="text-xs text-rose-600 mt-1">{errors.nama}</p>}
+                {errors.nama && <p id="daftar-nama-error" className="text-xs text-rose-600 mt-1">{errors.nama}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Jenis Kelamin */}
                 <div>
-                  <label className={labelCls}>Jenis Kelamin</label>
-                  <select value={form.jenisKelamin} onChange={(e) => setField('jenisKelamin', e.target.value as 'L' | 'P')} className={selectCls}>
+                  <label htmlFor="daftar-jenis-kelamin" className={labelCls}>Jenis Kelamin</label>
+                  <select id="daftar-jenis-kelamin" value={form.jenisKelamin} onChange={(e) => setField('jenisKelamin', e.target.value as 'L' | 'P')} className={selectCls}>
                     <option value="L">Laki-laki</option>
                     <option value="P">Perempuan</option>
                   </select>
                 </div>
                 {/* Golongan Darah */}
                 <div>
-                  <label className={labelCls}>Golongan Darah</label>
-                  <select value={form.golonganDarah} onChange={(e) => setField('golonganDarah', e.target.value)} className={selectCls}>
+                  <label htmlFor="daftar-golongan-darah" className={labelCls}>Golongan Darah</label>
+                  <select id="daftar-golongan-darah" value={form.golonganDarah} onChange={(e) => setField('golonganDarah', e.target.value)} className={selectCls}>
                     <option value="-">Tidak Tahu / -</option>
                     <option value="A">A</option>
                     <option value="B">B</option>
@@ -491,23 +506,23 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
               <div className="grid grid-cols-2 gap-3">
                 {/* Tempat Lahir */}
                 <div>
-                  <label className={labelCls}>Tempat Lahir</label>
-                  <input value={form.tempatLahir} onChange={(e) => setField('tempatLahir', e.target.value)} placeholder="Kota kelahiran" className={inputCls} />
+                  <label htmlFor="daftar-tempat-lahir" className={labelCls}>Tempat Lahir</label>
+                  <input id="daftar-tempat-lahir" value={form.tempatLahir} onChange={(e) => setField('tempatLahir', e.target.value)} placeholder="Kota kelahiran" className={inputCls} />
                 </div>
                 {/* Tanggal Lahir */}
                 <div>
-                  <label className={labelCls}>
+                  <label htmlFor="daftar-tanggal-lahir" className={labelCls}>
                     Tanggal Lahir <span className="text-rose-500">*</span>
                   </label>
-                  <input type="date" value={form.tanggalLahir} onChange={(e) => setField('tanggalLahir', e.target.value)} className={inputCls} />
-                  {errors.tanggalLahir && <p className="text-xs text-rose-600 mt-1">{errors.tanggalLahir}</p>}
+                  <input id="daftar-tanggal-lahir" type="date" value={form.tanggalLahir} onChange={(e) => setField('tanggalLahir', e.target.value)} className={inputCls} aria-invalid={Boolean(errors.tanggalLahir)} aria-describedby={errors.tanggalLahir ? 'daftar-tanggal-lahir-error' : undefined} />
+                  {errors.tanggalLahir && <p id="daftar-tanggal-lahir-error" className="text-xs text-rose-600 mt-1">{errors.tanggalLahir}</p>}
                 </div>
               </div>
 
               {/* Status Hubungan KK */}
               <div>
-                <label className={labelCls}>Status Hubungan dalam KK</label>
-                <select value={form.statusHubunganKK} onChange={(e) => setField('statusHubunganKK', e.target.value)} className={selectCls}>
+                <label htmlFor="daftar-status-hubungan-kk" className={labelCls}>Status Hubungan dalam KK</label>
+                <select id="daftar-status-hubungan-kk" value={form.statusHubunganKK} onChange={(e) => setField('statusHubunganKK', e.target.value)} className={selectCls}>
                   <option value="KEPALA KELUARGA">Kepala Keluarga</option>
                   <option value="ISTRI">Istri</option>
                   <option value="ANAK">Anak</option>
@@ -521,8 +536,8 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
               <div className="grid grid-cols-2 gap-3">
                 {/* Status Perkawinan */}
                 <div>
-                  <label className={labelCls}>Status Perkawinan</label>
-                  <select value={form.statusPerkawinan} onChange={(e) => setField('statusPerkawinan', e.target.value)} className={selectCls}>
+                  <label htmlFor="daftar-status-perkawinan" className={labelCls}>Status Perkawinan</label>
+                  <select id="daftar-status-perkawinan" value={form.statusPerkawinan} onChange={(e) => setField('statusPerkawinan', e.target.value)} className={selectCls}>
                     <option value="BELUM KAWIN">Belum Kawin</option>
                     <option value="KAWIN">Kawin</option>
                     <option value="CERAI HIDUP">Cerai Hidup</option>
@@ -531,8 +546,8 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
                 </div>
                 {/* Agama */}
                 <div>
-                  <label className={labelCls}>Agama</label>
-                  <select value={form.agama} onChange={(e) => setField('agama', e.target.value)} className={selectCls}>
+                  <label htmlFor="daftar-agama" className={labelCls}>Agama</label>
+                  <select id="daftar-agama" value={form.agama} onChange={(e) => setField('agama', e.target.value)} className={selectCls}>
                     <option value="ISLAM">Islam</option>
                     <option value="KRISTEN">Kristen</option>
                     <option value="KATOLIK">Katolik</option>
@@ -545,14 +560,14 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
 
               {/* Pekerjaan */}
               <div>
-                <label className={labelCls}>Pekerjaan</label>
-                <input value={form.pekerjaan} onChange={(e) => setField('pekerjaan', e.target.value)} placeholder="Contoh: Karyawan Swasta / Wiraswasta" className={inputCls} />
+                <label htmlFor="daftar-pekerjaan" className={labelCls}>Pekerjaan</label>
+                <input id="daftar-pekerjaan" value={form.pekerjaan} onChange={(e) => setField('pekerjaan', e.target.value)} placeholder="Contoh: Karyawan Swasta / Wiraswasta" className={inputCls} />
               </div>
 
               {/* Status Tinggal */}
               <div>
-                <label className={labelCls}>Status Tinggal</label>
-                <select value={form.statusTinggal} onChange={(e) => setField('statusTinggal', e.target.value)} className={selectCls}>
+                <label htmlFor="daftar-status-tinggal" className={labelCls}>Status Tinggal</label>
+                <select id="daftar-status-tinggal" value={form.statusTinggal} onChange={(e) => setField('statusTinggal', e.target.value)} className={selectCls}>
                   <option value="TETAP">Warga Tetap</option>
                   <option value="KONTRAK">Pengontrak</option>
                   <option value="KOS">Kos</option>
@@ -561,23 +576,26 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
 
               {/* Nomor HP */}
               <div>
-                <label className={labelCls}>
+                <label htmlFor="daftar-nomor-hp" className={labelCls}>
                   Nomor WhatsApp / HP <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="daftar-nomor-hp"
                   inputMode="tel"
                   value={form.nomorHp}
                   onChange={(e) => setField('nomorHp', e.target.value)}
                   placeholder="Contoh: 081298765432"
                   className={inputCls}
+                  aria-invalid={Boolean(errors.nomorHp)}
+                  aria-describedby={errors.nomorHp ? 'daftar-nomor-hp-error' : undefined}
                 />
-                {errors.nomorHp && <p className="text-xs text-rose-600 mt-1">{errors.nomorHp}</p>}
+                {errors.nomorHp && <p id="daftar-nomor-hp-error" className="text-xs text-rose-600 mt-1">{errors.nomorHp}</p>}
               </div>
 
               {/* Bansos */}
               <div>
-                <label className={labelCls}>Bantuan Sosial (Bansos)</label>
-                <select value={form.statusBansos} onChange={(e) => setField('statusBansos', e.target.value)} className={selectCls}>
+                <label htmlFor="daftar-status-bansos" className={labelCls}>Bantuan Sosial (Bansos)</label>
+                <select id="daftar-status-bansos" value={form.statusBansos} onChange={(e) => setField('statusBansos', e.target.value)} className={selectCls}>
                   <option value="TIDAK_ADA">Tidak Ada (Mampu)</option>
                   <option value="PKH">Program Keluarga Harapan (PKH)</option>
                   <option value="BPNT">Bantuan Pangan Non Tunai (BPNT / Sembako)</option>
@@ -607,8 +625,8 @@ export const DaftarWargaModal: React.FC<DaftarWargaModalProps> = ({ onClose, mod
 
               {/* Catatan */}
               <div>
-                <label className={labelCls}>Catatan Tambahan</label>
-                <textarea rows={2} value={form.catatan} onChange={(e) => setField('catatan', e.target.value)} placeholder="Keterangan lain (opsional)..." className={inputCls} />
+                <label htmlFor="daftar-catatan" className={labelCls}>Catatan Tambahan</label>
+                <textarea id="daftar-catatan" rows={2} value={form.catatan} onChange={(e) => setField('catatan', e.target.value)} placeholder="Keterangan lain (opsional)..." className={inputCls} />
               </div>
             </div>
 

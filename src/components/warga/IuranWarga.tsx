@@ -11,10 +11,12 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { PengaturanIuran, TagihanIuran } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { formatRupiah, namaBulan, formatTanggalRingkas } from '../../utils/keuangan';
 import { IURAN_LABEL, IURAN_TONE, statusBadge } from '../../utils/statusBadge';
+import { container, rise, tapScale } from './motionPresets';
 
 const MAX_BUKTI = 2 * 1024 * 1024; // sinkron dgn batas bucket `bukti-bayar` di SQL
 
@@ -30,6 +32,7 @@ const hariIni = (): string => new Date().toISOString().slice(0, 10);
  * `iuran_guard()`), jadi tak ada kontrol status apa pun di layar ini.
  */
 export const IuranWarga: React.FC = () => {
+  const reduce = useReducedMotion() ?? false;
   const [list, setList] = useState<TagihanIuran[]>([]);
   const [pengaturan, setPengaturan] = useState<PengaturanIuran | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -154,7 +157,12 @@ export const IuranWarga: React.FC = () => {
     'inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 transition hover:text-emerald-800 disabled:opacity-50';
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      variants={container}
+      initial={reduce ? false : 'hidden'}
+      animate="show"
+      className="space-y-4"
+    >
       {/* Satu input berkas dipakai bersama semua baris */}
       <input
         ref={fileRef}
@@ -164,17 +172,18 @@ export const IuranWarga: React.FC = () => {
         className="hidden"
       />
 
-      <div className="flex items-center justify-between px-0.5">
+      <motion.div variants={rise} className="flex items-center justify-between px-0.5">
         <h1 className="text-lg font-black tracking-tight text-slate-900">Iuran Saya</h1>
-        <button
+        <motion.button
           onClick={loadData}
           disabled={isLoading}
+          whileTap={reduce ? undefined : tapScale}
           className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           Segarkan
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {pesan && (
         <div
@@ -226,7 +235,7 @@ export const IuranWarga: React.FC = () => {
 
       {/* Cara bayar dari setelan pengurus */}
       {pengaturan && ((pengaturan.metodePembayaran ?? []).length > 0 || pengaturan.infoPembayaran) && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 space-y-3">
+        <motion.section variants={rise} className="rounded-3xl border border-slate-200 bg-white p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
               <Info className="h-4 w-4" />
@@ -257,7 +266,7 @@ export const IuranWarga: React.FC = () => {
               {pengaturan.infoPembayaran}
             </p>
           )}
-        </section>
+        </motion.section>
       )}
 
       {/* Daftar tagihan */}
@@ -290,7 +299,7 @@ export const IuranWarga: React.FC = () => {
             const sedangUnggah = uploadingId === t.id;
 
             return (
-              <article key={t.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+              <motion.article key={t.id} variants={rise} className="rounded-3xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate text-sm font-bold text-slate-900">{t.judul}</h3>
@@ -380,11 +389,11 @@ export const IuranWarga: React.FC = () => {
                     </>
                   )}
                 </div>
-              </article>
+              </motion.article>
             );
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

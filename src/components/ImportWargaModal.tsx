@@ -598,7 +598,7 @@ export const ImportWargaModal: React.FC<ImportWargaModalProps> = ({
                           <label className="font-semibold text-slate-700">Kategori Sheet Ini:</label>
                           <select
                             value={currentSheetInfo.inferredRole}
-                            onChange={(e) => handleSheetRoleChange(currentSheetInfo.name, e.target.value as any)}
+                            onChange={(e) => handleSheetRoleChange(currentSheetInfo.name, e.target.value as 'TETAP' | 'KONTRAK' | 'LANSIA' | 'IGNORE')}
                             className="p-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-50 focus:bg-white"
                           >
                             <option value="TETAP">Warga Tetap (TETAP)</option>

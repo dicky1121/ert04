@@ -3,29 +3,26 @@ import {
   Plus, 
   Search, 
   User, 
-  Filter, 
   Edit, 
   Trash2, 
   FileText, 
   Baby, 
   HeartHandshake, 
-  Download, 
   X, 
-  Check, 
-  Eye, 
-  EyeOff,
-  Phone, 
+  Eye,
   AlertCircle,
-  Sparkles,
   Users,
   ClipboardPaste,
-  FileSpreadsheet,
   ShieldCheck
 } from 'lucide-react';
-import { Warga, KartuKeluarga, RTConfig, ImportPreviewRow } from '../types';
-import { calculateDemographics, storageService, formatDateDDMMYYYY, maskNik, maskKK, maskPhone } from '../services/storage';
+import {
+  Warga, KartuKeluarga, RTConfig, ImportPreviewRow,
+  JenisKelamin, StatusPerkawinan, StatusHubunganKK, StatusTinggal, StatusBansos
+} from '../types';
+import { calculateDemographics, storageService, formatDateDDMMYYYY, maskNik, maskKK } from '../services/storage';
 import { useConfirm } from './ConfirmDialog';
 import { useModalDismiss } from '../hooks/useModalDismiss';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 
 // Lazy-load modal import warga (~1000 baris + parser Excel) — chunk hanya dimuat
 // saat modal import benar-benar dibuka pengguna.
@@ -49,6 +46,215 @@ interface DataWargaViewProps {
   selectedWargaId?: string | null;
 }
 
+// ─── Tipe untuk memoized row/card ─────────────────────────────────────────────
+type WargaItemDemo = ReturnType<typeof calculateDemographics>;
+
+interface WargaRowProps {
+  w: Warga & { _demo: WargaItemDemo };
+  isPrivacyMasked: boolean;
+  onDetail: (w: Warga) => void;
+  onEdit: (w: Warga) => void;
+  onDelete: (w: Warga) => void;
+  onCreateSurat: (w: Warga) => void;
+}
+
+// ─── WargaTableRow (baris tabel desktop) ──────────────────────────────────────
+const WargaTableRow = React.memo<WargaRowProps>(({ w, isPrivacyMasked, onDetail, onEdit, onDelete, onCreateSurat }) => {
+  const { _demo: demo } = w;
+  const isLansia = demo.isLansia || Boolean(w.isLansia);
+  const isBalita = demo.isBalita || Boolean(w.isBalita);
+  return (
+    <tr className="hover:bg-slate-50/80 transition">
+      <td className="px-4 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+            w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+          }`}>
+            {w.jenisKelamin}
+          </div>
+          <div>
+            <div className="font-bold text-slate-900 text-sm hover:text-emerald-700 cursor-pointer" onClick={() => onDetail(w)}>
+              {w.nama}
+            </div>
+            <div className="font-mono text-slate-500 font-medium text-xs">
+              NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}
+            </div>
+          </div>
+        </div>
+      </td>
+
+      <td className="px-4 py-3.5">
+        <div className="font-semibold text-slate-800">{w.statusHubunganKK}</div>
+        <div className="font-mono text-emerald-700 text-xs">
+          KK: {isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}
+        </div>
+      </td>
+
+      <td className="px-4 py-3.5">
+        <div className="font-medium text-slate-900 font-mono text-xs">{formatDateDDMMYYYY(w.tanggalLahir)}</div>
+        <div className="text-xs text-slate-500">
+          {demo.usia} Tahun &bull; {w.tempatLahir && w.tempatLahir !== 'Bekasi' ? `${w.tempatLahir}, ` : ''}{w.pekerjaan || 'Wiraswasta'}
+        </div>
+      </td>
+
+      <td className="px-4 py-3.5 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-1">
+          {isLansia && (
+            <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">
+              Lansia ≥60
+            </span>
+          )}
+          {isBalita && (
+            <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">
+              Balita ≤5
+            </span>
+          )}
+          {w.isYatim && (
+            <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">
+              Yatim
+            </span>
+          )}
+          {w.statusBansos !== 'TIDAK_ADA' && (
+            <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">
+              {w.statusBansos}
+            </span>
+          )}
+          {!isLansia && !isBalita && !w.isYatim && w.statusBansos === 'TIDAK_ADA' && (
+            <span className="text-xs text-slate-500">-</span>
+          )}
+        </div>
+      </td>
+
+      <td className="px-4 py-3.5 text-center">
+        <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
+          w.statusTinggal === 'TETAP'
+            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            : 'bg-blue-50 text-blue-800 border border-blue-200'
+        }`}>
+          {w.statusTinggal}
+        </span>
+      </td>
+
+      <td className="px-4 py-3.5 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={() => onCreateSurat(w)}
+            className="flex items-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
+            title="Buat Surat Pengantar"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Surat</span>
+          </button>
+          <button
+            onClick={() => onDetail(w)}
+            className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+            title="Detail Warga"
+            aria-label={`Detail warga ${w.nama}`}
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onEdit(w)}
+            className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+            title="Edit Data"
+            aria-label={`Edit data warga ${w.nama}`}
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(w)}
+            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            title="Hapus Data"
+            aria-label={`Hapus data warga ${w.nama}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+WargaTableRow.displayName = 'WargaTableRow';
+
+// ─── WargaCard (kartu mobile) ─────────────────────────────────────────────────
+const WargaCard = React.memo<WargaRowProps>(({ w, isPrivacyMasked, onDetail, onEdit, onDelete, onCreateSurat }) => {
+  const { _demo: demo } = w;
+  const isLansia = demo.isLansia || Boolean(w.isLansia);
+  const isBalita = demo.isBalita || Boolean(w.isBalita);
+  return (
+    <article className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* Header kartu */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+            w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+          }`}>
+            {w.jenisKelamin}
+          </div>
+          <div className="min-w-0">
+            <button onClick={() => onDetail(w)} className="font-bold text-slate-900 text-sm text-left hover:text-emerald-700 truncate block w-full">
+              {w.nama}
+            </button>
+            <div className="font-mono text-slate-500 text-xs truncate">NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}</div>
+          </div>
+        </div>
+        <span className={`shrink-0 inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
+          w.statusTinggal === 'TETAP'
+            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            : 'bg-blue-50 text-blue-800 border border-blue-200'
+        }`}>
+          {w.statusTinggal}
+        </span>
+      </div>
+
+      {/* Isi kartu */}
+      <div className="px-4 py-3 space-y-1.5 text-xs">
+        <div className="flex justify-between gap-3">
+          <span className="text-slate-500">Hubungan</span>
+          <span className="font-semibold text-slate-800 text-right">{w.statusHubunganKK}</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-slate-500">No. KK</span>
+          <span className="font-mono text-emerald-700 text-right">{isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-slate-500">Lahir / Usia</span>
+          <span className="font-mono text-slate-700 text-right">{formatDateDDMMYYYY(w.tanggalLahir)} &bull; {demo.usia} th</span>
+        </div>
+        {(isLansia || isBalita || w.isYatim || w.statusBansos !== 'TIDAK_ADA') && (
+          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+            {isLansia && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">Lansia ≥60</span>}
+            {isBalita && <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">Balita ≤5</span>}
+            {w.isYatim && <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">Yatim</span>}
+            {w.statusBansos !== 'TIDAK_ADA' && <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">{w.statusBansos}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Aksi kartu */}
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2">
+        <button
+          onClick={() => onCreateSurat(w)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200 cursor-pointer"
+        >
+          <FileText className="w-4 h-4" /> Surat
+        </button>
+        <button onClick={() => onDetail(w)} className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Detail Warga" aria-label={`Detail warga ${w.nama}`}>
+          <Eye className="w-4 h-4" />
+        </button>
+        <button onClick={() => onEdit(w)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit Data" aria-label={`Edit data warga ${w.nama}`}>
+          <Edit className="w-4 h-4" />
+        </button>
+        <button onClick={() => onDelete(w)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus Data" aria-label={`Hapus data warga ${w.nama}`}>
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </article>
+  );
+});
+WargaCard.displayName = 'WargaCard';
+
+// ─── Komponen utama ────────────────────────────────────────────────────────────
 export const DataWargaView: React.FC<DataWargaViewProps> = ({
   wargaList,
   kkList,
@@ -112,6 +318,8 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
     isConfirmClearDummyOpen
   );
 
+  const isDesktop = useIsDesktop();
+
   const handleDeleteWarga = async (w: Warga) => {
     const setuju = await askConfirm({
       title: 'Hapus Data Warga',
@@ -135,7 +343,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
   }, [selectedWargaId, wargaList]);
 
   // Categories config
-  const categories = [
+  const categories = useMemo(() => [
     { id: 'ALL', label: 'Semua Warga', icon: Users, count: wargaList.length },
     { id: 'TETAP', label: 'Warga Tetap', icon: User, count: wargaList.filter(w => w.statusTinggal === 'TETAP').length },
     { id: 'KONTRAK', label: 'Pengontrak / Kost', icon: User, count: wargaList.filter(w => w.statusTinggal === 'KONTRAK' || w.statusTinggal === 'KOS').length },
@@ -143,32 +351,34 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
     { id: 'BALITA', label: 'Balita (≤5 Thn)', icon: Baby, count: wargaList.filter(w => calculateDemographics(w.tanggalLahir).isBalita || Boolean(w.isBalita)).length },
     { id: 'YATIM', label: 'Anak Yatim', icon: HeartHandshake, count: wargaList.filter(w => w.isYatim).length },
     { id: 'BANSOS', label: 'Penerima Bansos', icon: HeartHandshake, count: wargaList.filter(w => w.statusBansos !== 'TIDAK_ADA').length },
-  ];
+  ], [wargaList]);
 
-  // Filtered resident list
+  // Filtered resident list — _demo dihitung sekali per item, lalu di-slice
   const filteredWarga = useMemo(() => {
-    return wargaList.filter(w => {
-      const demo = calculateDemographics(w.tanggalLahir);
-      const isLansia = demo.isLansia || Boolean(w.isLansia);
-      const isBalita = demo.isBalita || Boolean(w.isBalita);
+    return wargaList
+      .map(w => ({ ...w, _demo: calculateDemographics(w.tanggalLahir) }))
+      .filter(w => {
+        const isLansia = w._demo.isLansia || Boolean(w.isLansia);
+        const isBalita = w._demo.isBalita || Boolean(w.isBalita);
 
-      const matchQuery =
-        w.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.nik.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.nomorKK.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.tempatLahir.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (w.pekerjaan && w.pekerjaan.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchQuery =
+          w.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          w.nik.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          w.nomorKK.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          w.tempatLahir.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (w.pekerjaan && w.pekerjaan.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      let matchCategory = true;
-      if (selectedCategory === 'TETAP') matchCategory = w.statusTinggal === 'TETAP';
-      else if (selectedCategory === 'KONTRAK') matchCategory = w.statusTinggal === 'KONTRAK' || w.statusTinggal === 'KOS';
-      else if (selectedCategory === 'LANSIA') matchCategory = isLansia;
-      else if (selectedCategory === 'BALITA') matchCategory = isBalita;
-      else if (selectedCategory === 'YATIM') matchCategory = !!w.isYatim;
-      else if (selectedCategory === 'BANSOS') matchCategory = w.statusBansos !== 'TIDAK_ADA';
+        let matchCategory = true;
+        if (selectedCategory === 'TETAP') matchCategory = w.statusTinggal === 'TETAP';
+        else if (selectedCategory === 'KONTRAK') matchCategory = w.statusTinggal === 'KONTRAK' || w.statusTinggal === 'KOS';
+        else if (selectedCategory === 'LANSIA') matchCategory = isLansia;
+        else if (selectedCategory === 'BALITA') matchCategory = isBalita;
+        else if (selectedCategory === 'YATIM') matchCategory = !!w.isYatim;
+        else if (selectedCategory === 'BANSOS') matchCategory = w.statusBansos !== 'TIDAK_ADA';
 
-      return matchQuery && matchCategory;
-    });
+        return matchQuery && matchCategory;
+      })
+      .slice(0, 50);
   }, [wargaList, searchTerm, selectedCategory]);
 
   const handleOpenCreate = () => {
@@ -243,21 +453,21 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
       jenisKelamin: formData.jenisKelamin || 'L',
       tempatLahir: formData.tempatLahir?.trim() || 'Bekasi',
       tanggalLahir: formData.tanggalLahir!,
-      agama: formData.agama as any || 'ISLAM',
+      agama: formData.agama as Warga['agama'] || 'ISLAM',
       pendidikan: formData.pendidikan || 'SLTA',
       pekerjaan: formData.pekerjaan || 'Wiraswasta',
-      statusPerkawinan: formData.statusPerkawinan as any || 'KAWIN',
-      statusHubunganKK: formData.statusHubunganKK as any || 'KEPALA KELUARGA',
+      statusPerkawinan: formData.statusPerkawinan as StatusPerkawinan || 'KAWIN',
+      statusHubunganKK: formData.statusHubunganKK as StatusHubunganKK || 'KEPALA KELUARGA',
       kewarganegaraan: 'WNI',
-      golonganDarah: formData.golonganDarah as any || '-',
+      golonganDarah: formData.golonganDarah as Warga['golonganDarah'] || '-',
       nomorHp: formData.nomorHp || '-',
       email: formData.email || '',
-      statusTinggal: formData.statusTinggal as any || 'TETAP',
+      statusTinggal: formData.statusTinggal as StatusTinggal || 'TETAP',
       isLansia: demo.isLansia,
       isBalita: demo.isBalita,
       isYatim: !!formData.isYatim,
       isDisabilitas: !!formData.isDisabilitas,
-      statusBansos: formData.statusBansos as any || 'TIDAK_ADA',
+      statusBansos: formData.statusBansos as StatusBansos || 'TIDAK_ADA',
       keteranganBansos: formData.keteranganBansos || '',
       tanggalInput: formData.tanggalInput || new Date().toISOString().split('T')[0],
       catatan: formData.catatan || ''
@@ -390,6 +600,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
         <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3" />
         <input
           type="text"
+          aria-label="Cari warga"
           placeholder="Cari berdasarkan Nama Lengkap, NIK 16 digit, Nomor KK, Pekerjaan..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -397,8 +608,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
         />
       </div>
 
-      {/* Data warga — tabel (tampil ≥ md) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Data warga — tabel (desktop) atau kartu (mobile) */}
+      {isDesktop ? (
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="table-scroll">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -421,126 +633,24 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredWarga.map((w) => {
-                  const demo = calculateDemographics(w.tanggalLahir);
-                  const isLansia = demo.isLansia || Boolean(w.isLansia);
-                  const isBalita = demo.isBalita || Boolean(w.isBalita);
-                  return (
-                    <tr key={w.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                            w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
-                          }`}>
-                            {w.jenisKelamin}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900 text-sm hover:text-emerald-700 cursor-pointer" onClick={() => handleOpenDetail(w)}>
-                              {w.nama}
-                            </div>
-                            <div className="font-mono text-slate-500 font-medium text-xs">
-                              NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-slate-800">{w.statusHubunganKK}</div>
-                        <div className="font-mono text-emerald-700 text-xs">
-                          KK: {isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="font-medium text-slate-900 font-mono text-xs">{formatDateDDMMYYYY(w.tanggalLahir)}</div>
-                        <div className="text-xs text-slate-500">
-                          {demo.usia} Tahun &bull; {w.tempatLahir && w.tempatLahir !== 'Bekasi' ? `${w.tempatLahir}, ` : ''}{w.pekerjaan || 'Wiraswasta'}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-center">
-                        <div className="flex flex-wrap items-center justify-center gap-1">
-                          {isLansia && (
-                            <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">
-                              Lansia ≥60
-                            </span>
-                          )}
-                          {isBalita && (
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">
-                              Balita ≤5
-                            </span>
-                          )}
-                          {w.isYatim && (
-                            <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">
-                              Yatim
-                            </span>
-                          )}
-                          {w.statusBansos !== 'TIDAK_ADA' && (
-                            <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">
-                              {w.statusBansos}
-                            </span>
-                          )}
-                          {!isLansia && !isBalita && !w.isYatim && w.statusBansos === 'TIDAK_ADA' && (
-                            <span className="text-xs text-slate-500">-</span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
-                          w.statusTinggal === 'TETAP'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-blue-50 text-blue-800 border border-blue-200'
-                        }`}>
-                          {w.statusTinggal}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => onCreateSurat(w)}
-                            className="flex items-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200"
-                            title="Buat Surat Pengantar"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span className="hidden md:inline">Surat</span>
-                          </button>
-                          <button
-                            onClick={() => handleOpenDetail(w)}
-                            className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
-                            title="Detail Warga"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEdit(w)}
-                            className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
-                            title="Edit Data"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWarga(w)}
-                            className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                            title="Hapus Data"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                filteredWarga.map((w) => (
+                  <WargaTableRow
+                    key={w.id}
+                    w={w}
+                    isPrivacyMasked={isPrivacyMasked}
+                    onDetail={handleOpenDetail}
+                    onEdit={handleOpenEdit}
+                    onDelete={handleDeleteWarga}
+                    onCreateSurat={onCreateSurat}
+                  />
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Data warga — kartu (mobile, tampil < md) */}
-      <div className="md:hidden space-y-3">
+      ) : (
+      <div className="space-y-3">
         {filteredWarga.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs text-center py-10 px-4">
             <User className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
@@ -548,83 +658,20 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
             <p className="text-xs text-slate-500 mt-0.5">Coba ubah filter atau kata kunci pencarian.</p>
           </div>
         ) : (
-          filteredWarga.map((w) => {
-            const demo = calculateDemographics(w.tanggalLahir);
-            const isLansia = demo.isLansia || Boolean(w.isLansia);
-            const isBalita = demo.isBalita || Boolean(w.isBalita);
-            return (
-              <article key={w.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                {/* Header kartu */}
-                <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                      w.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
-                    }`}>
-                      {w.jenisKelamin}
-                    </div>
-                    <div className="min-w-0">
-                      <button onClick={() => handleOpenDetail(w)} className="font-bold text-slate-900 text-sm text-left hover:text-emerald-700 truncate block w-full">
-                        {w.nama}
-                      </button>
-                      <div className="font-mono text-slate-500 text-xs truncate">NIK: {isPrivacyMasked ? maskNik(w.nik) : w.nik}</div>
-                    </div>
-                  </div>
-                  <span className={`shrink-0 inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
-                    w.statusTinggal === 'TETAP'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-blue-50 text-blue-800 border border-blue-200'
-                  }`}>
-                    {w.statusTinggal}
-                  </span>
-                </div>
-
-                {/* Isi kartu */}
-                <div className="px-4 py-3 space-y-1.5 text-xs">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Hubungan</span>
-                    <span className="font-semibold text-slate-800 text-right">{w.statusHubunganKK}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">No. KK</span>
-                    <span className="font-mono text-emerald-700 text-right">{isPrivacyMasked ? maskKK(w.nomorKK) : w.nomorKK}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Lahir / Usia</span>
-                    <span className="font-mono text-slate-700 text-right">{formatDateDDMMYYYY(w.tanggalLahir)} &bull; {demo.usia} th</span>
-                  </div>
-                  {(isLansia || isBalita || w.isYatim || w.statusBansos !== 'TIDAK_ADA') && (
-                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                      {isLansia && <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold">Lansia ≥60</span>}
-                      {isBalita && <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded font-bold">Balita ≤5</span>}
-                      {w.isYatim && <span className="text-xs px-1.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-200 rounded font-bold">Yatim</span>}
-                      {w.statusBansos !== 'TIDAK_ADA' && <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-200 rounded font-bold">{w.statusBansos}</span>}
-                    </div>
-                  )}
-                </div>
-
-                {/* Aksi kartu */}
-                <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2">
-                  <button
-                    onClick={() => onCreateSurat(w)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg text-xs transition border border-emerald-200 cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4" /> Surat
-                  </button>
-                  <button onClick={() => handleOpenDetail(w)} className="p-2.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Detail Warga" aria-label="Detail Warga">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleOpenEdit(w)} className="p-2.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Edit Data" aria-label="Edit Data">
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDeleteWarga(w)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer" title="Hapus Data" aria-label="Hapus Data">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </article>
-            );
-          })
+          filteredWarga.map((w) => (
+            <WargaCard
+              key={w.id}
+              w={w}
+              isPrivacyMasked={isPrivacyMasked}
+              onDetail={handleOpenDetail}
+              onEdit={handleOpenEdit}
+              onDelete={handleDeleteWarga}
+              onCreateSurat={onCreateSurat}
+            />
+          ))
         )}
       </div>
+      )}
 
       {/* DETAIL MODAL WARGA */}
       {isDetailOpen && currentWarga && (
@@ -646,7 +693,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                   <p className="text-xs text-slate-300 font-mono">NIK: {currentWarga.nik}</p>
                 </div>
               </div>
-              <button onClick={() => setIsDetailOpen(false)} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => setIsDetailOpen(false)} aria-label="Tutup detail warga" className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -771,7 +818,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                   <p className="text-xs text-slate-300">RT {config.namaRT} RW {config.namaRW} Kelurahan {config.kelurahan}</p>
                 </div>
               </div>
-              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => setIsFormOpen(false)} aria-label="Tutup formulir warga" className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -780,63 +827,73 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* NIK */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="warga-nik" className="block font-semibold text-slate-700 mb-1">
                     NIK (Nomor Induk Kependudukan - 16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="warga-nik"
                     type="text"
                     maxLength={16}
                     placeholder="Contoh: 3216061205750001"
                     value={formData.nik || ''}
                     onChange={(e) => setFormData({ ...formData, nik: e.target.value.replace(/\D/g, '') })}
+                    aria-invalid={Boolean(formErrors.nik)}
+                    aria-describedby={formErrors.nik ? 'warga-nik-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl font-mono text-xs ${
                       formErrors.nik ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nik && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nik}</p>}
+                  {formErrors.nik && <p id="warga-nik-error" className="text-xs text-rose-600 mt-0.5">{formErrors.nik}</p>}
                 </div>
 
                 {/* Nomor KK */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="warga-nomor-kk" className="block font-semibold text-slate-700 mb-1">
                     Nomor Kartu Keluarga (KK) <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="warga-nomor-kk"
                     type="text"
                     maxLength={16}
                     placeholder="Contoh: 3216060101150001"
                     value={formData.nomorKK || ''}
                     onChange={(e) => setFormData({ ...formData, nomorKK: e.target.value.replace(/\D/g, '') })}
+                    aria-invalid={Boolean(formErrors.nomorKK)}
+                    aria-describedby={formErrors.nomorKK ? 'warga-nomor-kk-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl font-mono text-xs ${
                       formErrors.nomorKK ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nomorKK && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
+                  {formErrors.nomorKK && <p id="warga-nomor-kk-error" className="text-xs text-rose-600 mt-0.5">{formErrors.nomorKK}</p>}
                 </div>
 
                 {/* Nama Lengkap */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="warga-nama" className="block font-semibold text-slate-700 mb-1">
                     Nama Lengkap <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="warga-nama"
                     type="text"
                     placeholder="Nama sesuai KTP"
                     value={formData.nama || ''}
                     onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    aria-invalid={Boolean(formErrors.nama)}
+                    aria-describedby={formErrors.nama ? 'warga-nama-error' : undefined}
                     className={`w-full p-2.5 border rounded-xl text-xs ${
                       formErrors.nama ? 'border-rose-500 bg-rose-50' : 'border-slate-200'
                     }`}
                   />
-                  {formErrors.nama && <p className="text-xs text-rose-600 mt-0.5">{formErrors.nama}</p>}
+                  {formErrors.nama && <p id="warga-nama-error" className="text-xs text-rose-600 mt-0.5">{formErrors.nama}</p>}
                 </div>
 
                 {/* Jenis Kelamin */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
+                  <label htmlFor="warga-jenis-kelamin" className="block font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
                   <select
+                    id="warga-jenis-kelamin"
                     value={formData.jenisKelamin || 'L'}
-                    onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value as JenisKelamin })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="L">Laki-Laki</option>
@@ -846,8 +903,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Tempat Lahir */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tempat Lahir</label>
+                  <label htmlFor="warga-tempat-lahir" className="block font-semibold text-slate-700 mb-1">Tempat Lahir</label>
                   <input
+                    id="warga-tempat-lahir"
                     type="text"
                     placeholder="Contoh: Bekasi / Cirebon"
                     value={formData.tempatLahir || ''}
@@ -858,10 +916,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Tanggal Lahir */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label htmlFor="warga-tanggal-lahir" className="block font-semibold text-slate-700 mb-1">
                     Tanggal Lahir <span className="text-rose-500">*</span>
                   </label>
                   <input
+                    id="warga-tanggal-lahir"
                     type="date"
                     value={formData.tanggalLahir || ''}
                     onChange={(e) => setFormData({ ...formData, tanggalLahir: e.target.value })}
@@ -871,10 +930,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Status Hubungan KK */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status Hubungan dalam KK</label>
+                  <label htmlFor="warga-status-hubungan-kk" className="block font-semibold text-slate-700 mb-1">Status Hubungan dalam KK</label>
                   <select
+                    id="warga-status-hubungan-kk"
                     value={formData.statusHubunganKK || 'KEPALA KELUARGA'}
-                    onChange={(e) => setFormData({ ...formData, statusHubunganKK: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, statusHubunganKK: e.target.value as StatusHubunganKK })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="KEPALA KELUARGA">Kepala Keluarga</option>
@@ -889,10 +949,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Status Perkawinan */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status Perkawinan</label>
+                  <label htmlFor="warga-status-perkawinan" className="block font-semibold text-slate-700 mb-1">Status Perkawinan</label>
                   <select
+                    id="warga-status-perkawinan"
                     value={formData.statusPerkawinan || 'KAWIN'}
-                    onChange={(e) => setFormData({ ...formData, statusPerkawinan: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, statusPerkawinan: e.target.value as StatusPerkawinan })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="BELUM KAWIN">Belum Kawin</option>
@@ -904,10 +965,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Agama */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Agama</label>
+                  <label htmlFor="warga-agama" className="block font-semibold text-slate-700 mb-1">Agama</label>
                   <select
+                    id="warga-agama"
                     value={formData.agama || 'ISLAM'}
-                    onChange={(e) => setFormData({ ...formData, agama: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, agama: e.target.value as Warga['agama'] })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="ISLAM">Islam</option>
@@ -921,8 +983,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Pekerjaan */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Pekerjaan</label>
+                  <label htmlFor="warga-pekerjaan" className="block font-semibold text-slate-700 mb-1">Pekerjaan</label>
                   <input
+                    id="warga-pekerjaan"
                     type="text"
                     placeholder="Contoh: Karyawan Swasta / Wiraswasta"
                     value={formData.pekerjaan || ''}
@@ -933,10 +996,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Status Tinggal */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status Tinggal</label>
+                  <label htmlFor="warga-status-tinggal" className="block font-semibold text-slate-700 mb-1">Status Tinggal</label>
                   <select
+                    id="warga-status-tinggal"
                     value={formData.statusTinggal || 'TETAP'}
-                    onChange={(e) => setFormData({ ...formData, statusTinggal: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, statusTinggal: e.target.value as StatusTinggal })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="TETAP">Warga Tetap</option>
@@ -947,10 +1011,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Status Bansos */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Bantuan Sosial (Bansos)</label>
+                  <label htmlFor="warga-status-bansos" className="block font-semibold text-slate-700 mb-1">Bantuan Sosial (Bansos)</label>
                   <select
+                    id="warga-status-bansos"
                     value={formData.statusBansos || 'TIDAK_ADA'}
-                    onChange={(e) => setFormData({ ...formData, statusBansos: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, statusBansos: e.target.value as StatusBansos })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="TIDAK_ADA">Tidak Ada (Mampu)</option>
@@ -964,8 +1029,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* No WhatsApp */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp / HP</label>
+                  <label htmlFor="warga-nomor-hp" className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp / HP</label>
                   <input
+                    id="warga-nomor-hp"
                     type="text"
                     placeholder="Contoh: 081298765432"
                     value={formData.nomorHp || ''}
@@ -976,10 +1042,11 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
                 {/* Gol Darah */}
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Golongan Darah</label>
+                  <label htmlFor="warga-golongan-darah" className="block font-semibold text-slate-700 mb-1">Golongan Darah</label>
                   <select
+                    id="warga-golongan-darah"
                     value={formData.golonganDarah || '-'}
-                    onChange={(e) => setFormData({ ...formData, golonganDarah: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, golonganDarah: e.target.value as Warga['golonganDarah'] })}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white"
                   >
                     <option value="-">Tidak Tahu / -</option>
@@ -995,8 +1062,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
                 <div className="font-semibold text-slate-800 text-xs">Penetapan Kategori Khusus Tambahan:</div>
                 <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label htmlFor="warga-is-yatim" className="flex items-center gap-2 cursor-pointer">
                     <input
+                      id="warga-is-yatim"
                       type="checkbox"
                       checked={formData.isYatim || false}
                       onChange={(e) => setFormData({ ...formData, isYatim: e.target.checked })}
@@ -1005,8 +1073,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
                     <span className="text-slate-700">Anak Yatim / Piatu</span>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label htmlFor="warga-is-disabilitas" className="flex items-center gap-2 cursor-pointer">
                     <input
+                      id="warga-is-disabilitas"
                       type="checkbox"
                       checked={formData.isDisabilitas || false}
                       onChange={(e) => setFormData({ ...formData, isDisabilitas: e.target.checked })}
@@ -1022,8 +1091,9 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
 
               {/* Catatan / Keterangan */}
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
+                <label htmlFor="warga-catatan" className="block font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
                 <textarea
+                  id="warga-catatan"
                   rows={2}
                   placeholder="Keterangan khusus lainnya..."
                   value={formData.catatan || ''}
@@ -1059,7 +1129,7 @@ export const DataWargaView: React.FC<DataWargaViewProps> = ({
             isOpen={isImportOpen}
             onClose={() => setIsImportOpen(false)}
             onCommitImport={onImportWarga}
-            onImportSuccess={({ added, updated }) => {
+            onImportSuccess={({ added: _added, updated: _updated }) => {
               // Trigger storage listeners
               setIsImportOpen(false);
             }}

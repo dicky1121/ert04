@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Printer, ShieldCheck, Copy, Check, CreditCard as Edit3, RotateCcw, FileText, CircleCheck as CheckCircle2, Type, Sparkles, FileDown } from 'lucide-react';
+import { Printer, Copy, Check, CreditCard as Edit3, FileDown } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { SuratPengantar, RTConfig } from '../types';
 import { LambangBekasiLogo } from './BekasiLogo';
@@ -278,8 +278,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nomor Surat:</label>
+              <label htmlFor="spt-nomor-surat" className="block text-slate-700 font-semibold mb-1">Nomor Surat:</label>
               <input
+                id="spt-nomor-surat"
                 type="text"
                 value={nomorSurat}
                 onChange={(e) => setNomorSurat(e.target.value)}
@@ -287,8 +288,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nama Pemohon:</label>
+              <label htmlFor="spt-nama-pemohon" className="block text-slate-700 font-semibold mb-1">Nama Pemohon:</label>
               <input
+                id="spt-nama-pemohon"
                 type="text"
                 value={namaPemohon}
                 onChange={(e) => setNamaPemohon(e.target.value)}
@@ -296,8 +298,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Tempat Tgl Lahir:</label>
+              <label htmlFor="spt-tempat-lahir" className="block text-slate-700 font-semibold mb-1">Tempat Tgl Lahir:</label>
               <input
+                id="spt-tempat-lahir"
                 type="text"
                 value={tempatTglLahir}
                 onChange={(e) => setTempatTglLahir(e.target.value)}
@@ -305,8 +308,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Jenis Kelamin:</label>
+              <label htmlFor="spt-jenis-kelamin" className="block text-slate-700 font-semibold mb-1">Jenis Kelamin:</label>
               <select
+                id="spt-jenis-kelamin"
                 value={jenisKelamin}
                 onChange={(e) => setJenisKelamin(e.target.value)}
                 className="w-full p-2 border border-slate-300 rounded-lg bg-white"
@@ -316,8 +320,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Status Perkawinan:</label>
+              <label htmlFor="spt-status-perkawinan" className="block text-slate-700 font-semibold mb-1">Status Perkawinan:</label>
               <input
+                id="spt-status-perkawinan"
                 type="text"
                 value={statusKawin}
                 onChange={(e) => setStatusKawin(e.target.value)}
@@ -325,8 +330,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Agama:</label>
+              <label htmlFor="spt-agama" className="block text-slate-700 font-semibold mb-1">Agama:</label>
               <input
+                id="spt-agama"
                 type="text"
                 value={agama}
                 onChange={(e) => setAgama(e.target.value)}
@@ -334,8 +340,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">No Ktp / No Nik:</label>
+              <label htmlFor="spt-nik" className="block text-slate-700 font-semibold mb-1">No Ktp / No Nik:</label>
               <input
+                id="spt-nik"
                 type="text"
                 value={nikPemohon}
                 onChange={(e) => setNikPemohon(e.target.value)}
@@ -343,8 +350,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Pekerjaan:</label>
+              <label htmlFor="spt-pekerjaan" className="block text-slate-700 font-semibold mb-1">Pekerjaan:</label>
               <input
+                id="spt-pekerjaan"
                 type="text"
                 value={pekerjaan}
                 onChange={(e) => setPekerjaan(e.target.value)}
@@ -352,8 +360,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Telepon / HP:</label>
+              <label htmlFor="spt-telepon" className="block text-slate-700 font-semibold mb-1">Telepon / HP:</label>
               <input
+                id="spt-telepon"
                 type="text"
                 value={telepon}
                 onChange={(e) => setTelepon(e.target.value)}
@@ -362,8 +371,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             </div>
             <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-2.5 rounded-lg border border-amber-200">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Alamat Lengkap (Baris 1):</label>
+                <label htmlFor="spt-alamat-1" className="block text-slate-700 font-semibold mb-1">Alamat Lengkap (Baris 1):</label>
                 <input
+                  id="spt-alamat-1"
                   type="text"
                   value={alamatBaris1}
                   onChange={(e) => setAlamatBaris1(e.target.value)}
@@ -371,8 +381,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 />
               </div>
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Alamat Lengkap (Baris 2):</label>
+                <label htmlFor="spt-alamat-2" className="block text-slate-700 font-semibold mb-1">Alamat Lengkap (Baris 2):</label>
                 <input
+                  id="spt-alamat-2"
                   type="text"
                   value={alamatBaris2}
                   onChange={(e) => setAlamatBaris2(e.target.value)}
@@ -382,8 +393,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
             </div>
             <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-2.5 rounded-lg border border-amber-200">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Keperluan (Baris 1):</label>
+                <label htmlFor="spt-keperluan-1" className="block text-slate-700 font-semibold mb-1">Keperluan (Baris 1):</label>
                 <input
+                  id="spt-keperluan-1"
                   type="text"
                   value={keperluan1}
                   onChange={(e) => setKeperluan1(e.target.value)}
@@ -391,8 +403,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
                 />
               </div>
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Keperluan (Baris 2 / Tanggal):</label>
+                <label htmlFor="spt-keperluan-2" className="block text-slate-700 font-semibold mb-1">Keperluan (Baris 2 / Tanggal):</label>
                 <input
+                  id="spt-keperluan-2"
                   type="text"
                   value={keperluan2}
                   onChange={(e) => setKeperluan2(e.target.value)}
@@ -401,8 +414,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               </div>
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Tanggal Surat (DD-MM-YYYY):</label>
+              <label htmlFor="spt-tanggal-surat" className="block text-slate-700 font-semibold mb-1">Tanggal Surat (DD-MM-YYYY):</label>
               <input
+                id="spt-tanggal-surat"
                 type="text"
                 value={tanggalSurat}
                 onChange={(e) => setTanggalSurat(e.target.value)}
@@ -410,8 +424,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nama Ketua RT (Kiri):</label>
+              <label htmlFor="spt-ketua-rt" className="block text-slate-700 font-semibold mb-1">Nama Ketua RT (Kiri):</label>
               <input
+                id="spt-ketua-rt"
                 type="text"
                 value={namaKetuaRT}
                 onChange={(e) => setNamaKetuaRT(e.target.value)}
@@ -419,8 +434,9 @@ ${namaKetuaRT}                                     ${namaKetuaRW}`;
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Nama Ketua RW (Kanan):</label>
+              <label htmlFor="spt-ketua-rw" className="block text-slate-700 font-semibold mb-1">Nama Ketua RW (Kanan):</label>
               <input
+                id="spt-ketua-rw"
                 type="text"
                 value={namaKetuaRW}
                 onChange={(e) => setNamaKetuaRW(e.target.value)}

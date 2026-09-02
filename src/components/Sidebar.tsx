@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   config,
-  currentUser,
+  currentUser: _currentUser,
   pendingSuratCount = 0,
   ewsBaruCount = 0,
   isOpenMobile = false,
@@ -52,22 +52,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isDataWargaActive = ['warga', 'kk', 'mutasi', 'bansos'].includes(activeTab);
   const isSettingActive = ['template-pengantar', 'surat', 'audit', 'integrasi'].includes(activeTab);
 
-  const [isDataWargaOpen, setIsDataWargaOpen] = useState<boolean>(true);
-  const [isSettingOpen, setIsSettingOpen] = useState<boolean>(true);
+  const [isDataWargaOpen, setIsDataWargaOpen] = useState<boolean>(() =>
+    ['warga', 'kk', 'mutasi', 'bansos'].includes(activeTab)
+  );
+  const [isSettingOpen, setIsSettingOpen] = useState<boolean>(() =>
+    ['template-pengantar', 'surat', 'audit', 'integrasi'].includes(activeTab)
+  );
   const hasCloudSession = authState.hasActiveSession();
-
-  // Auto-expand group if active tab belongs to it
-  useEffect(() => {
-    if (isDataWargaActive) {
-      setIsDataWargaOpen(true);
-    }
-  }, [activeTab, isDataWargaActive]);
-
-  useEffect(() => {
-    if (isSettingActive) {
-      setIsSettingOpen(true);
-    }
-  }, [activeTab, isSettingActive]);
 
   const handleNavClick = (tabId: string) => {
     onSelectTab(tabId);
@@ -107,16 +98,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => handleNavClick('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
-            <div className="p-1 rounded-xl bg-slate-50 border border-slate-200 group-hover:border-emerald-500 transition-colors shrink-0">
+            <div className="p-1 rounded-xl bg-slate-50 border border-slate-200 group-hover:border-brand-500 transition-colors shrink-0">
               <BekasiLogo className="w-8 h-9" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <span className="font-bold text-sm text-slate-900 tracking-tight leading-none group-hover:text-emerald-700 transition-colors truncate">
+                <span className="font-bold text-sm text-slate-900 tracking-tight leading-none group-hover:text-brand-700 transition-colors truncate">
                   Sistem Kependudukan
                 </span>
               </div>
-              <div className="font-bold text-xs text-emerald-800 mt-1 leading-none">
+              <div className="font-bold text-xs text-brand-700 mt-1 leading-none">
                 RT {config.namaRT || '004'} / RW {config.namaRW || '007'}
               </div>
               <p className="text-xs text-slate-500 mt-0.5 truncate leading-tight">
@@ -145,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('dashboard')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'dashboard'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -182,11 +173,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('pengaduan')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'pengaduan'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <MessageSquareWarning className={`w-4 h-4 shrink-0 ${activeTab === 'pengaduan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <MessageSquareWarning className={`w-4 h-4 shrink-0 ${activeTab === 'pengaduan' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">Pengaduan Warga</span>
             </button>
           </div>
@@ -197,11 +188,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('pengumuman')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'pengumuman'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Megaphone className={`w-4 h-4 shrink-0 ${activeTab === 'pengumuman' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <Megaphone className={`w-4 h-4 shrink-0 ${activeTab === 'pengumuman' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">Pengumuman RT</span>
             </button>
           </div>
@@ -212,11 +203,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('kegiatan')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'kegiatan'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <CalendarDays className={`w-4 h-4 shrink-0 ${activeTab === 'kegiatan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <CalendarDays className={`w-4 h-4 shrink-0 ${activeTab === 'kegiatan' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">Kegiatan RT</span>
             </button>
           </div>
@@ -227,11 +218,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('umkm')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'umkm'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Store className={`w-4 h-4 shrink-0 ${activeTab === 'umkm' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <Store className={`w-4 h-4 shrink-0 ${activeTab === 'umkm' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">UMKM Warga</span>
             </button>
           </div>
@@ -242,11 +233,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('keuangan')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'keuangan'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'keuangan' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <Wallet className={`w-4 h-4 shrink-0 ${activeTab === 'keuangan' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">Keuangan RT</span>
             </button>
           </div>
@@ -257,11 +248,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNavClick('iuran')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
                 activeTab === 'iuran'
-                  ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                  ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'iuran' ? 'text-emerald-600' : 'text-slate-500'}`} />
+              <Coins className={`w-4 h-4 shrink-0 ${activeTab === 'iuran' ? 'text-brand-600' : 'text-slate-500'}`} />
               <span className="truncate">Iuran RT</span>
             </button>
           </div>
@@ -291,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('warga')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'warga'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -303,7 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('kk')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'kk'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -315,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('mutasi')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'mutasi'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -327,7 +318,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('bansos')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'bansos'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -358,7 +349,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('template-pengantar')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'template-pengantar' || activeTab === 'surat'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -377,7 +368,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('audit')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'audit'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -389,7 +380,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick('integrasi')}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${
                     activeTab === 'integrasi'
-                      ? 'bg-emerald-50 text-emerald-700 font-bold border-l-3 border-emerald-600 shadow-2xs'
+                      ? 'bg-emerald-50 text-brand-700 font-bold border-l-3 border-brand-600 shadow-2xs'
                       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
@@ -402,7 +393,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition text-left cursor-pointer"
                   title="Unduh data Excel master kependudukan"
                 >
-                  <Download className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <Download className="w-4 h-4 shrink-0 text-brand-600" />
                   <span className="truncate">Ekspor Excel</span>
                 </button>
               </div>
@@ -418,8 +409,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Database className="w-3.5 h-3.5 text-slate-500" />
                 Status Database
               </span>
-              <span className={`flex items-center gap-1 text-xs font-bold ${hasCloudSession ? 'text-emerald-700' : 'text-slate-500'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${hasCloudSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+              <span className={`flex items-center gap-1 text-xs font-bold ${hasCloudSession ? 'text-brand-700' : 'text-slate-500'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${hasCloudSession ? 'bg-brand-500 animate-pulse' : 'bg-slate-400'}`}></span>
                 {hasCloudSession ? 'Terhubung' : 'Lokal'}
               </span>
             </div>

@@ -2,16 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   HeartHandshake, 
   Search, 
-  Baby, 
-  CheckCircle2, 
-  Clock, 
-  Download, 
-  Filter, 
-  FileSpreadsheet, 
-  Sparkles,
-  Users,
-  Check,
-  AlertCircle
+  FileSpreadsheet
 } from 'lucide-react';
 import { Warga, RTConfig } from '../types';
 import { calculateDemographics } from '../services/storage';

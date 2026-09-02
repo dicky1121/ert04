@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { EWS_JENIS_KEJADIAN, JenisKejadianEWS, LaporanEWS, StatusEWS } from '../types';
 import { supabaseService } from '../services/supabaseService';
+import { statusBadge, EWS_TONE } from '../utils/statusBadge';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 
 interface EWSDetailModalProps {
@@ -24,9 +25,9 @@ const STATUS_LABEL: Record<StatusEWS, string> = {
 };
 
 const STATUS_COLOR: Record<StatusEWS, string> = {
-  BARU: 'bg-rose-100 text-rose-700 border-rose-200',
-  DITANGANI: 'bg-amber-100 text-amber-700 border-amber-200',
-  SELESAI: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  BARU: statusBadge(EWS_TONE.BARU),
+  DITANGANI: statusBadge(EWS_TONE.DITANGANI),
+  SELESAI: statusBadge(EWS_TONE.SELESAI),
 };
 
 const WARNA_BG: Record<string, string> = {
@@ -181,6 +182,7 @@ export const EWSDetailModal: React.FC<EWSDetailModalProps> = ({ laporanId, onClo
                     <img
                       src={laporan.foto_url}
                       alt="Foto laporan darurat"
+                      loading="lazy"
                       className="w-full max-h-72 object-cover"
                       onError={() => setGagalFoto(true)}
                     />

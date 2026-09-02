@@ -27,7 +27,7 @@ interface UmkmAdminViewProps {
 
 type FilterUmkm = 'SEMUA' | 'PENDING' | 'VERIFIED' | 'DITOLAK';
 
-export const UmkmAdminView: React.FC<UmkmAdminViewProps> = ({ currentUser }) => {
+export const UmkmAdminView: React.FC<UmkmAdminViewProps> = ({ currentUser: _currentUser }) => {
   const [tokoList, setTokoList] = useState<UmkmToko[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -249,6 +249,7 @@ export const UmkmAdminView: React.FC<UmkmAdminViewProps> = ({ currentUser }) => 
           <button
             onClick={loadData}
             disabled={isLoading}
+            aria-label="Refresh daftar UMKM"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700 transition shadow-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

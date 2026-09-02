@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS public.pengaturan_iuran_rt004 (
     updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
+-- Tambah 3 kolom untuk Task 2 (metode pembayaran) & Task 7 (reminder bulanan)
+-- JSONB dipilih karena frontend menyimpan array objek metode bayar
+ALTER TABLE public.pengaturan_iuran_rt004
+  ADD COLUMN IF NOT EXISTS metode_pembayaran JSONB   NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS reminder_aktif    BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS hari_reminder     INT     NOT NULL DEFAULT 1
+    CHECK (hari_reminder BETWEEN 1 AND 28);
+
 INSERT INTO public.pengaturan_iuran_rt004 (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================================

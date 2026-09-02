@@ -31,7 +31,7 @@ const toneStyles: Record<ConfirmTone, { icon: React.ReactNode; iconWrap: string;
   info: {
     icon: <Info className="w-5 h-5" />,
     iconWrap: 'bg-emerald-100 text-emerald-800',
-    action: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    action: 'bg-brand-600 hover:bg-brand-700 text-white'
   }
 };
 

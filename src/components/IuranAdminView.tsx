@@ -47,8 +47,6 @@ const STATUS_URUT: StatusTagihan[] = ['BELUM_LUNAS', 'MENUNGGU_VERIFIKASI', 'LUN
 const hariIni = (): string => new Date().toISOString().slice(0, 10);
 const bulanIni = (): string => new Date().toISOString().slice(0, 7);
 
-/** Nominal ditampilkan berformat ribuan; disimpan sebagai angka bulat. */
-const tampilRupiah = (n: number): string => (n ? n.toLocaleString('id-ID') : '');
 const parseRupiah = (raw: string): number => {
   const digits = raw.replace(/\D/g, '');
   return digits ? Number(digits) : 0;
@@ -344,7 +342,7 @@ const TagihanFormModal: React.FC<{
           id="iuran-jumlah"
           type="text"
           inputMode="numeric"
-          value={tampilRupiah(form.jumlah)}
+          value={formatRupiah(form.jumlah)}
           onChange={e => setField('jumlah', parseRupiah(e.target.value))}
           placeholder="mis. 50.000"
           className={`${inputCls} font-bold`}
@@ -487,7 +485,7 @@ const GenerateMassalModal: React.FC<{
             id="massal-jumlah"
             type="text"
             inputMode="numeric"
-            value={tampilRupiah(jumlah)}
+            value={formatRupiah(jumlah)}
             onChange={e => setJumlah(parseRupiah(e.target.value))}
             placeholder="mis. 50.000"
             className={`${inputCls} font-bold`}
@@ -696,6 +694,7 @@ const VerifikasiModal: React.FC<{
             <img
               src={url}
               alt={`Bukti transfer ${namaWarga}`}
+              loading="lazy"
               onError={() => setGagalGambar(true)}
               className="max-h-[44vh] w-full rounded-xl border border-slate-200 bg-slate-100 object-contain"
             />
@@ -827,7 +826,7 @@ const SetelanModal: React.FC<{
 
       {/* ── Metode pembayaran ── */}
       <div>
-        <label className={labelCls}>Metode Pembayaran</label>
+        <p className={`${labelCls} mb-1`}>Metode Pembayaran</p>
         <p className="mb-2 text-[11px] text-slate-400">
           Daftar cara bayar yang tampil ke warga di halaman Iuran Saya.
         </p>
@@ -860,22 +859,30 @@ const SetelanModal: React.FC<{
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-3 space-y-2">
           <p className="text-[11px] font-bold text-slate-600">Tambah metode baru</p>
           <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={labelBaru}
-              onChange={e => { setLabelBaru(e.target.value); setErrMetode(null); }}
-              placeholder="Label (mis. Transfer BCA)"
-              className={inputCls}
-              maxLength={50}
-            />
-            <input
-              type="text"
-              value={detailBaru}
-              onChange={e => { setDetailBaru(e.target.value); setErrMetode(null); }}
-              placeholder="Detail (mis. 1234567 a/n RT 004)"
-              className={inputCls}
-              maxLength={100}
-            />
+            <div>
+              <label htmlFor="metode-label-baru" className="sr-only">Label metode pembayaran</label>
+              <input
+                id="metode-label-baru"
+                type="text"
+                value={labelBaru}
+                onChange={e => { setLabelBaru(e.target.value); setErrMetode(null); }}
+                placeholder="Label (mis. Transfer BCA)"
+                className={inputCls}
+                maxLength={50}
+              />
+            </div>
+            <div>
+              <label htmlFor="metode-detail-baru" className="sr-only">Detail metode pembayaran</label>
+              <input
+                id="metode-detail-baru"
+                type="text"
+                value={detailBaru}
+                onChange={e => { setDetailBaru(e.target.value); setErrMetode(null); }}
+                placeholder="Detail (mis. 1234567 a/n RT 004)"
+                className={inputCls}
+                maxLength={100}
+              />
+            </div>
           </div>
           {errMetode && <p className="text-[11px] text-rose-600">{errMetode}</p>}
           <button
@@ -906,7 +913,7 @@ const SetelanModal: React.FC<{
             id="set-nominal"
             type="text"
             inputMode="numeric"
-            value={tampilRupiah(form.nominalDefault)}
+            value={formatRupiah(form.nominalDefault)}
             onChange={e => setForm(p => ({ ...p, nominalDefault: parseRupiah(e.target.value) }))}
             placeholder="mis. 50.000"
             className={`${inputCls} font-bold`}
@@ -1258,6 +1265,7 @@ export const IuranAdminView: React.FC<IuranAdminViewProps> = ({ currentUser, war
           <button
             onClick={loadData}
             disabled={isLoading}
+            aria-label="Refresh daftar iuran"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700 transition shadow-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -1267,6 +1275,7 @@ export const IuranAdminView: React.FC<IuranAdminViewProps> = ({ currentUser, war
             <>
               <button
                 onClick={() => setShowSetelan(true)}
+                aria-label="Buka setelan iuran"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700 transition shadow-sm"
               >
                 <Settings2 className="w-4 h-4" />

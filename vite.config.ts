@@ -1,3 +1,6 @@
+// Menambahkan tipe opsi `test` (Vitest) ke `defineConfig` tanpa mengubah
+// import runtime — vite.config.ts tetap hanya bergantung pada `vite` saat build.
+/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -11,6 +14,11 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    test: {
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
+      css: false,
+    },
     build: {
       // Pisahkan dependensi berat ke chunk terpisah agar bundle utama lebih kecil
       // dan chunk vendor bisa di-cache browser lebih lama.
@@ -22,6 +30,7 @@ export default defineConfig(() => {
             xlsx: ['xlsx'],
             docx: ['mammoth'],
             icons: ['lucide-react'],
+            motion: ['motion/react'],
           },
         },
       },

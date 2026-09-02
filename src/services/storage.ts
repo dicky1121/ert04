@@ -1373,7 +1373,7 @@ class StorageService {
   }
 
   // --- AUTO INCREMENT NOMOR SURAT RESMI ---
-  public getNextNomorSurat(jenis: string = 'SP'): string {
+  public getNextNomorSurat(_jenis: string = 'SP'): string {
     const config = this.getConfig();
     const now = new Date();
     const currentYear = now.getFullYear();
