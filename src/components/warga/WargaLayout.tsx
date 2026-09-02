@@ -477,6 +477,7 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   const [openPerbaruiKK, setOpenPerbaruiKK] = useState(false);
 
   const isNativeApp = Capacitor.isNativePlatform();
+  const reduce = useReducedMotion() ?? false;
 
   useEffect(() => {
     let aktif = true;
@@ -624,7 +625,6 @@ export const WargaLayout: React.FC<WargaLayoutProps> = ({ currentUser, config, o
   }, [isNativeApp]);
 
   const renderContent = () => {
-    const reduce = useReducedMotion() ?? false;
     switch (tab) {
       case 'beranda':
         return (
